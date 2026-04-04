@@ -1772,6 +1772,26 @@ function finishSession() {
     item.addEventListener('click', () => { if (src) openLightbox(src, i, log.duration, log.rotation || 0) })
     grid.appendChild(item)
   })
+  // Pop-up Discord (1 fois sur 3)
+  if (Math.random() < 0.33) {
+    setTimeout(() => {
+      const existing = document.getElementById('discord-popup')
+      if (existing) return
+      const popup = document.createElement('div')
+      popup.id = 'discord-popup'
+      popup.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e1e1e;border:0.5px solid #333;border-radius:12px;padding:16px 20px;max-width:280px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:fadeUp 0.3s ease'
+      popup.innerHTML = `
+        <div style="font-size:13px;color:#888;margin-bottom:6px">🐛 Un bug ? Une idée ?</div>
+        <div style="font-size:14px;color:#fff;font-weight:500;margin-bottom:12px">Rejoins la communauté Gesturo</div>
+        <div style="display:flex;gap:8px">
+          <a href="https://discord.gg/HgnBN85xjj" target="_blank" style="flex:1;background:#5865F2;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;text-align:center">💬 Discord</a>
+          <button onclick="document.getElementById('discord-popup').remove()" style="background:#2e2e2e;color:#888;border:none;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer">✕</button>
+        </div>
+      `
+      document.body.appendChild(popup)
+      setTimeout(() => { const p = document.getElementById('discord-popup'); if(p) p.remove() }, 8000)
+    }, 1500)
+  }
 }
 
 function replaySession() {
