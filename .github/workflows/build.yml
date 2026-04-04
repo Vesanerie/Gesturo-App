@@ -32,5 +32,5 @@ jobs:
           name: Gesturo ${{ steps.version.outputs.VERSION }}
           prerelease: true
           files: dist/*.dmg
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           repository: Vesanerie/gesturo-releases
