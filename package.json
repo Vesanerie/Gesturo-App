@@ -1,6 +1,6 @@
 {
   "name": "gesturo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Entraînement au dessin de poses",
   "author": "Gesturo",
   "main": "main.js",
