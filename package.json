@@ -21,12 +21,6 @@
       "repo": "gesturo-releases",
       "private": true
     },
-    "extraFiles": [
-      {
-        "from": "install.command",
-        "to": "Ouvrir Gesturo.command"
-      }
-    ],
     "files": [
       "index.html",
       "main.js",
@@ -46,7 +40,13 @@
       }
     },
     "dmg": {
-      "title": "Gesturo"
+      "title": "Gesturo",
+      "extraFiles": [
+        {
+          "from": "install.command",
+          "to": "Ouvrir Gesturo.command"
+        }
+      ]
     }
   },
   "dependencies": {
