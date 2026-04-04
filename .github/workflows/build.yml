@@ -40,7 +40,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.APPLE_CERT_P12 }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-        run: npm run build
+        run: npm run build -- --publish never
 
       - name: Get version
         id: version
