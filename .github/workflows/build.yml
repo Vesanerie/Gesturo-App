@@ -28,12 +28,17 @@ jobs:
         id: version
         run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
+      - name: Rename DMG to latest
+        run: cp dist/Gesturo-${{ steps.version.outputs.VERSION }}-arm64.dmg dist/Gesturo-latest-arm64.dmg
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           name: Gesturo ${{ steps.version.outputs.VERSION }}
-          prerelease: true
-          files: dist/*.dmg
+          prerelease: false
+          files: |
+            dist/Gesturo-${{ steps.version.outputs.VERSION }}-arm64.dmg
+            dist/Gesturo-latest-arm64.dmg
           token: ${{ secrets.GH_TOKEN }}
           repository: Vesanerie/gesturo-releases
