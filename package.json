@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "electron": "^30.0.0",
-    "electron-builder": "^24.0.0"
+    "electron-builder": "^26.8.1"
   },
   "build": {
     "appId": "com.gesturo.app",
@@ -34,10 +34,14 @@
     "mac": {
       "category": "public.app-category.graphics-design",
       "icon": "icon.icns",
-      "notarize": { "teamId": "Q4W8LZ8636" },
+      "notarize": {
+        "teamId": "Q4W8LZ8636"
+      },
       "target": {
         "target": "dmg",
-        "arch": ["arm64"]
+        "arch": [
+          "arm64"
+        ]
       }
     },
     "dmg": {
