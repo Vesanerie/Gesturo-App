@@ -7,6 +7,7 @@ const fs = require('fs')
 const os = require('os')
 const https = require('https')
 const { shell } = require('electron')
+const { autoUpdater } = require('electron-updater')
 
 let mainWindow
 
@@ -276,6 +277,7 @@ app.whenReady().then(() => {
     callback({ path: filePath })
   })
   createWindow()
+  autoUpdater.checkForUpdatesAndNotify()
 })
 
 function createWindow() {
