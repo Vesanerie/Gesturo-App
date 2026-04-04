@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Gesture Drawing</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; color: #e0e0e0; height: 100vh; overflow: hidden; }
+    .screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── CONFIG ── */
+    #screen-config { background: #1a1a1a; align-items: center; overflow-y: auto; padding: 40px 20px; }
+    .config-inner { width: 580px; padding-bottom: 40px; }
+    .config-inner h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; color: #fff; }
+    .config-inner .subtitle { font-size: 13px; color: #555; margin-bottom: 24px; }
+    .card { background: #242424; border: 0.5px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 14px; }
+    .card h3 { font-size: 12px; font-weight: 500; color: #666; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
+    .folder-btn { display: flex; align-items: center; gap: 10px; background: #2e2e2e; border: 0.5px solid #444; border-radius: 8px; padding: 10px 14px; cursor: pointer; width: 100%; font-size: 14px; color: #ccc; }
+    .folder-btn:hover { background: #333; }
+    #folder-path { font-size: 12px; color: #555; margin-top: 8px; word-break: break-all; }
+    #file-count { font-size: 12px; color: #4CAF50; margin-top: 4px; min-height: 16px; }
+
+    /* Catégories */
+    #categories-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+    .cat-chip { display: flex; align-items: center; gap: 6px; border: 1.5px solid #333; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: transparent; color: #555; user-select: none; transition: all 0.15s; }
+    .cat-chip:hover { border-color: #555; color: #888; }
+    .cat-chip.selected { background: #fff; color: #111; border-color: #fff; font-weight: 500; }
+    .cat-chip.nudity { border-color: #5a1f1f; color: #7a3030; }
+    .cat-chip.nudity:hover { border-color: #E24B4A; color: #E24B4A; }
+    .cat-chip.nudity.selected { background: #E24B4A; color: #fff; border-color: #E24B4A; }
+    .cat-chip.anim-cat { border-color: #1a3a5a; color: #3a6a8a; }
+    .cat-chip.anim-cat.selected { background: #5b9bd5; color: #111; border-color: #5b9bd5; }
+    .cat-count { font-size: 11px; opacity: 0.6; }
+
+    /* Modes principaux */
+    .mode-tabs { display: flex; gap: 0; border: 0.5px solid #333; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+    .mode-tab { flex: 1; padding: 10px; text-align: center; font-size: 14px; cursor: pointer; background: #242424; color: #666; border: none; }
+    .mode-tab:hover { background: #2e2e2e; }
+    .mode-tab.active { background: #fff; color: #111; font-weight: 500; }
+
+    /* Session modes */
+    .sub-mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .sub-mode-card { background: #2e2e2e; border: 0.5px solid #444; border-radius: 10px; padding: 14px; cursor: pointer; }
+    .sub-mode-card:hover { background: #333; }
+    .sub-mode-card.selected { border-color: #fff; }
+    .sub-mode-card .t { font-size: 14px; font-weight: 500; color: #fff; margin-bottom: 4px; }
+    .sub-mode-card .d { font-size: 12px; color: #666; line-height: 1.4; }
+
+    /* Séquences animation */
+    #sequences-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .seq-item { display: flex; align-items: center; justify-content: space-between; background: #2e2e2e; border: 0.5px solid #444; border-radius: 8px; padding: 10px 14px; cursor: pointer; }
+    .seq-item:hover { background: #333; }
+    .seq-item.selected { border-color: #5b9bd5; background: #1a2e44; }
+    .seq-item.ready { border-color: #4CAF50; background: #1a2e1a; }
+    .seq-item.ready .seq-name { color: #4CAF50; }
+    .seq-item.selected.ready { border-color: #4CAF50; background: #1a3a2a; box-shadow: 0 0 0 1.5px #5b9bd5; }
+    .seq-item .seq-name { font-size: 14px; color: #ccc; }
+    .seq-item .seq-info { font-size: 12px; color: #555; }
+    .seq-check { font-size: 13px; margin-left: 6px; }
+    #no-sequences { font-size: 13px; color: #555; line-height: 1.6; }
+
+    /* FPS slider */
+    .fps-row { display: flex; align-items: center; gap: 12px; }
+    .fps-row label { font-size: 13px; color: #888; min-width: 80px; }
+    input[type=range] { flex: 1; accent-color: #fff; }
+    .fps-val { font-size: 14px; font-weight: 500; color: #fff; min-width: 60px; text-align: right; }
+
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { border: 0.5px solid #444; border-radius: 99px; padding: 6px 16px; font-size: 13px; cursor: pointer; background: transparent; color: #aaa; }
+    .chip:hover { background: #2e2e2e; }
+    .chip.selected { background: #fff; color: #111; border-color: #fff; }
+    .row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .row:last-child { margin-bottom: 0; }
+    .row label { font-size: 14px; color: #888; min-width: 180px; }
+    input[type=number], select { background: #2e2e2e; border: 0.5px solid #444; border-radius: 8px; padding: 7px 10px; font-size: 14px; color: #e0e0e0; outline: none; }
+
+    .btn-start { width: 100%; padding: 13px; background: #fff; color: #111; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+    .btn-start:hover { background: #e0e0e0; }
+    .btn-start:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ── SESSION POSE ── */
+    #screen-session { background: #111; }
+    #photo-area { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #111; overflow: hidden; position: relative; }
+    #photo-area img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+    #photo-area canvas { max-width: 100%; max-height: 100%; display: none; }
+    #photo-placeholder { color: #444; font-size: 14px; }
+    #phase-badge { position: absolute; top: 14px; left: 14px; background: rgba(0,0,0,0.6); border: 0.5px solid #333; border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #888; display: none; }
+    #transform-controls { position: absolute; bottom: 14px; right: 14px; display: flex; gap: 6px; }
+    /* Grille de composition */
+    #grid-overlay { position: absolute; pointer-events: none; display: none; }
+    #grid-overlay.visible { display: block; }
+    #grid-overlay svg { width: 100%; height: 100%; display: block; }
+    .grid-line { stroke: rgba(255,255,255,0.28); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .grid-diag { stroke: rgba(255,255,255,0.18); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .transform-btn.grid-active { color: #fff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.1); }
+    .transform-btn { background: rgba(0,0,0,0.5); border: 0.5px solid #333; border-radius: 6px; color: #888; width: 32px; height: 32px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+    .transform-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    #photo-area img, #photo-area canvas { transition: transform 0.2s ease; }
+    #session-bar { flex-shrink: 0; background: #1a1a1a; border-top: 0.5px solid #2e2e2e; padding: 10px 24px; display: flex; align-items: center; gap: 16px; }
+    /* Cercle countdown SVG */
+    #countdown-circle { width: 48px; height: 48px; flex-shrink: 0; }
+    #countdown-circle .bg { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 4; }
+    #countdown-circle .arc { fill: none; stroke: rgba(255,255,255,0.65); stroke-width: 4; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 0.85s linear, stroke 0.3s; }
+    #countdown-circle .arc.warning { stroke: #E24B4A; }
+    #timer-block { text-align: center; min-width: 100px; }
+    #timer-display { font-size: 40px; font-weight: 300; color: #fff; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+    #timer-display.warning { color: #E24B4A; }
+    #prog-wrap { height: 2px; background: #333; border-radius: 99px; margin-top: 5px; }
+    #prog-bar { height: 2px; background: #fff; border-radius: 99px; width: 100%; transition: width 0.8s linear; }
+    #info-block { flex: 1; }
+    #session-info { font-size: 13px; color: #666; }
+    #mode-label { font-size: 12px; color: #555; margin-top: 2px; }
+    .s-btn { border: 0.5px solid #333; border-radius: 8px; background: transparent; color: #aaa; padding: 7px 14px; font-size: 13px; cursor: pointer; }
+    .s-btn:hover { background: #2a2a2a; }
+    .s-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .s-btn-danger { border-color: #5a1f1f; color: #E24B4A; }
+    .s-btn-danger:hover { background: #1f1010; }
+    .s-btn-danger-solid { background: #E24B4A; color: #fff; border-color: #E24B4A; }
+    .s-btn-blue { border-color: #1a4a7a; color: #5b9bd5; }
+    .s-btn-blue:hover { background: #1a2e44; }
+    #controls { display: flex; gap: 8px; }
+    #confirm-bar { display: none; align-items: center; gap: 10px; }
+    #confirm-bar span { font-size: 13px; color: #aaa; }
+
+    /* ── MODE ANIMATION ── */
+    #screen-anim { background: #111; }
+    #anim-photo-area { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #111; overflow: hidden; position: relative; }
+    #anim-photo-area img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    #anim-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); }
+    #anim-overlay.hidden { display: none; }
+    .anim-big-btn { background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3); border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 32px; color: #fff; backdrop-filter: blur(4px); }
+    .anim-big-btn:hover { background: rgba(255,255,255,0.25); }
+    /* Indicateur de préchargement sur séquence */
+    .seq-item .seq-status { font-size: 11px; color: #555; margin-left: 6px; }
+    .seq-item.preloading .seq-name { color: #5b9bd5; }
+    .seq-item.ready .seq-name { color: #4CAF50; }
+
+    #anim-mode-badge { position: absolute; top: 14px; left: 14px; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    #anim-mode-badge.loop { background: rgba(91,155,213,0.2); border: 0.5px solid #5b9bd5; color: #5b9bd5; }
+    #anim-mode-badge.study { background: rgba(255,255,255,0.1); border: 0.5px solid #555; color: #aaa; }
+    #anim-frame-info { position: absolute; top: 14px; right: 14px; font-size: 12px; color: #555; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 6px; }
+
+    /* Timeline miniatures */
+    #anim-bar { flex-shrink: 0; background: #111; border-top: 0.5px solid #222; }
+    #timeline-wrap { width: 100%; overflow-x: auto; overflow-y: hidden; padding: 10px 16px 0; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+    #timeline-wrap::-webkit-scrollbar { height: 4px; }
+    #timeline-wrap::-webkit-scrollbar-track { background: transparent; }
+    #timeline-wrap::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+    #timeline-inner { display: flex; gap: 4px; align-items: flex-end; min-width: max-content; padding-bottom: 8px; }
+    .thumb-item { flex-shrink: 0; width: 52px; height: 70px; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative; border: 2px solid transparent; transition: border-color 0.15s, transform 0.15s; background: #1a1a1a; }
+    .thumb-item:hover { transform: translateY(-3px); border-color: #444; }
+    .thumb-item.active { border-color: #5b9bd5; transform: translateY(-4px); }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb-num { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 9px; color: rgba(255,255,255,0.5); }
+    .thumb-item.active .thumb-num { color: #5b9bd5; }
+
+    /* Barre de contrôles anim */
+    #anim-controls-bar { display: flex; align-items: center; gap: 12px; padding: 8px 16px 12px; }
+    #anim-seq-name { font-size: 12px; color: #444; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Timer étude */
+    #study-timer-wrap { display: flex; align-items: center; gap: 12px; }
+    #study-timer { font-size: 28px; font-weight: 300; color: #fff; letter-spacing: -1px; font-variant-numeric: tabular-nums; min-width: 70px; }
+    #study-timer.warning { color: #E24B4A; }
+    #study-prog-wrap { width: 80px; height: 2px; background: #333; border-radius: 99px; }
+    #study-prog-bar { height: 2px; background: #5b9bd5; border-radius: 99px; width: 100%; transition: width 0.5s linear; }
+
+    /* ── RÉCAP ── */
+    #screen-end { background: #1a1a1a; overflow-y: auto; }
+    .end-header { flex-shrink: 0; padding: 32px 40px 20px; border-bottom: 0.5px solid #2e2e2e; display: flex; align-items: center; justify-content: space-between; }
+    .end-header h2 { font-size: 20px; font-weight: 600; color: #fff; }
+    .end-stats-row { display: flex; gap: 24px; margin-top: 8px; }
+    .end-stat { font-size: 13px; color: #666; }
+    .end-stat strong { color: #fff; }
+    .end-btns { display: flex; gap: 8px; }
+    .end-btn { border: 0.5px solid #444; border-radius: 8px; background: transparent; color: #ccc; padding: 8px 18px; font-size: 13px; cursor: pointer; }
+    .end-btn:hover { background: #2e2e2e; }
+    .end-btn-primary { background: #fff; color: #111; border-color: #fff; }
+    .end-btn-primary:hover { background: #e0e0e0; }
+    #recap-grid { padding: 24px 40px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .recap-item { position: relative; border-radius: 8px; overflow: hidden; background: #242424; aspect-ratio: 3/4; cursor: zoom-in; }
+    .recap-item:hover { opacity: 0.85; }
+    .recap-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .recap-item .recap-duration { position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.7); border-radius: 4px; padding: 2px 6px; font-size: 11px; color: #ccc; }
+    .recap-item .recap-num { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.7); border-radius: 4px; padding: 2px 6px; font-size: 11px; color: #888; }
+    .recap-star { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.55); border: none; border-radius: 5px; font-size: 15px; color: #666; cursor: pointer; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s, color 0.15s, transform 0.15s; line-height: 1; padding: 0; }
+    .recap-item:hover .recap-star { opacity: 1; }
+    .recap-star:hover { color: #f0c040; transform: scale(1.2); }
+    .recap-star.faved { opacity: 1 !important; color: #f0c040; }
+    .recap-star.bump { animation: star-bump 0.22s ease; }
+    @keyframes star-bump { 0%{transform:scale(1)} 50%{transform:scale(1.55)} 100%{transform:scale(1)} }
+
+    /* ── LIGHTBOX ── */
+    #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000; align-items: center; justify-content: center; cursor: zoom-out; }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
+    #lightbox-close { position: fixed; top: 20px; right: 24px; font-size: 28px; color: #666; cursor: pointer; }
+    #lightbox-close:hover { color: #fff; }
+    #lightbox-info { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #666; background: rgba(0,0,0,0.6); padding: 6px 14px; border-radius: 6px; }
+
+    /* ── FAVORIS ── */
+    /* Bouton étoile flottant pendant les sessions */
+    .fav-star-btn {
+      position: absolute; top: 14px; right: 14px;
+      background: rgba(0,0,0,0.5); border: 0.5px solid #333; border-radius: 6px;
+      color: #555; width: 36px; height: 36px; cursor: pointer; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      transition: color 0.15s, background 0.15s; z-index: 10;
+    }
+    .fav-star-btn:hover { background: rgba(255,255,255,0.1); color: #f0c040; }
+    .fav-star-btn.active { color: #f0c040; border-color: #f0c040; }
+    .fav-star-btn.bump { animation: fav-bump 0.25s ease; }
+    @keyframes fav-bump { 0%{transform:scale(1)} 50%{transform:scale(1.4)} 100%{transform:scale(1)} }
+
+    /* Écran favoris */
+    #screen-favs { background: #1a1a1a; align-items: center; overflow-y: auto; padding: 40px 20px; }
+    #favs-inner { width: 580px; padding-bottom: 40px; }
+    #favs-inner h2 { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    #favs-subtitle { font-size: 13px; color: #555; margin-bottom: 24px; }
+    #favs-empty { font-size: 14px; color: #555; text-align: center; padding: 60px 0; line-height: 1.7; }
+    #favs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .fav-item { position: relative; border-radius: 8px; overflow: hidden; background: #242424; aspect-ratio: 3/4; cursor: zoom-in; }
+    .fav-item:hover .fav-remove { opacity: 1; }
+    .fav-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .fav-item .fav-label { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.7); border-radius: 4px; padding: 2px 6px; font-size: 11px; color: #f0c040; }
+    .fav-remove { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.7); border: none; border-radius: 4px; color: #888; font-size: 13px; cursor: pointer; padding: 3px 6px; opacity: 0; transition: opacity 0.15s, color 0.15s; }
+    .fav-remove:hover { color: #E24B4A; }
+
+    /* Lightbox favoris — bouton retirer */
+    #lb-fav-remove { position: fixed; bottom: 24px; right: 24px; background: rgba(80,20,20,0.85); border: 0.5px solid #5a1f1f; border-radius: 8px; color: #E24B4A; font-size: 13px; padding: 7px 14px; cursor: pointer; display: none; }
+    #lb-fav-remove:hover { background: rgba(226,75,74,0.2); }
+
+    /* ── BOUTON OPTIONS ── */
+    #options-btn { position: fixed; top: 14px; right: 14px; background: #242424; border: 0.5px solid #333; border-radius: 8px; color: #666; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: none; align-items: center; justify-content: center; z-index: 200; line-height: 1; }
+    #options-btn:hover { background: #2e2e2e; color: #aaa; }
+    #options-dropdown { display: none; position: fixed; top: 52px; right: 14px; background: #242424; border: 0.5px solid #333; border-radius: 10px; padding: 6px; z-index: 201; min-width: 210px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    #options-dropdown.open { display: block; }
+    .opt-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #ccc; user-select: none; }
+    .opt-item:hover { background: #2e2e2e; }
+    .opt-item.danger { color: #E24B4A; }
+    .opt-item.danger:hover { background: #1f1010; }
+
+    /* ── BARRE 7 JOURS ── */
+    #week-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    #week-days { display: flex; gap: 5px; flex: 1; }
+    .week-day { flex: 1; height: 6px; border-radius: 99px; background: #2a2a2a; transition: background 0.2s; position: relative; }
+    .week-day.done { background: #f0c040; }
+    .week-day.today { background: #f0c040; box-shadow: 0 0 6px rgba(240,192,64,0.5); }
+    .week-day.today.done { background: #f0c040; }
+    .week-day.future { background: #1e1e1e; }
+    #week-streak { font-size: 12px; color: #f0c040; font-weight: 500; white-space: nowrap; min-width: 60px; text-align: right; }
+    #week-streak.zero { color: #444; }
+
+    /* ── HISTORIQUE ── */
+    #hist-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .hist-stat-card { background: #2e2e2e; border: 0.5px solid #333; border-radius: 10px; padding: 14px 16px; }
+    .hist-stat-card .hsc-val { font-size: 26px; font-weight: 300; color: #fff; letter-spacing: -0.5px; line-height: 1.1; }
+    .hist-stat-card .hsc-label { font-size: 11px; color: #555; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.6px; }
+    .hist-stat-card.streak .hsc-val { color: #f0c040; }
+    .hist-period-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .hist-period-tab { border: 0.5px solid #333; border-radius: 6px; background: transparent; color: #666; font-size: 12px; padding: 5px 12px; cursor: pointer; }
+    .hist-period-tab:hover { background: #2e2e2e; }
+    .hist-period-tab.active { background: #2e2e2e; color: #ccc; border-color: #555; }
+    #hist-sessions-list { display: flex; flex-direction: column; gap: 6px; }
+    .hist-session-row { display: flex; align-items: center; gap: 12px; background: #2e2e2e; border: 0.5px solid #333; border-radius: 8px; padding: 10px 14px; }
+    .hist-session-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; flex-shrink: 0; }
+    .hist-session-dot.anim { background: #5b9bd5; }
+    .hist-session-info { flex: 1; font-size: 13px; color: #ccc; }
+    .hist-session-meta { font-size: 11px; color: #555; margin-top: 2px; }
+    .hist-session-time { font-size: 11px; color: #444; white-space: nowrap; }
+    #hist-empty { font-size: 13px; color: #555; text-align: center; padding: 30px 0; display: none; }
+  </style>
+</head>
+<body>
+
+<!-- ══ BOUTON OPTIONS ══ -->
+<button id="options-btn" onclick="toggleOptions()">⋯</button>
+<div id="options-dropdown">
+  <div class="opt-item" onclick="handleLogout()">🚪 Se déconnecter</div>
+  <div class="opt-item danger" onclick="confirmResetHistory()">🗑 Réinitialiser l'historique</div>
+</div>
+
+<!-- ══ CONFIG ══ -->
+<div class="screen active" id="screen-config">
+  <div class="config-inner">
+    <h1>Gesture Drawing</h1>
+    <p class="subtitle">Entraînement au dessin de poses</p>
+
+    <!-- Barre 7 jours glissants -->
+    <div class="card" id="admin-source-card" style="display:none;">
+      <div id="r2-status" style="font-size:12px;color:#4CAF50;margin-bottom:14px;min-height:16px;"></div>
+      <h3>Base de données</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button id="btn-source-r2" class="folder-btn" style="justify-content:center;background:#1a2e44;border-color:#5b9bd5;color:#5b9bd5;" onclick="adminSetSource('r2')">☁️ R2 Cloud</button>
+        <button id="btn-source-local" class="folder-btn" style="justify-content:center;" onclick="adminSetSource('local')">💻 Local</button>
+      </div>
+      <button class="folder-btn" onclick="pickFolder()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+        Choisir un autre dossier
+      </button>
+      <div id="folder-path">Chargement...</div>
+      <div id="file-count"></div>
+    </div>
+<div id="r2-status" style="font-size:12px;color:#4CAF50;margin-bottom:14px;min-height:16px;"></div>
+
+    <!-- Tabs MODE PRINCIPAL -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-pose" onclick="switchMainMode('pose')">Poses</button>
+      <button class="mode-tab" id="tab-anim" onclick="switchMainMode('anim')">Animation</button>
+      <button class="mode-tab" id="tab-favs" onclick="switchMainMode('favs')">⭐ Favoris</button>
+      <button class="mode-tab" id="tab-hist" onclick="switchMainMode('hist')">📈 Historique</button>
+    </div>
+
+    <!-- ═ POSE OPTIONS ═ -->
+    <div id="pose-options">
+      <div class="card">
+        <h3>Catégories</h3>
+        <div id="categories-wrap"><div style="font-size:13px;color:#555">Chargement...</div></div>
+      </div>
+      <div class="card">
+        <h3>Mode de session</h3>
+        <div class="sub-mode-cards">
+          <div class="sub-mode-card selected" data-mode="custom" onclick="selectSubMode('custom')">
+            <div class="t">Personnalisé</div>
+            <div class="d">Durée fixe pour toutes les poses</div>
+          </div>
+          <div class="sub-mode-card" data-mode="progressive" onclick="selectSubMode('progressive')">
+            <div class="t">Progressif</div>
+            <div class="d">10×30s → 5×1min → 5×2min → 2×5min</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="custom-mode-options">
+        <h3>Durée par pose</h3>
+        <div class="chips" id="chips">
+          <button class="chip selected" data-val="30">30 sec</button>
+          <button class="chip" data-val="60">1 min</button>
+          <button class="chip" data-val="120">2 min</button>
+          <button class="chip" data-val="300">5 min</button>
+          <button class="chip" data-val="custom">Personnalisé</button>
+        </div>
+        <div id="custom-row" style="display:none;margin-top:12px;" class="row">
+          <label>Secondes</label>
+          <input type="number" id="custom-sec" min="5" max="3600" value="45" style="width:80px">
+        </div>
+      </div>
+      <div class="card" id="custom-count-options">
+        <div class="row">
+          <label>Photos par session</label>
+          <input type="number" id="session-count" min="1" max="500" value="10" style="width:70px">
+        </div>
+        <div class="row">
+          <label>Ordre</label>
+          <select id="order-sel">
+            <option value="random">Aléatoire</option>
+            <option value="sequential">Dans l'ordre</option>
+          </select>
+        </div>
+        <div class="row" style="margin-bottom:0">
+          <label>Images à l'envers</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div id="flip-toggle" onclick="toggleFlipMode()" style="width:40px;height:22px;background:#2e2e2e;border:0.5px solid #444;border-radius:99px;cursor:pointer;position:relative;transition:background 0.2s;">
+              <div id="flip-knob" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:#666;border-radius:50%;transition:left 0.2s,background 0.2s;"></div>
+            </div>
+            <span id="flip-label" style="font-size:13px;color:#555;">Désactivé</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═ ANIM OPTIONS ═ -->
+    <div id="anim-options" style="display:none">
+      <div class="card">
+        <h3>Séquences disponibles</h3>
+        <div id="sequences-wrap"><div id="no-sequences" style="font-size:13px;color:#555">Créez un dossier <strong style="color:#aaa">Animations/</strong> dans votre base avec des sous-dossiers numérotés par séquence.<br><br>Exemple : <span style="color:#5b9bd5">Animations/Course_01/001.jpg, 002.jpg...</span></div></div>
+      </div>
+      <div class="card">
+        <h3>Mode</h3>
+        <div class="sub-mode-cards" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="sub-mode-card selected" data-amode="mix" onclick="selectAnimMode('mix')">
+            <div class="t">Mix</div>
+            <div class="d">Boucle N× puis étude auto</div>
+          </div>
+          <div class="sub-mode-card" data-amode="loop" onclick="selectAnimMode('loop')">
+            <div class="t">Boucle</div>
+            <div class="d">Lecture en boucle libre</div>
+          </div>
+          <div class="sub-mode-card" data-amode="study" onclick="selectAnimMode('study')">
+            <div class="t">Étude</div>
+            <div class="d">Image par image dès le départ</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="mix-loops-card">
+        <h3>Nombre de boucles avant l'étude</h3>
+        <div class="row" style="margin-bottom:0">
+          <label>Répétitions</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onclick="changeLoops(-1)" style="background:#2e2e2e;border:0.5px solid #444;border-radius:6px;color:#ccc;width:28px;height:28px;cursor:pointer;font-size:16px;">−</button>
+            <span id="loop-count-val" style="font-size:15px;font-weight:500;color:#fff;min-width:20px;text-align:center;">3</span>
+            <button onclick="changeLoops(1)" style="background:#2e2e2e;border:0.5px solid #444;border-radius:6px;color:#ccc;width:28px;height:28px;cursor:pointer;font-size:16px;">+</button>
+            <span style="font-size:13px;color:#555;">fois</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Vitesse de lecture</h3>
+        <div class="fps-row">
+          <label>Boucle</label>
+          <input type="range" id="fps-slider" min="1" max="24" value="8" oninput="updateFps()">
+          <span class="fps-val" id="fps-val">8 fps</span>
+        </div>
+        <div class="fps-row" style="margin-top:10px">
+          <label>Étude / frame</label>
+          <div class="chips" style="flex:1" id="study-chips">
+            <button class="chip selected" data-val="30">30 sec</button>
+            <button class="chip" data-val="60">1 min</button>
+            <button class="chip" data-val="120">2 min</button>
+            <button class="chip" data-val="custom-study">Libre</button>
+          </div>
+        </div>
+        <div id="study-custom-row" style="display:none;margin-top:10px;" class="row">
+          <label>Secondes par frame</label>
+          <input type="number" id="study-custom-sec" min="5" max="600" value="30" style="width:80px">
+        </div>
+      </div>
+    </div>
+
+    <!-- ═ FAVS OPTIONS ═ -->
+    <div id="favs-options" style="display:none">
+      <div class="card">
+        <div id="favs-grid-config"></div>
+        <div id="favs-empty-config" style="font-size:13px;color:#555;text-align:center;padding:30px 0;line-height:1.7;">
+          Aucun favori encore.<br>
+          Appuie sur ⭐ pendant une session pour en ajouter.
+        </div>
+      </div>
+    </div>
+
+    <!-- ═ HISTORIQUE OPTIONS ═ -->
+    <div id="hist-options" style="display:none">
+      <!-- Stats résumé -->
+      <div id="hist-summary">
+        <div class="hist-stat-card streak">
+          <div class="hsc-val" id="hist-streak">0</div>
+          <div class="hsc-label">🔥 Jours de suite</div>
+        </div>
+        <div class="hist-stat-card">
+          <div class="hsc-val" id="hist-total-sessions">0</div>
+          <div class="hsc-label">Sessions totales</div>
+        </div>
+        <div class="hist-stat-card">
+          <div class="hsc-val" id="hist-total-mins">0</div>
+          <div class="hsc-label">Minutes dessinées</div>
+        </div>
+      </div>
+      <!-- Filtre période -->
+      <div class="hist-period-tabs">
+        <button class="hist-period-tab active" data-period="week" onclick="setHistPeriod('week')">7 jours</button>
+        <button class="hist-period-tab" data-period="month" onclick="setHistPeriod('month')">30 jours</button>
+        <button class="hist-period-tab" data-period="all" onclick="setHistPeriod('all')">Tout</button>
+      </div>
+      <!-- Liste sessions -->
+      <div class="card" style="padding:14px">
+        <div id="hist-empty">Aucune session enregistrée pour cette période.</div>
+        <div id="hist-sessions-list"></div>
+      </div>
+    </div>
+
+    <button class="btn-start" id="btn-start" onclick="startSession()" disabled>Démarrer</button>
+  </div>
+</div>
+
+<!-- ══ SESSION POSE ══ -->
+<div class="screen" id="screen-session">
+  <div id="photo-area">
+    <div id="photo-placeholder">Chargement...</div>
+    <img id="photo-img" alt="pose">
+    <canvas id="pdf-canvas"></canvas>
+    <div id="phase-badge"></div>
+    <!-- Grille de composition -->
+    <div id="grid-overlay">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Tiers -->
+        <g id="grid-thirds">
+          <line class="grid-line" x1="33.33" y1="0" x2="33.33" y2="100"/>
+          <line class="grid-line" x1="66.66" y1="0" x2="66.66" y2="100"/>
+          <line class="grid-line" x1="0" y1="33.33" x2="100" y2="33.33"/>
+          <line class="grid-line" x1="0" y1="66.66" x2="100" y2="66.66"/>
+        </g>
+        <!-- Diagonales -->
+        <g id="grid-diags">
+          <line class="grid-diag" x1="0" y1="0" x2="100" y2="100"/>
+          <line class="grid-diag" x1="100" y1="0" x2="0" y2="100"/>
+          <line class="grid-diag" x1="0" y1="0" x2="50" y2="100"/>
+          <line class="grid-diag" x1="100" y1="0" x2="50" y2="100"/>
+          <line class="grid-diag" x1="0" y1="50" x2="100" y2="0"/>
+          <line class="grid-diag" x1="0" y1="50" x2="100" y2="100"/>
+        </g>
+      </svg>
+    </div>
+    <div id="transform-controls">
+      <button class="transform-btn" id="grid-btn" onclick="cycleGrid()" title="Grille de composition">⊞</button>
+      <button class="transform-btn" id="bw-btn" onclick="toggleBW()" title="Noir et blanc">◑</button>
+      <button class="transform-btn" onclick="flipH()" title="Miroir horizontal">⇆</button>
+      <button class="transform-btn" onclick="rotateLeft()" title="Rotation gauche">↺</button>
+      <button class="transform-btn" onclick="rotateRight()" title="Rotation droite">↻</button>
+    </div>
+    <button class="fav-star-btn" id="pose-fav-btn" onclick="toggleFavPose()" title="Ajouter aux favoris">☆</button>
+  </div>
+  <div id="session-bar">
+    <!-- Cercle countdown -->
+    <svg id="countdown-circle" viewBox="0 0 48 48">
+      <circle class="bg" cx="24" cy="24" r="20"/>
+      <circle class="arc" id="countdown-arc" cx="24" cy="24" r="20"
+        stroke-dasharray="125.66" stroke-dashoffset="0"/>
+    </svg>
+    <div id="timer-block">
+      <div id="timer-display">--:--</div>
+      <div id="prog-wrap"><div id="prog-bar"></div></div>
+    </div>
+    <div id="info-block">
+      <div id="session-info"></div>
+      <div id="mode-label"></div>
+    </div>
+    <div id="controls">
+      <button class="s-btn" id="btn-prev" onclick="prevPhoto()" disabled>← Préc.</button>
+      <button class="s-btn" id="btn-pause" onclick="togglePause()" disabled>Pause</button>
+      <button class="s-btn" id="btn-next" onclick="nextPhoto()" disabled>Suiv. →</button>
+      <button class="s-btn s-btn-danger" onclick="askEnd()">Terminer</button>
+    </div>
+    <div id="confirm-bar">
+      <span>Terminer ?</span>
+      <button class="s-btn s-btn-danger-solid" onclick="finishSession()">Oui</button>
+      <button class="s-btn" onclick="cancelEnd()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODE ANIMATION ══ -->
+<div class="screen" id="screen-anim">
+  <div id="anim-photo-area">
+    <img id="anim-img" src="" alt="frame">
+    <div id="anim-overlay">
+      <div class="anim-big-btn" id="anim-play-btn" onclick="toggleAnimLoop()">▶</div>
+    </div>
+
+    <div id="anim-mode-badge" class="loop">Boucle</div>
+    <div id="anim-frame-info">Frame 1 / 1</div>
+    <button class="fav-star-btn" id="anim-fav-btn" onclick="toggleFavAnim()" title="Ajouter aux favoris">☆</button>
+  </div>
+  <div id="anim-bar">
+    <!-- Timeline miniatures -->
+    <div id="timeline-wrap">
+      <div id="timeline-inner"></div>
+    </div>
+    <!-- Contrôles bas -->
+    <div id="anim-controls-bar">
+      <span id="anim-seq-name"></span>
+      <div id="study-timer-wrap" style="display:none">
+        <div id="study-timer">0:30</div>
+        <div id="study-prog-wrap"><div id="study-prog-bar"></div></div>
+      </div>
+      <button class="s-btn s-btn-blue" id="btn-loop-again" onclick="playOnce()" style="display:none">↺ Revoir</button>
+      <button class="s-btn s-btn-blue" id="btn-study" onclick="enterStudyMode()" style="display:none">Étudier →</button>
+      <button class="s-btn" id="btn-anim-pause" onclick="toggleAnimLoop()" style="display:none">Pause</button>
+      <button class="s-btn" id="btn-anim-prev" onclick="animPrevFrame()" style="display:none" disabled>←</button>
+      <button class="s-btn" id="btn-anim-next" onclick="animNextFrame()" style="display:none" disabled>→</button>
+      <button class="s-btn s-btn-danger" onclick="askEndAnim()">Terminer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RÉCAP ══ -->
+<div class="screen" id="screen-end">
+  <div class="end-header">
+    <div>
+      <h2>Session terminée</h2>
+      <div class="end-stats-row">
+        <div class="end-stat"><strong id="stat-poses">0</strong> poses</div>
+        <div class="end-stat"><strong id="stat-time">0</strong> min</div>
+      </div>
+    </div>
+    <div class="end-btns">
+      <button class="end-btn end-btn-primary" onclick="showScreen('screen-config')">Nouvelle session</button>
+      <button class="end-btn" onclick="replaySession()">Recommencer</button>
+    </div>
+  </div>
+  <div id="recap-grid"></div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="closeLightbox()">
+  <div id="lightbox-close">✕</div>
+  <img src="" alt="">
+  <div id="lightbox-info"></div>
+  <button id="lb-fav-remove" onclick="event.stopPropagation(); removeFavFromLightbox()">✕ Retirer des favoris</button>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+
+// ══ STATE ══
+let currentRotation = 0
+let currentFlipH = false
+let currentBW = false
+let allEntries = [], categories = {}, sequences = {}
+let selectedCats = new Set()
+let selectedSeq = null
+let sessionEntries = [], sessionLog = []
+let currentIndex = 0, timerDuration = 30, timeLeft = 30
+let paused = false, ticker = null, loading = false
+let currentSubMode = 'custom', mainMode = 'pose'
+
+const PROGRESSIVE_PHASES = [
+  { duration: 30, count: 10, label: '30 sec' },
+  { duration: 60, count: 5,  label: '1 min' },
+  { duration: 120, count: 5, label: '2 min' },
+  { duration: 300, count: 2, label: '5 min' }
+]
+let progressiveQueue = []
+
+// ══ ANIMATION STATE ══
+let animFrames = []       // [{ path, dataUrl }]
+let animIndex = 0
+let animLooping = false
+let animInterval = null
+let animStudyMode = false
+let isR2Mode = false
+let currentUserIsPro = false
+let studyTimeLeft = 30, studyDuration = 30, studyTicker = null
+
+// ══ AUDIO ══
+let audioCtx = null
+function beep(freq, dur, vol) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain()
+    o.connect(g); g.connect(audioCtx.destination)
+    o.frequency.value = freq
+    g.gain.setValueAtTime(vol, audioCtx.currentTime)
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur)
+    o.start(); o.stop(audioCtx.currentTime + dur)
+  } catch(e) {}
+}
+function soundWarning() { beep(880, 0.15, 0.3) }
+function soundNext() { beep(440, 0.3, 0.4); setTimeout(() => beep(550, 0.3, 0.3), 150) }
+
+// ══ INIT ══
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (window.electronAPI?.authCheck) {
+    window.electronAPI.authCheck().then(result => {
+      if (result.authenticated && result.isAdmin) {
+        document.getElementById('admin-source-card').style.display = 'block'
+      }
+    })
+  }
+  renderWeekBar()
+  document.getElementById('options-btn').style.display = 'flex'
+
+  // Écouter la déconnexion
+
+if (window.electronAPI?.onAuthRequired) {
+  if (window.electronAPI?.onAuthSuccess) {
+    window.electronAPI.onAuthSuccess((user) => {
+      if (user.isAdmin) {
+        document.getElementById('admin-source-card').style.display = 'block'
+      }
+    })
+  }
+  window.electronAPI.onAuthRequired(() => {
+    document.getElementById('options-btn').style.display = 'none'
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+    const div = document.createElement('div')
+    div.id = 'screen-login'
+    div.style.cssText = 'position:fixed;inset:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;'
+    div.innerHTML = `
+      <h2 style="color:#fff;font-size:20px;">Gesturo</h2>
+      <p style="color:#555;font-size:14px;">Vous avez été déconnecté</p>
+      <button id="btn-google-login" style="background:#fff;color:#111;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:600;cursor:pointer;">Se connecter avec Google</button>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <input id="admin-input" type="password" placeholder="Mot de passe admin" style="background:#222;border:0.5px solid #444;border-radius:8px;padding:10px 14px;font-size:14px;color:#fff;outline:none;width:220px;">
+        <button id="btn-admin-login" style="background:#333;color:#ccc;border:0.5px solid #444;border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;">Entrer</button>
+      </div>
+    `
+    document.body.appendChild(div)
+
+    document.getElementById('btn-google-login').addEventListener('click', () => {
+      window.electronAPI.authGoogle().then(() => location.reload())
+    })
+
+    document.getElementById('btn-admin-login').addEventListener('click', () => {
+      const input = document.getElementById('admin-input')
+      window.electronAPI.authAdmin(input.value).then(result => {
+        if (result.success) location.reload()
+        else { input.style.borderColor = '#E24B4A'; input.value = '' }
+      })
+    })
+
+    document.getElementById('admin-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('btn-admin-login').click()
+    })
+  })
+}
+
+  function initAutoLoad() {
+    if (!window.electronAPI) { setTimeout(initAutoLoad, 100); return }
+    window.electronAPI.onUseR2Mode(({ isPro }) => {
+      isR2Mode = true
+      currentUserIsPro = isPro
+      loadR2(isPro)
+    })
+    window.electronAPI.onAutoLoad(f => {
+      isR2Mode = false
+      loadFolder(f)
+    })
+  }
+  initAutoLoad()
+})
+
+function adminSetSource(source) {
+  if (source === 'r2') {
+    document.getElementById('btn-source-r2').style.background = '#1a2e44'
+    document.getElementById('btn-source-r2').style.borderColor = '#5b9bd5'
+    document.getElementById('btn-source-r2').style.color = '#5b9bd5'
+    document.getElementById('btn-source-local').style.background = ''
+    document.getElementById('btn-source-local').style.borderColor = ''
+    document.getElementById('btn-source-local').style.color = ''
+    window.electronAPI.adminSwitchSource({ useLocal: false })
+  } else {
+    document.getElementById('btn-source-local').style.background = '#1a2e44'
+    document.getElementById('btn-source-local').style.borderColor = '#5b9bd5'
+    document.getElementById('btn-source-local').style.color = '#5b9bd5'
+    document.getElementById('btn-source-r2').style.background = ''
+    document.getElementById('btn-source-r2').style.borderColor = ''
+    document.getElementById('btn-source-r2').style.color = ''
+    window.electronAPI.adminSwitchSource({ useLocal: true })
+  }
+}
+
+
+window.addEventListener('resize', () => {
+  if (gridMode > 0) positionGridOverlay()
+})
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+  document.getElementById(id).classList.add('active')
+  const visible = id === 'screen-config' || id === 'screen-end' || id === 'screen-session' || id === 'screen-anim'
+  document.getElementById('options-btn').style.display = visible ? 'flex' : 'none'
+  document.getElementById('options-dropdown').classList.remove('open')
+}
+
+function applyTransform() {
+  const scaleX = currentFlipH ? -1 : 1
+  const transform = 'rotate(' + currentRotation + 'deg) scaleX(' + scaleX + ')'
+  const filter = currentBW ? 'grayscale(1)' : ''
+  document.getElementById('photo-img').style.transform = transform
+  document.getElementById('photo-img').style.filter = filter
+  document.getElementById('pdf-canvas').style.transform = transform
+  document.getElementById('pdf-canvas').style.filter = filter
+}
+
+function toggleBW() {
+  currentBW = !currentBW
+  const btn = document.getElementById('bw-btn')
+  btn.style.color = currentBW ? '#fff' : ''
+  btn.style.background = currentBW ? 'rgba(255,255,255,0.15)' : ''
+  btn.style.borderColor = currentBW ? 'rgba(255,255,255,0.4)' : ''
+  applyTransform()
+}
+
+function rotateLeft() {
+  currentRotation = (currentRotation - 90 + 360) % 360
+  applyTransform()
+}
+
+function rotateRight() {
+  currentRotation = (currentRotation + 90) % 360
+  applyTransform()
+}
+
+function flipH() {
+  currentFlipH = !currentFlipH
+  applyTransform()
+}
+
+let flipModeEnabled = false
+
+function toggleFlipMode() {
+  flipModeEnabled = !flipModeEnabled
+  const toggle = document.getElementById('flip-toggle')
+  const knob = document.getElementById('flip-knob')
+  const label = document.getElementById('flip-label')
+  if (flipModeEnabled) {
+    toggle.style.background = '#fff'
+    knob.style.left = '21px'
+    knob.style.background = '#111'
+    label.textContent = 'Activé'
+    label.style.color = '#fff'
+  } else {
+    toggle.style.background = '#2e2e2e'
+    knob.style.left = '3px'
+    knob.style.background = '#666'
+    label.textContent = 'Désactivé'
+    label.style.color = '#555'
+  }
+}
+
+function resetTransform() {
+  currentRotation = flipModeEnabled ? 180 : 0
+  currentFlipH = false
+  // On applique après que l'image soit visible
+  requestAnimationFrame(() => applyTransform())
+}
+
+// ══ CHARGEMENT DOSSIER ══
+async function loadFolder(folder) {
+  document.getElementById('folder-path').textContent = folder
+  document.getElementById('file-count').textContent = 'Indexation...'
+  document.getElementById('btn-start').disabled = true
+  allEntries = []; categories = {}; sequences = {}
+  imgCache.clear()
+
+  const fileInfos = await window.electronAPI.listFiles(folder)
+
+  // Indexation pure : chemins seulement, ZÉRO chargement de données
+  for (const info of fileInfos) {
+    const fp = info.path, cat = info.category, seq = info.sequence
+    if (seq) {
+      if (!sequences[seq]) sequences[seq] = { paths: [], animCategory: info.animCategory || null }
+      sequences[seq].paths.push(fp)
+      continue
+    }
+    if (window.electronAPI.isPdf(fp)) {
+      // On stocke juste le chemin — les pages seront comptées au premier usage
+      const e = { type: 'pdf-pending', path: fp, category: cat }
+      allEntries.push(e)
+      if (!categories[cat]) categories[cat] = []
+      categories[cat].push(e)
+    } else {
+      const e = { type: 'image', path: fp, category: cat }
+      allEntries.push(e)
+      if (!categories[cat]) categories[cat] = []
+      categories[cat].push(e)
+    }
+  }
+
+  renderCategories()
+  renderSequences()
+  const seqCount = Object.keys(sequences).length
+  const pdfCount = allEntries.filter(e => e.type === 'pdf-pending').length
+  let msg = allEntries.length + ' fichiers indexés'
+  if (pdfCount > 0) msg += ' (' + pdfCount + ' PDF)'
+  if (seqCount > 0) msg += ' · ' + seqCount + ' séquence(s)'
+  document.getElementById('file-count').textContent = msg
+  document.getElementById('btn-start').disabled = false
+}
+async function loadR2(isPro) {
+  document.getElementById('folder-path').textContent = isPro ? '☁️ Gesturo Pro — R2' : '☁️ Gesturo — R2'
+  document.getElementById('file-count').textContent = 'Chargement depuis le cloud...'
+  document.getElementById('btn-start').disabled = true
+  allEntries = []; categories = {}; sequences = {}
+  imgCache.clear()
+
+  try {
+    const [photos, anims] = await Promise.all([
+      window.electronAPI.listR2Photos({ isPro }),
+      window.electronAPI.listR2Animations({ isPro })
+    ])
+
+    for (const info of photos) {
+      const fp = info.path, cat = info.category
+      const e = { type: 'image', path: fp, category: cat, isR2: true }
+      allEntries.push(e)
+      if (!categories[cat]) categories[cat] = []
+      categories[cat].push(e)
+    }
+
+    for (const info of anims) {
+      const seq = info.sequence
+      if (!seq) continue
+      if (!sequences[seq]) sequences[seq] = { paths: [], animCategory: info.animCategory || null }
+      sequences[seq].paths.push(info.path)
+    }
+
+    // Limite Free : 150 photos aléatoires, pas de choix de catégorie
+    if (!isPro) {
+      allEntries.sort(() => Math.random() - 0.5)
+      allEntries = allEntries.slice(0, 150)
+      categories = {}
+      for (const e of allEntries) {
+        if (!categories[e.category]) categories[e.category] = []
+        categories[e.category].push(e)
+      }
+    }
+
+    renderCategories()
+    renderSequences()
+    const seqCount = Object.keys(sequences).length
+    document.getElementById('file-count').textContent = allEntries.length + ' photos · ' + seqCount + ' séquence(s)'
+const r2Status = document.getElementById('r2-status')
+if (r2Status) r2Status.textContent = allEntries.length + ' photos chargées ✓'
+    document.getElementById('btn-start').disabled = allEntries.length === 0
+
+  } catch(e) {
+    console.error('loadR2 error:', e)
+    document.getElementById('file-count').textContent = '❌ Erreur de chargement R2'
+  }
+}
+async function pickFolder() {
+  const folder = await window.electronAPI.pickFolder()
+  if (!folder) return
+  await loadFolder(folder)
+}
+
+// ══ CATÉGORIES ══
+const NUDITY_KW = ['nudité', 'nudite', 'nu ', 'nude', 'nsfw']
+const ANIM_KW = ['animation', 'anim', 'mouvement', 'sequence']
+function isNudity(n) { return NUDITY_KW.some(k => n.toLowerCase().includes(k)) }
+function isAnimCat(n) { return ANIM_KW.some(k => n.toLowerCase().includes(k)) }
+
+function renderCategories() {
+  const wrap = document.getElementById('categories-wrap')
+  wrap.innerHTML = ''
+  if (!currentUserIsPro && isR2Mode) {
+    wrap.innerHTML = '<div style="font-size:13px;color:#555">150 poses aléatoires — <span style="color:#fff;cursor:pointer;" onclick="showUpgradeModal()">Passer Pro</span> pour accéder aux catégories.</div>'
+    selectedCats = new Set(Object.keys(categories))
+    return
+  }
+  const cats = Object.keys(categories).sort()
+  if (cats.length === 0) { wrap.innerHTML = '<div style="font-size:13px;color:#555">Toutes les poses sont dans le dossier racine.</div>'; selectedCats = new Set(['Sans catégorie']); return }
+  const allBtn = document.createElement('button')
+  allBtn.className = 'cat-chip selected'; allBtn.id = 'cat-all'
+  allBtn.innerHTML = 'Tout <span class="cat-count">' + allEntries.length + '</span>'
+  allBtn.onclick = toggleAllCats; wrap.appendChild(allBtn)
+  cats.forEach(cat => {
+    const nudity = isNudity(cat), animC = isAnimCat(cat)
+    const btn = document.createElement('button')
+    btn.className = 'cat-chip' + (nudity ? ' nudity' : '') + (animC ? ' anim-cat' : '')
+    btn.dataset.cat = cat
+    btn.innerHTML = cat + ' <span class="cat-count">' + categories[cat].length + '</span>'
+    if (!nudity) { btn.classList.add('selected'); selectedCats.add(cat) }
+    btn.onclick = () => toggleCat(cat, btn)
+    wrap.appendChild(btn)
+  })
+  updateAllBtn()
+}
+function showUpgradeModal() {
+  const existing = document.getElementById('upgrade-modal')
+  if (existing) existing.remove()
+  const modal = document.createElement('div')
+  modal.id = 'upgrade-modal'
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;'
+  modal.innerHTML = `
+    <div style="background:#1e1e1e;border:0.5px solid #333;border-radius:16px;padding:32px;width:360px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:12px;">⭐</div>
+      <h2 style="color:#fff;font-size:20px;margin-bottom:8px;">Gesturo Pro</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin-bottom:24px;">Accède à toutes les catégories, les animations et les poses de nudité académique.</p>
+      <button onclick="window.electronAPI.openExternal('https://gesturo.art')" style="width:100%;padding:13px;background:#fff;color:#111;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;">Découvrir Pro</button>
+      <button onclick="document.getElementById('upgrade-modal').remove()" style="width:100%;padding:10px;background:transparent;color:#555;border:none;font-size:14px;cursor:pointer;">Pas maintenant</button>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove() })
+}
+function toggleCat(cat, btn) {
+  if (selectedCats.has(cat)) { selectedCats.delete(cat); btn.classList.remove('selected') }
+  else { selectedCats.add(cat); btn.classList.add('selected') }
+  updateAllBtn()
+}
+function toggleAllCats() {
+  const cats = Object.keys(categories)
+  const all = cats.every(c => selectedCats.has(c))
+  if (all) { selectedCats.clear(); document.querySelectorAll('.cat-chip[data-cat]').forEach(b => b.classList.remove('selected')) }
+  else { cats.forEach(c => selectedCats.add(c)); document.querySelectorAll('.cat-chip[data-cat]').forEach(b => b.classList.add('selected')) }
+  updateAllBtn()
+}
+function updateAllBtn() {
+  const btn = document.getElementById('cat-all'); if (!btn) return
+  btn.classList.toggle('selected', Object.keys(categories).every(c => selectedCats.has(c)))
+}
+
+// ══ SÉQUENCES ══
+function renderSequences() {
+  const wrap = document.getElementById('sequences-wrap')
+  wrap.innerHTML = ''
+  const seqs = Object.keys(sequences).sort()
+  if (seqs.length === 0) {
+    wrap.innerHTML = '<div style="font-size:13px;color:#555">Aucune séquence trouvée.</div>'
+    return
+  }
+
+  // Grouper par animCategory
+  const groups = {}
+  seqs.forEach(seq => {
+    const cat = sequences[seq].animCategory || 'Autres'
+    if (!groups[cat]) groups[cat] = []
+    groups[cat].push(seq)
+  })
+
+  Object.keys(groups).sort((a, b) => {
+  if (a === 'default') return -1
+  if (b === 'default') return 1
+  return a.localeCompare(b)
+}).forEach(cat => {
+
+    groups[cat].forEach(seq => {
+      const isLocked = !currentUserIsPro && isR2Mode && cat !== 'free' && cat !== 'default'
+      const item = document.createElement('div')
+      item.className = 'seq-item'; item.dataset.seq = seq
+      item.innerHTML = '<span class="seq-name">' + seq + (isLocked ? ' 🔒' : '') + '</span><span class="seq-info">' + sequences[seq].paths.length + ' frames</span><span class="seq-check"></span>'
+      if (preloadCache[seq]) {
+        item.classList.add('ready')
+        item.querySelector('.seq-check').textContent = '✓'
+      }
+      item.onclick = () => isLocked ? showUpgradeModal() : selectSeq(seq, item)
+      wrap.appendChild(item)
+    })
+  })
+
+  // Sélectionner la première par défaut
+  const first = wrap.querySelector('.seq-item')
+  if (first) selectSeq(seqs[0], first)
+}
+
+const preloadCache = {}
+
+async function selectSeq(seq, el) {
+  document.querySelectorAll('.seq-item').forEach(i => i.classList.remove('selected'))
+  el.classList.add('selected')
+  selectedSeq = seq
+
+  if (preloadCache[seq]) return
+
+  // Précharger silencieusement
+  const paths = sequences[seq].paths || sequences[seq]
+  const check = el.querySelector('.seq-check')
+  if (check) check.textContent = '...'
+
+  await Promise.all(paths.map(p => new Promise(resolve => {
+    const img = new Image()
+    img.onload = img.onerror = resolve
+    img.src = isR2Mode ? p : 'file://' + p
+  })))
+
+  preloadCache[seq] = true
+  el.classList.add('ready')
+  if (check) check.textContent = '✓'
+}
+
+// ══ MODES ══
+function switchMainMode(mode) {
+  mainMode = mode
+  document.getElementById('tab-pose').classList.toggle('active', mode === 'pose')
+  document.getElementById('tab-anim').classList.toggle('active', mode === 'anim')
+  document.getElementById('tab-favs').classList.toggle('active', mode === 'favs')
+  document.getElementById('tab-hist').classList.toggle('active', mode === 'hist')
+  document.getElementById('pose-options').style.display = mode === 'pose' ? 'block' : 'none'
+  document.getElementById('anim-options').style.display = mode === 'anim' ? 'block' : 'none'
+  document.getElementById('favs-options').style.display = mode === 'favs' ? 'block' : 'none'
+  document.getElementById('hist-options').style.display = mode === 'hist' ? 'block' : 'none'
+  document.getElementById('btn-start').style.display = (mode === 'favs' || mode === 'hist') ? 'none' : ''
+  if (mode === 'favs') renderFavsConfig()
+  if (mode === 'hist') renderHist()
+}
+
+function selectSubMode(mode) {
+  currentSubMode = mode
+  document.querySelectorAll('.sub-mode-card').forEach(c => c.classList.remove('selected'))
+  document.querySelector('[data-mode="' + mode + '"]').classList.add('selected')
+  document.getElementById('custom-mode-options').style.display = mode === 'custom' ? 'block' : 'none'
+  document.getElementById('custom-count-options').style.display = mode === 'custom' ? 'block' : 'none'
+}
+
+document.getElementById('chips').addEventListener('click', function(e) {
+  const chip = e.target.closest('.chip'); if (!chip) return
+  document.querySelectorAll('#chips .chip').forEach(c => c.classList.remove('selected'))
+  chip.classList.add('selected')
+  document.getElementById('custom-row').style.display = chip.dataset.val === 'custom' ? 'flex' : 'none'
+})
+
+document.getElementById('study-chips').addEventListener('click', function(e) {
+  const chip = e.target.closest('.chip'); if (!chip) return
+  document.querySelectorAll('#study-chips .chip').forEach(c => c.classList.remove('selected'))
+  chip.classList.add('selected')
+  document.getElementById('study-custom-row').style.display = chip.dataset.val === 'custom-study' ? 'flex' : 'none'
+})
+
+function updateFps() {
+  const v = document.getElementById('fps-slider').value
+  document.getElementById('fps-val').textContent = v + ' fps'
+}
+
+function getSelectedDuration() {
+  const chip = document.querySelector('#chips .chip.selected'); if (!chip) return 30
+  if (chip.dataset.val === 'custom') return Math.max(5, parseInt(document.getElementById('custom-sec').value) || 30)
+  return parseInt(chip.dataset.val)
+}
+
+function getStudyDuration() {
+  const chip = document.querySelector('#study-chips .chip.selected'); if (!chip) return 30
+  if (chip.dataset.val === 'custom-study') return Math.max(5, parseInt(document.getElementById('study-custom-sec').value) || 30)
+  return parseInt(chip.dataset.val)
+}
+
+// ══ DÉMARRER SESSION ══
+async function startSession() {
+  if (mainMode === 'anim') { startAnimSession(); return }
+  // Résoudre tous les PDF-pending d'abord
+const pending = allEntries.filter(e => e.type === 'pdf-pending')
+for (const e of pending) {
+  try {
+    const buf = await window.electronAPI.readFileAsBuffer(e.path)
+    const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise
+    const pages = []
+    for (let p = 1; p <= pdfDoc.numPages; p++) {
+      pages.push({ type: 'pdf', path: e.path, category: e.category, pageNum: p, pdfDoc })
+    }
+    const ai = allEntries.indexOf(e)
+    if (ai !== -1) allEntries.splice(ai, 1, ...pages)
+    if (categories[e.category]) {
+      const ci = categories[e.category].indexOf(e)
+      if (ci !== -1) categories[e.category].splice(ci, 1, ...pages)
+    }
+  } catch(err) { console.warn('PDF illisible', e.path) }
+}
+
+  // Filtrer uniquement les catégories sélectionnées
+  let pool = allEntries.filter(e => selectedCats.has(e.category))
+  if (pool.length === 0) pool = [...allEntries]
+
+  // Exclure les pdf-pending non résolus pour l'instant (images seulement d'abord)
+  let imgPool = pool.filter(e => e.type === 'image')
+  const pdfPool = pool.filter(e => e.type === 'pdf-pending' || e.type === 'pdf')
+
+  pool = [...imgPool, ...pdfPool]
+  pool.sort(() => Math.random() - 0.5)
+
+  let total
+  if (currentSubMode === 'progressive') {
+    progressiveQueue = []
+    for (const ph of PROGRESSIVE_PHASES) for (let i = 0; i < ph.count; i++) progressiveQueue.push(ph.duration)
+    total = progressiveQueue.length
+  } else {
+    total = Math.max(1, parseInt(document.getElementById('session-count').value) || 10)
+    progressiveQueue = []
+  }
+
+  sessionEntries = pool.slice(0, Math.min(total, pool.length))
+  while (sessionEntries.length < total) sessionEntries = [...sessionEntries, ...pool].slice(0, total)
+
+  // Résoudre les PDF-pending uniquement pour les entrées de cette session
+  const pendingInSession = sessionEntries.filter(e => e.type === 'pdf-pending')
+  if (pendingInSession.length > 0) {
+    document.getElementById('session-info').textContent = 'Chargement des PDF...'
+    showScreen('screen-session')
+    const resolved = []
+    for (const e of pendingInSession) {
+      try {
+        const buf = await window.electronAPI.readFileAsBuffer(e.path)
+        const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise
+        // Mettre à jour dans allEntries
+        const pages = []
+        for (let p = 1; p <= pdfDoc.numPages; p++) {
+          pages.push({ type: 'pdf', path: e.path, category: e.category, pageNum: p, pdfDoc })
+        }
+        resolved.push({ original: e, pages })
+        // Mettre à jour allEntries
+        const ai = allEntries.indexOf(e)
+        if (ai !== -1) allEntries.splice(ai, 1, ...pages)
+        const ci = categories[e.category]?.indexOf(e)
+        if (ci !== -1 && ci !== undefined) categories[e.category].splice(ci, 1, ...pages)
+      } catch(err) { console.warn('PDF illisible', e.path) }
+    }
+    // Remplacer dans sessionEntries
+    for (const { original, pages } of resolved) {
+      const si = sessionEntries.indexOf(original)
+      if (si !== -1) sessionEntries.splice(si, 1, pages[0]) // prendre page 1 pour cette session
+    }
+  }
+
+  currentIndex = 0; sessionLog = []
+  imgCache.clear() // vider le cache pour cette nouvelle session
+  document.getElementById('confirm-bar').style.display = 'none'
+  document.getElementById('controls').style.display = 'flex'
+  showScreen('screen-session')
+  loadAndShow(0)
+}
+
+// ══ POSE : AFFICHAGE ══
+// Cache image : garde les 5 dernières en mémoire
+const imgCache = new Map()
+const IMG_CACHE_MAX = 5
+
+async function getImageSrc(entry) {
+  if (entry.isR2) return entry.path
+  return 'file://' + entry.path
+}
+
+async function preloadNext(idx) {
+  const next = sessionEntries[idx + 1]
+  if (!next || next.type === 'pdf') return
+  const key = next.path
+  if (!imgCache.has(key)) {
+    let dataUrl
+    if (next.isR2) {
+      dataUrl = next.path
+    } else {
+      dataUrl = await window.electronAPI.readFileAsBase64(next.path)
+    }
+    if (imgCache.size >= IMG_CACHE_MAX) imgCache.delete(imgCache.keys().next().value)
+    imgCache.set(key, dataUrl)
+  }
+}
+
+async function loadAndShow(idx) {
+  clearInterval(ticker); ticker = null; loading = true
+  document.getElementById('btn-pause').disabled = true
+  document.getElementById('btn-next').disabled = true
+  document.getElementById('btn-prev').disabled = idx === 0
+  document.getElementById('timer-display').textContent = '--:--'
+  document.getElementById('timer-display').className = ''
+  document.getElementById('prog-bar').style.transition = 'none'
+  document.getElementById('prog-bar').style.width = '100%'
+  const arcR = document.getElementById('countdown-arc')
+  if (arcR) { arcR.style.transition = 'none'; arcR.style.strokeDashoffset = '0'; arcR.className = 'arc' }
+  document.getElementById('session-info').textContent = 'Pose ' + (idx + 1) + ' / ' + sessionEntries.length
+  document.getElementById('confirm-bar').style.display = 'none'
+  document.getElementById('controls').style.display = 'flex'
+
+  const badge = document.getElementById('phase-badge')
+  if (currentSubMode === 'progressive' && progressiveQueue[idx] !== undefined) {
+    const ph = PROGRESSIVE_PHASES.find(p => p.duration === progressiveQueue[idx])
+    badge.textContent = ph ? ph.label : ''; badge.style.display = 'block'
+  } else { badge.style.display = 'none' }
+
+  const entry = sessionEntries[idx]
+  const img = document.getElementById('photo-img'), canvas = document.getElementById('pdf-canvas')
+  const ph = document.getElementById('photo-placeholder')
+  img.style.display = 'none'; canvas.style.display = 'none'
+  ph.style.display = 'block'; ph.textContent = 'Chargement...'
+
+  try {
+    if (entry.type === 'pdf') {
+      const page = await entry.pdfDoc.getPage(entry.pageNum)
+      const vp0 = page.getViewport({ scale: 1 })
+      const area = document.getElementById('photo-area')
+      const scale = Math.min(area.clientWidth / vp0.width, area.clientHeight / vp0.height) * 0.98
+      const vp = page.getViewport({ scale })
+      canvas.width = vp.width; canvas.height = vp.height
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
+      ph.style.display = 'none'; canvas.style.display = 'block'
+      onPoseReady(entry)
+    } else {
+      const dataUrl = await getImageSrc(entry)
+      img.onload = () => { if (loading) { ph.style.display = 'none'; img.style.display = 'block'; onPoseReady(entry) } }
+      img.onerror = () => { if (loading) { ph.textContent = 'Erreur'; onPoseReady(entry) } }
+      img.src = dataUrl
+    }
+    // Pré-charger la suivante en arrière-plan
+    preloadNext(idx)
+  } catch(err) { ph.textContent = 'Erreur : ' + (err.message || err); onPoseReady(entry) }
+}
+
+function onPoseReady(entry) {
+  loading = false
+  document.getElementById('btn-pause').disabled = false
+  // Reset d'abord pour avoir la bonne rotation
+  currentRotation = flipModeEnabled ? 180 : 0
+  currentFlipH = false
+  requestAnimationFrame(() => applyTransform())
+  resetGrid()
+  // Logger avec la rotation correcte
+  logPoseEntry(entry, timerDuration)
+  document.getElementById('btn-next').disabled = false
+  timerDuration = currentSubMode === 'progressive' && progressiveQueue[currentIndex] ? progressiveQueue[currentIndex] : getSelectedDuration()
+  timeLeft = timerDuration; paused = false
+  document.getElementById('btn-pause').textContent = 'Pause'
+  const d = timerDuration
+  document.getElementById('mode-label').textContent = d < 60 ? d + ' sec' : (d / 60) + ' min'
+  document.getElementById('prog-bar').style.transition = 'width 0.8s linear'
+  const arcEl = document.getElementById('countdown-arc')
+  if (arcEl) arcEl.style.transition = 'stroke-dashoffset 0.85s linear, stroke 0.3s'
+  updateTimerUI(); ticker = setInterval(tick, 1000)
+  updatePoseStarBtn()
+}
+
+
+function logPoseEntry(entry, duration) {
+  if (sessionLog[currentIndex]) return
+  const img = document.getElementById('photo-img'), canvas = document.getElementById('pdf-canvas')
+  let thumb = null
+  if (entry.type === 'pdf' && canvas.style.display !== 'none') {
+    thumb = { data: canvas.toDataURL('image/jpeg', 1) }
+  } else {
+    thumb = { data: entry.isR2 ? entry.path : 'file://' + entry.path }
+  }
+  // Stocker la rotation appliquée pour le récap
+  sessionLog[currentIndex] = { entry, duration, thumbnail: thumb, rotation: currentRotation, flipH: currentFlipH }
+}
+
+// ══ POSE : TIMER ══
+function tick() {
+  if (paused || loading) return
+  timeLeft = Math.max(0, timeLeft - 1); updateTimerUI()
+  if (timeLeft === 5) soundWarning()
+  if (timeLeft === 0) { soundNext(); advance() }
+}
+function updateTimerUI() {
+  const m = Math.floor(timeLeft / 60), s = timeLeft % 60
+  const el = document.getElementById('timer-display')
+  el.textContent = m + ':' + String(s).padStart(2, '0')
+  const warning = timeLeft <= 5 && timeLeft > 0
+  el.className = warning ? 'warning' : ''
+  const pct = timerDuration > 0 ? Math.round((timeLeft / timerDuration) * 100) : 0
+  document.getElementById('prog-bar').style.width = pct + '%'
+  // Arc SVG
+  const arc = document.getElementById('countdown-arc')
+  if (arc) {
+    const circumference = 125.66
+    arc.style.strokeDashoffset = timerDuration > 0 ? circumference * (1 - timeLeft / timerDuration) : 0
+    arc.className = 'arc' + (warning ? ' warning' : '')
+  }
+}
+function togglePause() { paused = !paused; document.getElementById('btn-pause').textContent = paused ? 'Reprendre' : 'Pause' }
+function nextPhoto() { advance() }
+function prevPhoto() { if (currentIndex === 0) return; clearInterval(ticker); ticker = null; currentIndex--; loadAndShow(currentIndex) }
+function advance() { clearInterval(ticker); ticker = null; currentIndex++; if (currentIndex >= sessionEntries.length) { finishSession(); return }; loadAndShow(currentIndex) }
+function askEnd() { paused = true; document.getElementById('btn-pause').textContent = 'Reprendre'; document.getElementById('controls').style.display = 'none'; document.getElementById('confirm-bar').style.display = 'flex' }
+function cancelEnd() { document.getElementById('confirm-bar').style.display = 'none'; document.getElementById('controls').style.display = 'flex'; paused = false; document.getElementById('btn-pause').textContent = 'Pause' }
+
+// ══ ANIMATION SESSION ══
+let animLoopCount = 0
+const ANIM_LOOP_TARGET = 5
+let currentAnimMode = 'mix' // 'mix' | 'loop' | 'study'
+
+function selectAnimMode(mode) {
+  currentAnimMode = mode
+  document.querySelectorAll('[data-amode]').forEach(c => c.classList.remove('selected'))
+  document.querySelector('[data-amode="' + mode + '"]').classList.add('selected')
+  document.getElementById('mix-loops-card').style.display = mode === 'mix' ? 'block' : 'none'
+}
+
+let loopCountVal = 3
+
+function changeLoops(delta) {
+  loopCountVal = Math.min(10, Math.max(1, loopCountVal + delta))
+  document.getElementById('loop-count-val').textContent = loopCountVal
+}
+
+function getLoopTarget() {
+  return loopCountVal
+}
+
+async function startAnimSession() {
+  if (!selectedSeq || !sequences[selectedSeq]) return
+  const paths = sequences[selectedSeq].paths
+  const btn = document.getElementById('btn-start')
+  btn.disabled = true
+
+  animFrames = paths.map(p => ({ path: p, dataUrl: isR2Mode ? p : 'file://' + p }))
+  animIndex = 0; animStudyMode = false; animLoopCount = 0
+
+  // Si pas encore préchargé, charger maintenant
+  if (!preloadCache[selectedSeq]) {
+    await Promise.all(paths.map(p => new Promise(resolve => {
+      const img = new Image()
+      img.onload = img.onerror = resolve
+      img.src = isR2Mode ? p : 'file://' + p
+    })))
+    preloadCache[selectedSeq] = true
+  }
+
+  btn.disabled = false
+
+  // Setup UI
+  document.getElementById('anim-seq-name').textContent = selectedSeq + '  ·  ' + animFrames.length + ' frames'
+  document.getElementById('anim-mode-badge').className = 'anim-mode-badge loop'
+  document.getElementById('anim-mode-badge').textContent = 'Boucle 1 / ' + getLoopTarget()
+  document.getElementById('anim-mode-badge').style.display = ''
+  document.getElementById('anim-frame-info').style.display = ''
+  document.getElementById('study-timer-wrap').style.display = 'none'
+  document.getElementById('btn-study').style.display = 'none'
+  document.getElementById('btn-loop-again').style.display = 'none'
+  document.getElementById('btn-anim-pause').style.display = 'inline-flex'
+  document.getElementById('btn-anim-prev').style.display = 'none'
+  document.getElementById('btn-anim-next').style.display = 'none'
+  document.getElementById('anim-overlay').classList.add('hidden')
+  document.getElementById('timeline-wrap').style.visibility = 'visible'
+
+  buildTimeline()
+  showScreen('screen-anim')
+  showFrame(0)
+
+  if (currentAnimMode === 'study') {
+    enterStudyMode()
+  } else {
+    startLoop()
+  }
+}
+
+
+function showFrame(idx) {
+  if (!animFrames[idx]) {
+    // Frame pas encore chargée — attendre
+    setTimeout(() => showFrame(idx), 50)
+    return
+  }
+  animIndex = idx
+  document.getElementById('anim-img').src = animFrames[idx].dataUrl
+  document.getElementById('anim-frame-info').textContent = 'Frame ' + (idx + 1) + ' / ' + animFrames.length
+  // Mettre à jour miniatures
+  document.querySelectorAll('.thumb-item').forEach((t, i) => {
+    t.classList.toggle('active', i === idx)
+  })
+  // Auto-scroll timeline vers la frame active
+  const active = document.querySelector('.thumb-item.active')
+  if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+  updateAnimStarBtn()
+}
+
+function playOnce() {
+  if (animInterval) clearInterval(animInterval)
+  const fps = parseInt(document.getElementById('fps-slider').value) || 8
+  const delay = Math.round(1000 / fps)
+  animLooping = true
+  showFrame(0)
+  document.getElementById('btn-loop-again').style.display = 'none'
+  document.getElementById('anim-mode-badge').className = 'anim-mode-badge loop'
+  document.getElementById('anim-mode-badge').textContent = 'Aperçu'
+  animInterval = setInterval(() => {
+    const next = animIndex + 1
+    if (next >= animFrames.length) {
+      // Une seule passe — on s'arrête et on revient en étude
+      clearInterval(animInterval)
+      animLooping = false
+      showFrame(0)
+      document.getElementById('btn-loop-again').style.display = 'inline-flex'
+      document.getElementById('anim-mode-badge').className = 'anim-mode-badge study'
+      document.getElementById('anim-mode-badge').textContent = 'Étude — Frame 1 / ' + animFrames.length
+      startStudyTimer()
+      return
+    }
+    showFrame(next)
+  }, delay)
+}
+
+function startLoop() {
+  if (animInterval) clearInterval(animInterval)
+  const fps = parseInt(document.getElementById('fps-slider').value) || 8
+  const delay = Math.round(1000 / fps)
+  animLooping = true
+  document.getElementById('anim-overlay').classList.add('hidden')
+  document.getElementById('anim-play-btn').textContent = '⏸'
+  document.getElementById('btn-anim-pause').style.display = 'inline-flex'
+  document.getElementById('btn-anim-pause').textContent = 'Pause'
+  document.getElementById('btn-loop-again').style.display = 'none'
+  document.getElementById('anim-mode-badge').className = 'anim-mode-badge loop'
+  document.getElementById('anim-mode-badge').textContent = 'Boucle ' + (animLoopCount + 1) + ' / ' + getLoopTarget()
+
+  animInterval = setInterval(() => {
+    const next = animIndex + 1
+    if (next >= animFrames.length) {
+      // Fin d'une boucle
+      animLoopCount++
+      if (animLoopCount >= getLoopTarget() && currentAnimMode === 'mix') {
+        // 5 boucles terminées → passer automatiquement en étude
+        clearInterval(animInterval)
+        animLooping = false
+        soundNext()
+        setTimeout(() => enterStudyMode(), 500)
+        return
+      } else if (animLoopCount >= ANIM_LOOP_TARGET) {
+        // Mode loop pur → recommencer
+        animLoopCount = 0
+      }
+      document.getElementById('anim-mode-badge').textContent = 'Boucle ' + (animLoopCount + 1) + ' / ' + getLoopTarget()
+      showFrame(0)
+    } else {
+      showFrame(next)
+    }
+  }, delay)
+}
+
+function toggleAnimLoop() {
+  if (animStudyMode) {
+    // En mode étude : pause/reprendre le timer
+    if (studyTicker) {
+      clearInterval(studyTicker)
+      studyTicker = null
+      document.getElementById('btn-anim-pause').textContent = 'Reprendre'
+    } else {
+      resumeStudyTimer()
+      document.getElementById('btn-anim-pause').textContent = 'Pause'
+    }
+    return
+  }
+  // En mode boucle
+  if (animLooping) {
+    clearInterval(animInterval); animLooping = false
+    document.getElementById('anim-play-btn').textContent = '▶'
+    document.getElementById('btn-anim-pause').textContent = 'Reprendre'
+  } else {
+    startLoop()
+  }
+}
+
+let animStudyLog = []
+
+function enterStudyMode() {
+  clearInterval(animInterval); animLooping = false; animStudyMode = true
+  animStudyLog = []
+  // Toujours repartir de la frame 0
+  showFrame(0)
+  document.getElementById('anim-overlay').classList.add('hidden')
+  document.getElementById('anim-mode-badge').className = 'anim-mode-badge study'
+  document.getElementById('anim-mode-badge').textContent = 'Étude — Frame 1 / ' + animFrames.length
+  document.getElementById('btn-study').style.display = 'none'
+  document.getElementById('btn-loop-again').style.display = 'inline-flex'
+  document.getElementById('btn-anim-pause').style.display = 'inline-flex'
+  document.getElementById('btn-anim-pause').textContent = 'Pause'
+  document.getElementById('btn-anim-prev').style.display = 'inline-flex'
+  document.getElementById('btn-anim-next').style.display = 'inline-flex'
+  document.getElementById('btn-anim-prev').disabled = true
+  document.getElementById('btn-anim-next').disabled = animFrames.length <= 1
+  document.getElementById('study-timer-wrap').style.display = 'flex'
+  startStudyTimer()
+}
+
+function startStudyTimer() {
+  clearInterval(studyTicker)
+  studyDuration = getStudyDuration(); studyTimeLeft = studyDuration
+  updateStudyTimer()
+  studyTicker = setInterval(() => {
+    studyTimeLeft = Math.max(0, studyTimeLeft - 1)
+    updateStudyTimer()
+    if (studyTimeLeft === 5) soundWarning()
+    if (studyTimeLeft === 0) { soundNext(); animNextFrame() }
+    // Mise à jour badge
+    if (animStudyMode) document.getElementById('anim-mode-badge').textContent = 'Étude — Frame ' + (animIndex + 1) + ' / ' + animFrames.length
+  }, 1000)
+}
+function resumeStudyTimer() {
+  clearInterval(studyTicker)
+  studyTicker = setInterval(() => {
+    studyTimeLeft = Math.max(0, studyTimeLeft - 1)
+    updateStudyTimer()
+    if (studyTimeLeft === 5) soundWarning()
+    if (studyTimeLeft === 0) { soundNext(); animNextFrame() }
+    if (animStudyMode) document.getElementById('anim-mode-badge').textContent = 'Étude — Frame ' + (animIndex + 1) + ' / ' + animFrames.length
+  }, 1000)
+}
+
+function updateStudyTimer() {
+  const m = Math.floor(studyTimeLeft / 60), s = studyTimeLeft % 60
+  const el = document.getElementById('study-timer')
+  el.textContent = m + ':' + String(s).padStart(2, '0')
+  el.className = (studyTimeLeft <= 5 && studyTimeLeft > 0) ? 'warning' : ''
+  const pct = studyDuration > 0 ? Math.round((studyTimeLeft / studyDuration) * 100) : 0
+  document.getElementById('study-prog-bar').style.width = pct + '%'
+}
+
+function animNextFrame() {
+  clearInterval(studyTicker)
+
+  // Logger la frame courante avant de passer
+  if (animStudyMode && animFrames[animIndex]) {
+    animStudyLog.push({
+      src: animFrames[animIndex].dataUrl,
+      duration: studyDuration,
+      frameNum: animIndex
+    })
+  }
+
+  // Dernière frame → récap
+  if (animIndex >= animFrames.length - 1) {
+    if (animStudyMode) {
+      soundNext()
+      finishAnimSession()
+    }
+    return
+  }
+
+  // Frame suivante
+  showFrame(animIndex + 1)
+  document.getElementById('btn-anim-prev').disabled = animIndex === 0
+  document.getElementById('btn-anim-next').disabled = animIndex >= animFrames.length - 1
+  document.getElementById('anim-mode-badge').textContent = 'Étude — Frame ' + (animIndex + 1) + ' / ' + animFrames.length
+  if (animStudyMode) startStudyTimer()
+}
+
+function animPrevFrame() {
+  if (animIndex <= 0) return
+  showFrame(animIndex - 1)
+  document.getElementById('btn-anim-prev').disabled = animIndex === 0
+  document.getElementById('btn-anim-next').disabled = animIndex >= animFrames.length - 1
+  if (animStudyMode) startStudyTimer()
+}
+
+function onSliderInput(val) {
+  const idx = parseInt(val)
+  showFrame(idx)
+  if (animStudyMode) startStudyTimer()
+}
+
+function buildTimeline() {
+  const inner = document.getElementById('timeline-inner')
+  inner.innerHTML = ''
+  animFrames.forEach((frame, i) => {
+    const item = document.createElement('div')
+    item.className = 'thumb-item' + (i === 0 ? ' active' : '')
+    item.dataset.idx = i
+    const img = document.createElement('img')
+    if (frame) img.src = frame.dataUrl
+    img.loading = 'lazy'
+    item.appendChild(img)
+    const num = document.createElement('div')
+    num.className = 'thumb-num'
+    num.textContent = i + 1
+    item.appendChild(num)
+    // Clic = aller à la frame
+    item.onclick = () => {
+      showFrame(i)
+      if (animStudyMode) startStudyTimer()
+    }
+
+    // Hover = prévisualiser la frame en temps réel (désactivé en mode étude)
+    item.addEventListener('mouseenter', () => {
+      if (!animLooping && !animStudyMode) showFrame(i)
+    })
+
+    inner.appendChild(item)
+  })
+
+  // Drag-slide sur la timeline
+  let isDragging = false
+  inner.addEventListener('mousedown', (e) => {
+    isDragging = true
+    slideToMouse(e)
+  })
+  inner.addEventListener('mousemove', (e) => {
+    if (isDragging) slideToMouse(e)
+  })
+  inner.addEventListener('mouseup', () => { isDragging = false })
+  inner.addEventListener('mouseleave', () => { isDragging = false })
+}
+
+function slideToMouse(e) {
+  const item = e.target.closest('.thumb-item')
+  if (item) {
+    const idx = parseInt(item.dataset.idx)
+    if (!isNaN(idx)) {
+      showFrame(idx)
+      if (animStudyMode) startStudyTimer()
+    }
+  }
+}
+
+function finishAnimSession() {
+  clearInterval(animInterval)
+  clearInterval(studyTicker)
+
+  const logs = animStudyLog.filter(Boolean)
+  const totalMins = Math.round(logs.reduce((a, l) => a + l.duration, 0) / 60)
+
+  document.getElementById('stat-poses').textContent = logs.length
+  document.getElementById('stat-time').textContent = totalMins || 1
+  logSession({ type: 'anim', poses: logs.length, minutes: totalMins || 1, seq: selectedSeq || '' })
+
+  const grid = document.getElementById('recap-grid')
+  grid.innerHTML = ''
+
+  logs.forEach((log, i) => {
+    const item = document.createElement('div')
+    item.className = 'recap-item'
+
+    const img = document.createElement('img')
+    img.src = log.src
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;'
+    item.appendChild(img)
+
+    const num = document.createElement('div')
+    num.className = 'recap-num'
+    num.textContent = 'F' + (log.frameNum + 1)
+    item.appendChild(num)
+
+    const dur = document.createElement('div')
+    dur.className = 'recap-duration'
+    const d = log.duration
+    dur.textContent = d < 60 ? d + 's' : (d / 60) + 'min'
+    item.appendChild(dur)
+
+    item.addEventListener('click', () => openLightbox(log.src, i, log.duration))
+
+    const star = document.createElement('button')
+    star.className = 'recap-star' + (isFaved(log.src) ? ' faved' : '')
+    star.textContent = isFaved(log.src) ? '★' : '☆'
+    star.title = 'Favori'
+    star.onclick = (e) => {
+      e.stopPropagation()
+      if (isFaved(log.src)) { removeFav(log.src); star.textContent = '☆'; star.classList.remove('faved') }
+      else { addFav(log.src, 'Frame ' + (log.frameNum + 1)); star.textContent = '★'; star.classList.add('faved') }
+      star.classList.add('bump'); setTimeout(() => star.classList.remove('bump'), 250)
+    }
+    item.appendChild(star)
+
+    grid.appendChild(item)
+  })
+
+  showScreen('screen-end')
+}
+
+function askEndAnim() {
+  clearInterval(animInterval); clearInterval(studyTicker)
+  // Si on est en mode étude et qu'il y a des frames loggées → récap
+  if (animStudyMode && animStudyLog.length > 0) {
+    // Logger la frame courante si pas encore loggée
+    if (animFrames[animIndex] && !animStudyLog.find(l => l.frameNum === animIndex)) {
+      animStudyLog.push({ src: animFrames[animIndex].dataUrl, duration: studyDuration - studyTimeLeft, frameNum: animIndex })
+    }
+    finishAnimSession()
+  } else {
+    showScreen('screen-config')
+  }
+}
+
+// ══ RÉCAP ══
+function finishSession() {
+  clearInterval(ticker); ticker = null
+  showScreen('screen-end')
+  const logs = sessionLog.filter(Boolean)
+  const totalMins = Math.round(logs.reduce((a, l) => a + l.duration, 0) / 60)
+  document.getElementById('stat-poses').textContent = logs.length
+  document.getElementById('stat-time').textContent = totalMins
+  logSession({
+    type: 'pose',
+    poses: logs.length,
+    minutes: totalMins || 1,
+    subMode: currentSubMode,
+    cats: Array.from(selectedCats).filter(c => c !== 'Sans catégorie').join(', ')
+  })
+  const grid = document.getElementById('recap-grid')
+  grid.innerHTML = ''
+  logs.forEach((log, i) => {
+    const item = document.createElement('div')
+    item.className = 'recap-item'
+    const img = document.createElement('img')
+    if (log.thumbnail?.data) img.src = log.thumbnail.data
+    item.appendChild(img)
+    if (log.rotation) img.style.transform = 'rotate(' + log.rotation + 'deg)'
+    const num = document.createElement('div'); num.className = 'recap-num'; num.textContent = i + 1; item.appendChild(num)
+    const dur = document.createElement('div'); dur.className = 'recap-duration'
+    const d = log.duration; dur.textContent = d < 60 ? d + 's' : (d / 60) + 'min'; item.appendChild(dur)
+    const src = log.thumbnail?.data || null
+    if (src) {
+      const star = document.createElement('button')
+      star.className = 'recap-star' + (isFaved(src) ? ' faved' : '')
+      star.textContent = isFaved(src) ? '★' : '☆'
+      star.title = 'Favori'
+      star.onclick = (e) => {
+        e.stopPropagation()
+        if (isFaved(src)) { removeFav(src); star.textContent = '☆'; star.classList.remove('faved') }
+        else { addFav(src, 'Pose ' + (i + 1)); star.textContent = '★'; star.classList.add('faved') }
+        star.classList.add('bump'); setTimeout(() => star.classList.remove('bump'), 250)
+      }
+      item.appendChild(star)
+    }
+    item.addEventListener('click', () => { if (src) openLightbox(src, i, log.duration, log.rotation || 0) })
+    grid.appendChild(item)
+  })
+}
+
+function replaySession() {
+  if (mainMode === 'anim') {
+    // Replay animation
+    animStudyLog = []
+    animLoopCount = 0
+    animIndex = 0
+    animStudyMode = false
+    buildTimeline()
+    showScreen('screen-anim')
+    showFrame(0)
+    if (currentAnimMode === 'study') {
+      enterStudyMode()
+    } else {
+      startLoop()
+    }
+  } else {
+    sessionEntries.sort(() => Math.random() - 0.5)
+    currentIndex = 0; sessionLog = []
+    showScreen('screen-session'); loadAndShow(0)
+  }
+}
+
+// ══ LIGHTBOX ══
+function openLightbox(src, index, duration) {
+  const lb = document.getElementById('lightbox')
+  lb.querySelector('img').src = src
+  const d = duration
+  document.getElementById('lightbox-info').textContent = 'Pose ' + (index + 1) + '  ·  ' + (d < 60 ? d + ' sec' : (d / 60) + ' min')
+  lb.classList.add('open')
+  document.addEventListener('keydown', onLbKey)
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open')
+  document.getElementById('lb-fav-remove').style.display = 'none'
+  lbFavSrc = null
+  document.removeEventListener('keydown', onLbKey)
+}
+function onLbKey(e) { if (e.key === 'Escape') closeLightbox() }
+
+// ══ FAVORIS ══
+const FAV_MAX = 10
+const FAV_KEY = 'gd4_favorites'
+
+function loadFavs() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]') } catch { return [] }
+}
+function saveFavs(favs) {
+  localStorage.setItem(FAV_KEY, JSON.stringify(favs))
+}
+
+// Pose courante → src thumbnail
+function currentPoseSrc() {
+  const entry = sessionEntries[currentIndex]
+  if (!entry) return null
+  const canvas = document.getElementById('pdf-canvas')
+  if (entry.type === 'pdf' && canvas.style.display !== 'none') return canvas.toDataURL('image/jpeg', 0.9)
+  return 'file://' + entry.path
+}
+
+function isFaved(src) {
+  return loadFavs().some(f => f.src === src)
+}
+
+function updatePoseStarBtn() {
+  const src = currentPoseSrc()
+  const btn = document.getElementById('pose-fav-btn')
+  if (!src || !btn) return
+  const faved = isFaved(src)
+  btn.textContent = faved ? '★' : '☆'
+  btn.classList.toggle('active', faved)
+}
+
+function updateAnimStarBtn() {
+  const frame = animFrames[animIndex]
+  const src = frame ? frame.dataUrl : null
+  const btn = document.getElementById('anim-fav-btn')
+  if (!src || !btn) return
+  const faved = isFaved(src)
+  btn.textContent = faved ? '★' : '☆'
+  btn.classList.toggle('active', faved)
+}
+
+function addFav(src, label) {
+  const favs = loadFavs()
+  if (favs.some(f => f.src === src)) return // déjà dedans
+  if (favs.length >= FAV_MAX) {
+    // supprimer le plus ancien
+    favs.shift()
+  }
+  favs.push({ src, label, addedAt: Date.now() })
+  saveFavs(favs)
+}
+
+function removeFav(src) {
+  const favs = loadFavs().filter(f => f.src !== src)
+  saveFavs(favs)
+}
+
+function toggleFavPose() {
+  const src = currentPoseSrc()
+  if (!src) return
+  const btn = document.getElementById('pose-fav-btn')
+  if (isFaved(src)) {
+    removeFav(src)
+    btn.textContent = '☆'
+    btn.classList.remove('active')
+  } else {
+    const entry = sessionEntries[currentIndex]
+    const label = entry ? (entry.path.split('/').pop() || 'Pose') : 'Pose'
+    addFav(src, label)
+    btn.textContent = '★'
+    btn.classList.add('active')
+  }
+  btn.classList.add('bump')
+  setTimeout(() => btn.classList.remove('bump'), 300)
+}
+
+function toggleFavAnim() {
+  const frame = animFrames[animIndex]
+  if (!frame) return
+  const src = frame.dataUrl
+  const btn = document.getElementById('anim-fav-btn')
+  const label = 'Frame ' + (animIndex + 1)
+  if (isFaved(src)) {
+    removeFav(src)
+    btn.textContent = '☆'
+    btn.classList.remove('active')
+  } else {
+    addFav(src, label)
+    btn.textContent = '★'
+    btn.classList.add('active')
+  }
+  btn.classList.add('bump')
+  setTimeout(() => btn.classList.remove('bump'), 300)
+}
+
+// Onglet favoris dans le config
+function renderFavsConfig() {
+  const favs = loadFavs()
+  const grid = document.getElementById('favs-grid-config')
+  const empty = document.getElementById('favs-empty-config')
+  grid.innerHTML = ''
+  if (favs.length === 0) {
+    empty.style.display = 'block'
+    return
+  }
+  empty.style.display = 'none'
+  favs.forEach((fav, i) => {
+    const item = document.createElement('div')
+    item.className = 'fav-item'
+    item.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;background:#242424;aspect-ratio:3/4;cursor:zoom-in;'
+
+    const img = document.createElement('img')
+    img.src = fav.src
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;'
+    item.appendChild(img)
+
+    const lbl = document.createElement('div')
+    lbl.style.cssText = 'position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.7);border-radius:4px;padding:2px 6px;font-size:11px;color:#f0c040;'
+    lbl.textContent = '★ ' + (i + 1)
+    item.appendChild(lbl)
+
+    const removeBtn = document.createElement('button')
+    removeBtn.textContent = '✕'
+    removeBtn.style.cssText = 'position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:none;border-radius:4px;color:#888;font-size:13px;cursor:pointer;padding:3px 6px;'
+    removeBtn.title = 'Retirer des favoris'
+    removeBtn.onclick = (e) => {
+      e.stopPropagation()
+      removeFav(fav.src)
+      renderFavsConfig()
+    }
+    item.appendChild(removeBtn)
+
+    item.onclick = () => openLightboxFav(fav.src, i)
+    // hover remove btn
+    item.addEventListener('mouseenter', () => { removeBtn.style.opacity = '1' })
+    item.addEventListener('mouseleave', () => { removeBtn.style.opacity = '0' })
+    removeBtn.style.opacity = '0'
+    removeBtn.style.transition = 'opacity 0.15s, color 0.15s'
+
+    grid.appendChild(item)
+  })
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;'
+}
+
+let lbFavSrc = null
+
+function openLightboxFav(src, index) {
+  lbFavSrc = src
+  const lb = document.getElementById('lightbox')
+  lb.querySelector('img').src = src
+  document.getElementById('lightbox-info').textContent = 'Favori ' + (index + 1)
+  document.getElementById('lb-fav-remove').style.display = 'block'
+  lb.classList.add('open')
+  document.addEventListener('keydown', onLbKey)
+}
+
+function removeFavFromLightbox() {
+  if (!lbFavSrc) return
+  removeFav(lbFavSrc)
+  lbFavSrc = null
+  closeLightbox()
+  renderFavsConfig()
+}
+
+function renderWeekBar() {
+  if (!document.getElementById('week-streak')) return
+  const all = loadHist()
+  const days = document.querySelectorAll('.week-day')
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+
+  // Set des timestamps de jours avec session
+  const sessionDays = new Set(all.map(s => {
+    const d = new Date(s.ts); d.setHours(0, 0, 0, 0)
+    return d.getTime()
+  }))
+
+  // Trouver le premier jour de la "semaine courante"
+  // = première session de la fenêtre de 7 jours active
+  // La fenêtre de 7 jours repart depuis la première session connue,
+  // et avance par blocs de 7 jusqu'à englober aujourd'hui.
+  let windowStart
+  if (all.length === 0) {
+    windowStart = new Date(today)
+  } else {
+    const firstTs = Math.min(...all.map(s => s.ts))
+    const firstDay = new Date(firstTs); firstDay.setHours(0, 0, 0, 0)
+    // Nombre de jours depuis firstDay jusqu'à aujourd'hui
+    const daysSinceFirst = Math.floor((today - firstDay) / 86400000)
+    // Bloc de 7 courant
+    const blockOffset = Math.floor(daysSinceFirst / 7) * 7
+    windowStart = new Date(firstDay)
+    windowStart.setDate(firstDay.getDate() + blockOffset)
+  }
+
+  // 7 cases : windowStart à windowStart+6
+  days.forEach((el, i) => {
+    const d = new Date(windowStart)
+    d.setDate(windowStart.getDate() + i)
+    const isToday = d.getTime() === today.getTime()
+    const isFuture = d > today
+    const done = sessionDays.has(d.getTime())
+
+    el.className = 'week-day'
+    if (isFuture) el.classList.add('future')
+    else if (done) el.classList.add('done')
+    if (isToday) el.classList.add('today')
+
+    el.title = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+  })
+
+  // Streak
+  const streak = computeStreak(all)
+  const streakEl = document.getElementById('week-streak')
+  streakEl.textContent = streak + ' j'
+  streakEl.className = streak === 0 ? 'zero' : ''
+}
+
+// ══ HISTORIQUE ══
+const HIST_KEY = 'gd4_history'
+let histPeriod = 'week'
+
+function loadHist() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]') } catch { return [] }
+}
+function saveHist(h) { localStorage.setItem(HIST_KEY, JSON.stringify(h)) }
+
+function logSession(data) {
+  const hist = loadHist()
+  hist.push({ ...data, ts: Date.now() })
+  if (hist.length > 500) hist.splice(0, hist.length - 500)
+  saveHist(hist)
+  renderWeekBar()
+
+  // Sauvegarde dans Supabase
+  if (window.electronAPI?.saveSession) {
+    window.electronAPI.saveSession({
+      poses: data.poses,
+      minutes: data.minutes,
+      cats: data.cats || data.seq || null,
+    }).catch(e => console.warn('saveSession error:', e))
+  }
+}
+
+function setHistPeriod(p) {
+  histPeriod = p
+  document.querySelectorAll('.hist-period-tab').forEach(t => t.classList.toggle('active', t.dataset.period === p))
+  renderHistList()
+}
+
+function renderHist() {
+  const all = loadHist()
+  // Streak
+  if (window.electronAPI?.getStreak) {
+  window.electronAPI.getStreak().then(r => {
+    document.getElementById('hist-streak').textContent = r.streak || 0
+    const streakEl = document.getElementById('week-streak')
+    if (streakEl) {
+      streakEl.textContent = (r.streak || 0) + ' j'
+      streakEl.className = r.streak === 0 ? 'zero' : ''
+    }
+  })
+} else {
+  document.getElementById('hist-streak').textContent = computeStreak(all)
+}
+  // Totaux
+  document.getElementById('hist-total-sessions').textContent = all.length
+  document.getElementById('hist-total-mins').textContent = all.reduce((a, s) => a + (s.minutes || 0), 0)
+  renderHistList()
+}
+
+function renderHistList() {
+  const all = loadHist()
+  const now = Date.now()
+  const cutoff = histPeriod === 'week' ? now - 7 * 86400000
+    : histPeriod === 'month' ? now - 30 * 86400000 : 0
+  const filtered = all.filter(s => s.ts >= cutoff).reverse()
+
+  const list = document.getElementById('hist-sessions-list')
+  const empty = document.getElementById('hist-empty')
+  list.innerHTML = ''
+
+  if (filtered.length === 0) { empty.style.display = 'block'; return }
+  empty.style.display = 'none'
+
+  filtered.forEach(s => {
+    const row = document.createElement('div'); row.className = 'hist-session-row'
+    const dot = document.createElement('div'); dot.className = 'hist-session-dot' + (s.type === 'anim' ? ' anim' : '')
+    const info = document.createElement('div'); info.className = 'hist-session-info'
+    const typeLabel = s.type === 'anim'
+      ? 'Animation' + (s.seq ? ' — ' + s.seq : '')
+      : 'Poses' + (s.subMode === 'progressive' ? ' (progressif)' : '')
+    const catsLabel = s.cats ? '<span style="color:#666"> · ' + s.cats + '</span>' : ''
+    info.innerHTML = typeLabel + catsLabel + '<div class="hist-session-meta">' + (s.poses || 0) + ' poses · ' + (s.minutes || 0) + ' min</div>'
+    const time = document.createElement('div'); time.className = 'hist-session-time'
+    time.textContent = formatHistDate(s.ts)
+    row.appendChild(dot); row.appendChild(info); row.appendChild(time)
+    list.appendChild(row)
+  })
+}
+
+function formatHistDate(ts) {
+  const d = new Date(ts)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1)
+  const dDay = new Date(d); dDay.setHours(0, 0, 0, 0)
+  const hm = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0')
+  if (dDay.getTime() === today.getTime()) return "Aujourd'hui " + hm
+  if (dDay.getTime() === yesterday.getTime()) return 'Hier ' + hm
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + hm
+}
+
+function computeStreak(hist) {
+  if (hist.length === 0) return 0
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const days = new Set(hist.map(s => new Date(s.ts).toDateString()))
+  let streak = 0, cur = new Date(today)
+  while (days.has(cur.toDateString())) {
+    streak++
+    cur.setDate(cur.getDate() - 1)
+  }
+  return streak
+}
+
+// ══ GRILLE DE COMPOSITION ══
+let gridMode = 0 // 0=off 1=tiers 2=diagonales 3=les deux
+const GRID_LABELS = ['⊞', '⊞', '⊞', '⊞']
+const GRID_TITLES = ['Grille : off', 'Tiers', 'Diagonales', 'Tiers + Diagonales']
+
+function cycleGrid() {
+  gridMode = (gridMode + 1) % 4
+  applyGrid()
+}
+
+function getVisibleImageRect() {
+  // Retourne la bounding box de l'image/canvas visible, relative à #photo-area
+  const area = document.getElementById('photo-area')
+  if (!area) return null
+  const areaRect = area.getBoundingClientRect()
+
+  let el = document.getElementById('photo-img')
+  if (!el || el.style.display === 'none') el = document.getElementById('pdf-canvas')
+  if (!el || el.style.display === 'none') return null
+
+  const r = el.getBoundingClientRect()
+  // Dimensions naturelles vs affichées (object-fit: contain déjà appliqué par le navigateur)
+  return {
+    left:   r.left - areaRect.left,
+    top:    r.top  - areaRect.top,
+    width:  r.width,
+    height: r.height
+  }
+}
+
+function positionGridOverlay() {
+  const overlay = document.getElementById('grid-overlay')
+  if (!overlay) return
+  const rect = getVisibleImageRect()
+  if (!rect) return
+  overlay.style.left   = rect.left   + 'px'
+  overlay.style.top    = rect.top    + 'px'
+  overlay.style.width  = rect.width  + 'px'
+  overlay.style.height = rect.height + 'px'
+}
+
+function applyGrid() {
+  const overlay = document.getElementById('grid-overlay')
+  const thirds  = document.getElementById('grid-thirds')
+  const diags   = document.getElementById('grid-diags')
+  const btn     = document.getElementById('grid-btn')
+  if (!overlay) return
+
+  if (gridMode > 0) positionGridOverlay()
+  overlay.classList.toggle('visible', gridMode > 0)
+  if (thirds) thirds.style.display = (gridMode === 1 || gridMode === 3) ? '' : 'none'
+  if (diags)  diags.style.display  = (gridMode === 2 || gridMode === 3) ? '' : 'none'
+  if (btn) {
+    btn.classList.toggle('grid-active', gridMode > 0)
+    btn.title = GRID_TITLES[gridMode]
+  }
+}
+
+function resetGrid() {
+  gridMode = 0
+  applyGrid()
+}
+
+// ══ OPTIONS ══
+function toggleOptions() {
+  document.getElementById('options-dropdown').classList.toggle('open')
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown')) {
+    document.getElementById('options-dropdown').classList.remove('open')
+  }
+})
+function confirmResetHistory() {
+  document.getElementById('options-dropdown').classList.remove('open')
+  if (confirm('Réinitialiser tout l\'historique ? Cette action est irréversible.')) {
+    localStorage.removeItem(HIST_KEY)
+    renderWeekBar()
+    if (document.getElementById('hist-options').style.display !== 'none') renderHist()
+  }
+}
+function checkAdminPassword() {
+  const input = document.getElementById('admin-input')
+  if (!input) return
+  window.electronAPI.authAdmin(input.value).then(result => {
+    if (result.success) location.reload()
+    else { input.style.borderColor = '#E24B4A'; input.value = '' }
+  })
+}
+async function handleLogout() {
+  document.getElementById('options-dropdown').classList.remove('open')
+  if (confirm('Se déconnecter ?')) {
+    await window.electronAPI.authLogout()
+  }
+}
+// Raccourcis clavier session
+document.addEventListener('keydown', (e) => {
+  // ── Mode Pose ──
+  if (document.getElementById('screen-session').classList.contains('active')) {
+    if (e.key === 'ArrowLeft' && e.shiftKey) { rotateLeft(); return }
+    if (e.key === 'ArrowRight' && e.shiftKey) { rotateRight(); return }
+    if (e.key === 'f' || e.key === 'F') { flipH(); return }
+    if (e.key === 's' || e.key === 'S') { toggleFavPose(); return }
+  }
+
+  // ── Mode Animation ──
+  if (document.getElementById('screen-anim').classList.contains('active')) {
+    if (animStudyMode) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); animNextFrame(); return }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); animPrevFrame(); return }
+    }
+    if (e.key === 's' || e.key === 'S') { toggleFavAnim(); return }
+  }
+})
+</script>
+</body>
+</html>
