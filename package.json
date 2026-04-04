@@ -34,9 +34,7 @@
     "mac": {
       "category": "public.app-category.graphics-design",
       "icon": "icon.icns",
-      "notarize": {
-        "teamId": "Q4W8LZ8636"
-      },
+      "notarize": false
       "target": {
         "target": "dmg",
         "arch": ["arm64"]
