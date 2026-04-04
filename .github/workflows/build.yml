@@ -33,4 +33,3 @@ jobs:
           prerelease: true
           files: dist/*.dmg
           token: ${{ secrets.GITHUB_TOKEN }}
-          repository: Vesanerie/gesturo-releases
