@@ -40,13 +40,7 @@
       }
     },
     "dmg": {
-      "title": "Gesturo",
-      "extraFiles": [
-        {
-          "from": "install.command",
-          "to": "Ouvrir Gesturo.command"
-        }
-      ]
+      "title": "Gesturo"
     }
   },
   "dependencies": {
