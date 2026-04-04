@@ -32,7 +32,7 @@ jobs:
           ENVEOF
 
       - name: Build DMG
-        run: npm run dist -- --arm64
+        run: npm run build
 
       - name: Get version
         id: version
