@@ -3,15 +3,15 @@ exports.default = async function notarizing(context) {
   if (electronPlatformName !== 'darwin') return
 
   const { notarize } = await import('@electron/notarize')
-  const { build } = await import('../package.json', { assert: { type: 'json' } })
 
   const appName = context.packager.appInfo.productFilename
+  const appBundleId = context.packager.config.appId
 
   console.log('--- démarrage notarisation ---')
 
   await notarize({
     tool: 'notarytool',
-    appBundleId: build.appId,
+    appBundleId: appBundleId,
     appPath: `${appOutDir}/${appName}.app`,
     teamId: process.env.APPLE_TEAM_ID,
     appleId: process.env.APPLE_ID,
