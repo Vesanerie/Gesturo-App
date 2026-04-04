@@ -34,7 +34,7 @@
     "mac": {
       "category": "public.app-category.graphics-design",
       "icon": "icon.icns",
-      "notarize": false
+      "notarize": false,
       "target": {
         "target": "dmg",
         "arch": ["arm64"]
