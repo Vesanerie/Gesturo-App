@@ -13,7 +13,7 @@ let mainWindow
 
 // ── Chemins ──────────────────────────────────────────────────────────────────
 const DEFAULT_LOCAL_FOLDER = path.join(os.homedir(), 'Desktop', 'Gesturo Photos', 'Sessions', 'current')
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || ''
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-6f5ad41753f44365a1bf451423184422.r2.dev'
 const R2_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/sessions/current` : ''
 const R2_ANIM_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/animations/current` : ''
 
@@ -49,9 +49,33 @@ function getWhitelistData() {
   }
 }
 
-function isEmailAllowed(email) {
+function isEmailAllowedLocal(email) {
   const { emails } = getWhitelistData()
   return emails.map(e => e.toLowerCase()).includes(email.toLowerCase())
+}
+
+async function isEmailAllowed(email) {
+  // 1. Check local whitelist
+  if (isEmailAllowedLocal(email)) return true
+  // 2. Check Supabase waitlist table
+  try {
+    const { data } = await supabase
+      .from('waitlist')
+      .select('email')
+      .eq('email', email.toLowerCase())
+      .single()
+    if (data) return true
+  } catch(e) {}
+  // 3. Check if user already has a profile in Supabase
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('email', email.toLowerCase())
+      .single()
+    if (data) return true
+  } catch(e) {}
+  return false
 }
 
 function isProEmail(email) {
@@ -59,6 +83,29 @@ function isProEmail(email) {
   if (!pro_emails) return false
   return pro_emails.map(e => e.toLowerCase()).includes(email.toLowerCase())
 }
+
+// Vérifie le statut Pro via Supabase (plan column)
+async function checkProFromSupabase(email) {
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('plan, pro_expires_at')
+      .eq('email', email.toLowerCase())
+      .single()
+    if (!data) return false
+    if (data.plan !== 'pro') return false
+    // Vérifier si l'abonnement n'est pas expiré
+    if (data.pro_expires_at && new Date(data.pro_expires_at) < new Date()) return false
+    return true
+  } catch(e) {
+    console.warn('checkProFromSupabase error:', e.message)
+    return false
+  }
+}
+
+// Payment Links Stripe
+const STRIPE_LINK_MONTHLY = 'https://buy.stripe.com/test_dRmdR8cxg6xr7VQ1Yv1ck01'
+const STRIPE_LINK_YEARLY = 'https://buy.stripe.com/test_dRmaEWbtccVP4JEbz51ck02'
 
 function isBetaExpired() {
   const { expires } = getWhitelistData()
@@ -129,9 +176,17 @@ async function getUserInfo(accessToken) {
   return httpsGet(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`)
 }
 
+let oauthServer = null
+
 function startOAuthFlow() {
   return new Promise((resolve, reject) => {
     const http = require('http')
+
+    // Fermer le serveur précédent s'il existe encore
+    if (oauthServer) {
+      try { oauthServer.close() } catch(e) {}
+      oauthServer = null
+    }
 
     const server = http.createServer(async (req, res) => {
       const url = new URL(req.url, 'http://localhost:9876')
@@ -149,6 +204,7 @@ function startOAuthFlow() {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
       res.end(html)
       server.close()
+      oauthServer = null
 
       if (error || !code) return reject(new Error(error || 'Code manquant'))
 
@@ -158,6 +214,8 @@ function startOAuthFlow() {
         resolve({ tokenData, userInfo })
       } catch(e) { reject(e) }
     })
+
+    oauthServer = server
 
     server.listen(9876, '127.0.0.1', () => {
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -171,8 +229,23 @@ function startOAuthFlow() {
     })
 
     server.on('error', (e) => {
-      if (e.code === 'EADDRINUSE') reject(new Error('Port 9876 déjà utilisé — ferme l\'app et relance'))
-      else reject(e)
+      if (e.code === 'EADDRINUSE') {
+        // Le port est bloqué par un processus externe — on tente de le libérer
+        const tmp = new require('net').Server()
+        tmp.once('error', () => {
+          reject(new Error('Port 9876 bloqué par un autre programme. Ferme-le et réessaie.'))
+        })
+        tmp.once('close', () => {
+          // Réessayer après un court délai
+          setTimeout(() => {
+            server.listen(9876, '127.0.0.1')
+          }, 500)
+        })
+        tmp.listen(9876, '127.0.0.1')
+        tmp.close()
+      } else {
+        reject(e)
+      }
     })
   })
 }
@@ -185,11 +258,11 @@ async function listR2Photos(isPro) {
   const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3')
   const client = new S3Client({
     region: 'auto',
-    endpoint: process.env.R2_ENDPOINT,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    },
+    endpoint: process.env.R2_ENDPOINT || 'https://d0379cc6397c14c330d638302ebdb9b1.r2.cloudflarestorage.com',
+credentials: {
+  accessKeyId: process.env.R2_ACCESS_KEY_ID || 'fe8488de9b90b28eccfccbcf12399143',
+  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || 'c63403c1735e0d1fb1862e7096db25c1e37e631487721cbb05d341e5a9469667',
+},
   })
 
   const results = []
@@ -197,7 +270,7 @@ async function listR2Photos(isPro) {
 
   do {
     const cmd = new ListObjectsV2Command({
-      Bucket: process.env.R2_BUCKET,
+      Bucket: process.env.R2_BUCKET || 'gesturo-photos',
       Prefix: 'Sessions/current/',
       ContinuationToken: continuationToken,
     })
@@ -229,11 +302,11 @@ async function listR2Animations(isPro) {
   const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3')
   const client = new S3Client({
     region: 'auto',
-    endpoint: process.env.R2_ENDPOINT,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    },
+    endpoint: process.env.R2_ENDPOINT || 'https://d0379cc6397c14c330d638302ebdb9b1.r2.cloudflarestorage.com',
+credentials: {
+  accessKeyId: process.env.R2_ACCESS_KEY_ID || 'fe8488de9b90b28eccfccbcf12399143',
+  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || 'c63403c1735e0d1fb1862e7096db25c1e37e631487721cbb05d341e5a9469667',
+},
   })
 
   const results = []
@@ -245,7 +318,7 @@ async function listR2Animations(isPro) {
     let continuationToken = undefined
     do {
       const cmd = new ListObjectsV2Command({
-        Bucket: process.env.R2_BUCKET,
+        Bucket: process.env.R2_BUCKET || 'gesturo-photos',
         Prefix: prefix,
         ContinuationToken: continuationToken,
       })
@@ -292,7 +365,7 @@ function createWindow() {
     }
   })
   mainWindow.loadFile('index.html')
-  mainWindow.webContents.on('did-finish-load', () => {
+  mainWindow.webContents.on('did-finish-load', async () => {
     const token = loadToken()
     if (!token || !token.email) {
       mainWindow.webContents.send('auth-required')
@@ -300,7 +373,6 @@ function createWindow() {
     }
     if (isAdminToken(token)) {
       mainWindow.webContents.send('auth-success', { email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true })
-      // Admin : mode local par défaut si le dossier existe, sinon R2
       setTimeout(() => {
         if (fs.existsSync(DEFAULT_LOCAL_FOLDER)) {
           mainWindow.webContents.send('auto-load-folder', DEFAULT_LOCAL_FOLDER)
@@ -310,10 +382,13 @@ function createWindow() {
       }, 500)
     } else if (isBetaExpired()) {
       mainWindow.webContents.send('auth-expired', { email: token.email, landingUrl: BETA_LANDING })
-    } else if (isEmailAllowed(token.email)) {
-      const isPro = isProEmail(token.email)
+    } else if (await isEmailAllowed(token.email)) {
+      let isPro = isProEmail(token.email)
+      try {
+        const supabasePro = await checkProFromSupabase(token.email)
+        if (supabasePro) isPro = true
+      } catch(e) {}
       mainWindow.webContents.send('auth-success', { email: token.email, name: token.name, picture: token.picture, isAdmin: false, isPro })
-      // Utilisateurs : toujours R2
       setTimeout(() => {
         mainWindow.webContents.send('use-r2-mode', { isPro })
       }, 500)
@@ -326,8 +401,12 @@ function createWindow() {
 // ── IPC Auth ──────────────────────────────────────────────────────────────────
 ipcMain.handle('auth-google', async () => {
   try {
+    if (!OAUTH_CREDS.client_id || !OAUTH_CREDS.client_secret) {
+      console.error('❌ OAuth credentials manquantes — vérifie oauth_credentials.json')
+      return { success: false, reason: 'error', message: 'Fichier oauth_credentials.json introuvable ou invalide. Vérifie qu\'il est présent à côté de main.js.' }
+    }
     const { tokenData, userInfo } = await startOAuthFlow()
-    if (!isEmailAllowed(userInfo.email)) {
+    if (!await isEmailAllowed(userInfo.email)) {
       return { success: false, reason: 'not_allowed', email: userInfo.email }
     }
     if (isBetaExpired()) {
@@ -340,6 +419,7 @@ ipcMain.handle('auth-google', async () => {
     saveToken({ ...tokenData, email: userInfo.email, name: userInfo.name, picture: userInfo.picture })
     return { success: true, email: userInfo.email, name: userInfo.name, picture: userInfo.picture }
   } catch(e) {
+    console.error('❌ auth-google error:', e)
     return { success: false, reason: 'error', message: e.message }
   }
 })
@@ -364,26 +444,22 @@ ipcMain.handle('auth-admin', (event, password) => {
   }
 })
 
-ipcMain.handle('auth-check', () => {
+ipcMain.handle('auth-check', async () => {
   const token = loadToken()
   if (!token || !token.email) return { authenticated: false }
   if (isAdminToken(token)) return { authenticated: true, email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true }
-  if (!isEmailAllowed(token.email)) return { authenticated: false, reason: 'not_allowed' }
+  if (!await isEmailAllowed(token.email)) return { authenticated: false, reason: 'not_allowed' }
   if (isBetaExpired()) return { authenticated: false, reason: 'expired', landingUrl: BETA_LANDING }
-  const isPro = isProEmail(token.email)
+  let isPro = isProEmail(token.email)
+  try {
+    const supabasePro = await checkProFromSupabase(token.email)
+    if (supabasePro) isPro = true
+  } catch(e) {}
   return { authenticated: true, email: token.email, name: token.name, picture: token.picture, isAdmin: false, isPro }
 })
 
-// ── IPC Photos ────────────────────────────────────────────────────────────────
-
-// Liste les photos R2 (appelé par l'app au démarrage)
-ipcMain.handle('list-r2-photos', async (event, { isPro }) => {
-  try {
-    return await listR2Photos(isPro)
-  } catch(e) {
-    console.warn('list-r2-photos error:', e.message)
-    return []
-  }
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion()
 })
 
 // Liste les animations R2
@@ -519,5 +595,28 @@ ipcMain.handle('get-streak', async () => {
 
 ipcMain.handle('open-external', (event, url) => { shell.openExternal(url) })
 
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+ipcMain.handle('get-payment-links', () => {
+  const token = loadToken()
+  const email = token?.email || ''
+  return {
+    monthly: STRIPE_LINK_MONTHLY + (email ? '?prefilled_email=' + encodeURIComponent(email) : ''),
+    yearly: STRIPE_LINK_YEARLY + (email ? '?prefilled_email=' + encodeURIComponent(email) : ''),
+  }
+})
+
+ipcMain.handle('refresh-pro-status', async () => {
+  const token = loadToken()
+  if (!token || !token.email || isAdminToken(token)) return { isPro: true }
+  let isPro = isProEmail(token.email)
+  try {
+    const supabasePro = await checkProFromSupabase(token.email)
+    if (supabasePro) isPro = true
+  } catch(e) {}
+  return { isPro }
+})
+
+app.on('window-all-closed', () => {
+  if (oauthServer) { try { oauthServer.close() } catch(e) {} oauthServer = null }
+  if (process.platform !== 'darwin') app.quit()
+})
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
