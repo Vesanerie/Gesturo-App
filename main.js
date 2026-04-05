@@ -369,6 +369,7 @@ async function refreshInstagramToken() {
     console.warn('Instagram token refresh error:', e.message)
   }
 }
+
 app.whenReady().then(() => {
   protocol.registerFileProtocol('file', (request, callback) => {
     const filePath = decodeURIComponent(request.url.replace('file://', ''))
@@ -377,7 +378,14 @@ app.whenReady().then(() => {
   createWindow()
   autoUpdater.checkForUpdatesAndNotify()
   refreshInstagramToken()
-  setInterval(refreshInstagramToken, 30 * 24 * 60 * 60 * 1000)
+  let refreshDayCount = 0
+  setInterval(() => {
+    refreshDayCount++
+    if (refreshDayCount >= 30) {
+      refreshInstagramToken()
+      refreshDayCount = 0
+    }
+  }, 24 * 60 * 60 * 1000)
 })
 
 function createWindow() {
