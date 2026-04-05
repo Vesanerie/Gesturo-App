@@ -2,6 +2,9 @@ name: Build & Release DMG
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -32,6 +35,8 @@ jobs:
           R2_ENDPOINT=${{ secrets.R2_ENDPOINT }}
           R2_PUBLIC_URL=${{ secrets.R2_PUBLIC_URL }}
           INSTAGRAM_ACCESS_TOKEN=${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
           EOF
 
       - name: Build DMG (sans notarisation)
