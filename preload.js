@@ -36,4 +36,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPaymentLinks: () => ipcRenderer.invoke('get-payment-links'),
   refreshProStatus: () => ipcRenderer.invoke('refresh-pro-status'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getInstagramPosts: () => ipcRenderer.invoke('get-instagram-posts'),
 })

@@ -348,6 +348,27 @@ credentials: {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
+async function refreshInstagramToken() {
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN
+  if (!token) return
+  try {
+    const res = await httpsGet(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${token}`)
+    if (res.access_token) {
+      // Mettre à jour le .env
+      const envPath = path.join(__dirname, '.env')
+      let envContent = fs.readFileSync(envPath, 'utf8')
+      envContent = envContent.replace(
+        /INSTAGRAM_ACCESS_TOKEN=.*/,
+        `INSTAGRAM_ACCESS_TOKEN=${res.access_token}`
+      )
+      fs.writeFileSync(envPath, envContent)
+      process.env.INSTAGRAM_ACCESS_TOKEN = res.access_token
+      console.log('✅ Token Instagram renouvelé, expire dans', res.expires_in, 'secondes')
+    }
+  } catch(e) {
+    console.warn('Instagram token refresh error:', e.message)
+  }
+}
 app.whenReady().then(() => {
   protocol.registerFileProtocol('file', (request, callback) => {
     const filePath = decodeURIComponent(request.url.replace('file://', ''))
@@ -355,6 +376,8 @@ app.whenReady().then(() => {
   })
   createWindow()
   autoUpdater.checkForUpdatesAndNotify()
+  refreshInstagramToken()
+  setInterval(refreshInstagramToken, 30 * 24 * 60 * 60 * 1000)
 })
 
 function createWindow() {
@@ -627,6 +650,18 @@ ipcMain.handle('refresh-pro-status', async () => {
     if (supabasePro) isPro = true
   } catch(e) {}
   return { isPro }
+})
+
+ipcMain.handle('get-instagram-posts', async () => {
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN
+  if (!token) return []
+  try {
+    const res = await httpsGet(`https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,permalink,timestamp,like_count&limit=20&access_token=${token}`)
+    return res.data || []
+  } catch(e) {
+    console.warn('Instagram API error:', e.message)
+    return []
+  }
 })
 
 app.on('window-all-closed', () => {
