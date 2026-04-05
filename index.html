@@ -700,8 +700,39 @@ if (window.electronAPI?.onAuthRequired) {
     `
     document.body.appendChild(div)
 
-    document.getElementById('btn-google-login').addEventListener('click', () => {
-      window.electronAPI.authGoogle().then(() => location.reload())
+    document.getElementById('btn-google-login').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-google-login')
+      const msgEl = document.getElementById('login-message') || (() => {
+        const p = document.createElement('p')
+        p.id = 'login-message'
+        p.style.cssText = 'color:#E24B4A;font-size:13px;margin-top:8px;text-align:center;max-width:340px;'
+        btn.parentNode.insertBefore(p, btn.nextSibling)
+        return p
+      })()
+      msgEl.textContent = ''
+      btn.disabled = true
+      btn.textContent = 'Connexion en cours…'
+      btn.style.opacity = '0.6'
+
+      try {
+        const result = await window.electronAPI.authGoogle()
+        if (result && result.success) {
+          location.reload()
+        } else if (result && result.reason === 'not_allowed') {
+          msgEl.textContent = `L'adresse ${result.email} n'est pas autorisée.`
+        } else if (result && result.reason === 'expired') {
+          msgEl.textContent = 'La période bêta est terminée.'
+        } else {
+          msgEl.textContent = result?.message || 'Erreur de connexion. Réessaie.'
+        }
+      } catch (err) {
+        console.error('Auth Google error:', err)
+        msgEl.textContent = 'Erreur : ' + (err.message || 'impossible de se connecter')
+      } finally {
+        btn.disabled = false
+        btn.textContent = 'Se connecter avec Google'
+        btn.style.opacity = '1'
+      }
     })
 
     document.getElementById('btn-admin-login').addEventListener('click', () => {
@@ -756,6 +787,20 @@ function adminSetSource(source) {
 
 window.addEventListener('resize', () => {
   if (gridMode > 0) positionGridOverlay()
+})
+
+// Auto-refresh Pro status quand l'app revient au premier plan (après paiement Stripe)
+window.addEventListener('focus', () => {
+  if (!window.electronAPI?.refreshProStatus) return
+  if (currentUserIsPro) return // déjà Pro, pas besoin de checker
+  window.electronAPI.refreshProStatus().then(result => {
+    if (result.isPro && !currentUserIsPro) {
+      currentUserIsPro = true
+      // Recharger les photos avec le statut Pro
+      if (isR2Mode) loadR2(true)
+      renderCategories()
+    }
+  })
 })
 
 function showScreen(id) {
@@ -968,16 +1013,37 @@ function showUpgradeModal() {
   modal.id = 'upgrade-modal'
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;'
   modal.innerHTML = `
-    <div style="background:#1e1e1e;border:0.5px solid #333;border-radius:16px;padding:32px;width:360px;text-align:center;">
-      <div style="font-size:28px;margin-bottom:12px;">⭐</div>
+    <div style="background:#1e1e1e;border:0.5px solid #333;border-radius:16px;padding:32px;width:400px;text-align:center;">
       <h2 style="color:#fff;font-size:20px;margin-bottom:8px;">Gesturo Pro</h2>
-      <p style="color:#555;font-size:14px;line-height:1.6;margin-bottom:24px;">Accède à toutes les catégories, les animations et les poses de nudité académique.</p>
-      <button onclick="window.electronAPI.openExternal('https://gesturo.art')" style="width:100%;padding:13px;background:#fff;color:#111;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;">Découvrir Pro</button>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin-bottom:24px;">Toutes les catégories, les animations et les poses de nudité académique.</p>
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <button id="btn-pro-monthly" style="flex:1;padding:16px 12px;background:#242424;border:0.5px solid #444;border-radius:10px;cursor:pointer;text-align:center;">
+          <div style="color:#fff;font-size:16px;font-weight:600;">4,99 €/mois</div>
+          <div style="color:#555;font-size:12px;margin-top:4px;">Sans engagement</div>
+        </button>
+        <button id="btn-pro-yearly" style="flex:1;padding:16px 12px;background:#242424;border:1.5px solid #fff;border-radius:10px;cursor:pointer;text-align:center;position:relative;">
+          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#fff;color:#111;font-size:11px;font-weight:600;padding:2px 10px;border-radius:99px;">-17%</div>
+          <div style="color:#fff;font-size:16px;font-weight:600;">49,99 €/an</div>
+          <div style="color:#555;font-size:12px;margin-top:4px;">~4,17 €/mois</div>
+        </button>
+      </div>
       <button onclick="document.getElementById('upgrade-modal').remove()" style="width:100%;padding:10px;background:transparent;color:#555;border:none;font-size:14px;cursor:pointer;">Pas maintenant</button>
     </div>
   `
   document.body.appendChild(modal)
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove() })
+
+  // Charger les liens de paiement et attacher les événements
+  window.electronAPI.getPaymentLinks().then(links => {
+    document.getElementById('btn-pro-monthly').addEventListener('click', () => {
+      window.electronAPI.openExternal(links.monthly)
+      modal.remove()
+    })
+    document.getElementById('btn-pro-yearly').addEventListener('click', () => {
+      window.electronAPI.openExternal(links.yearly)
+      modal.remove()
+    })
+  })
 }
 function toggleCat(cat, btn) {
   if (selectedCats.has(cat)) { selectedCats.delete(cat); btn.classList.remove('selected') }
