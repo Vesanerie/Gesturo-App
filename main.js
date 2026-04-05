@@ -29,7 +29,9 @@ try {
   OAUTH_CREDS.client_id = creds.client_id
   OAUTH_CREDS.client_secret = creds.client_secret
 } catch(e) {
-  console.warn('oauth_credentials.json introuvable ou invalide:', e.message)
+  OAUTH_CREDS.client_id = process.env.GOOGLE_CLIENT_ID || ''
+  OAUTH_CREDS.client_secret = process.env.GOOGLE_CLIENT_SECRET || ''
+  console.warn('oauth_credentials.json introuvable, utilisation des env vars')
 }
 
 const REDIRECT_URI = 'http://localhost:9876/oauth/callback'
