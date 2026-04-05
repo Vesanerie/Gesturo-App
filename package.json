@@ -35,12 +35,13 @@
     "mac": {
       "category": "public.app-category.graphics-design",
       "icon": "icon.icns",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
       "notarize": false,
       "target": {
         "target": "dmg",
-        "arch": [
-          "arm64"
-        ]
+        "arch": ["arm64"]
       }
     },
     "afterSign": "./scripts/notarize.js",
