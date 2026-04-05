@@ -1,3 +1,6 @@
+const fs = require('fs')
+const path = require('path')
+
 exports.default = async function notarizing(context) {
   const { electronPlatformName, appOutDir } = context
   if (electronPlatformName !== 'darwin') return
@@ -8,29 +11,28 @@ exports.default = async function notarizing(context) {
   const appBundleId = context.packager.config.appId
   const appPath = `${appOutDir}/${appName}.app`
 
-  console.log('APPLE_ID:', process.env.APPLE_ID ? '✅' : '❌')
-  console.log('APPLE_TEAM_ID:', process.env.APPLE_TEAM_ID ? '✅' : '❌')
-  console.log('APPLE_APP_SPECIFIC_PASSWORD:', process.env.APPLE_APP_SPECIFIC_PASSWORD ? '✅' : '❌')
+  // Écrire la clé API dans un fichier temporaire
+  const apiKeyDir = path.join(process.env.HOME, 'private_keys')
+  fs.mkdirSync(apiKeyDir, { recursive: true })
+
+  const keyFile = path.join(apiKeyDir, `AuthKey_${process.env.APPLE_API_KEY_ID}.p8`)
+  fs.writeFileSync(keyFile, Buffer.from(process.env.APPLE_API_KEY, 'base64'))
+
+  console.log('API Key ID:', process.env.APPLE_API_KEY_ID ? '✅' : '❌')
+  console.log('API Issuer:', process.env.APPLE_API_ISSUER ? '✅' : '❌')
+  console.log('API Key file:', fs.existsSync(keyFile) ? '✅' : '❌')
   console.log('App path:', appPath)
-  console.log('Bundle ID:', appBundleId)
   console.log('--- démarrage notarisation ---')
 
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('⏰ TIMEOUT notarisation après 15 min')), 15 * 60 * 1000)
-  )
-
   try {
-    await Promise.race([
-      notarize({
-        tool: 'notarytool',
-        appBundleId: appBundleId,
-        appPath: appPath,
-        teamId: process.env.APPLE_TEAM_ID,
-        appleId: process.env.APPLE_ID,
-        appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-      }),
-      timeout
-    ])
+    await notarize({
+      tool: 'notarytool',
+      appBundleId: appBundleId,
+      appPath: appPath,
+      appleApiKey: keyFile,
+      appleApiKeyId: process.env.APPLE_API_KEY_ID,
+      appleApiIssuer: process.env.APPLE_API_ISSUER,
+    })
     console.log('--- notarisation terminée ✅ ---')
   } catch (err) {
     console.error('❌ Erreur notarisation:', err.message)
