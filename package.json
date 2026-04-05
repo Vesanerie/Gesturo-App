@@ -36,6 +36,7 @@
       "category": "public.app-category.graphics-design",
       "icon": "icon.icns",
       "hardenedRuntime": true,
+      "identity": "E88066B362342ED5B335648D3C717FD2634EE02A",
       "entitlements": "entitlements.mac.plist",
       "entitlementsInherit": "entitlements.mac.plist",
       "notarize": false,
