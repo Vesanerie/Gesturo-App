@@ -81,4 +81,3 @@ jobs:
             dist/Gesturo-${{ steps.version.outputs.VERSION }}-arm64.dmg
             dist/Gesturo-latest-arm64.dmg
           token: ${{ secrets.GH_TOKEN }}
-          repository: Vesanerie/gesturo-releases
