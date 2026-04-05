@@ -33,4 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ── Utilitaires ──
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  getPaymentLinks: () => ipcRenderer.invoke('get-payment-links'),
+  refreshProStatus: () => ipcRenderer.invoke('refresh-pro-status'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 })

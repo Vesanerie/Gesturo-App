@@ -45,7 +45,6 @@
         "arch": ["arm64"]
       }
     },
-    "afterSign": "./scripts/notarize.js",
     "dmg": {
       "title": "Gesturo"
     }

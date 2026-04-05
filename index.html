@@ -271,6 +271,20 @@
     .hist-session-meta { font-size: 11px; color: #555; margin-top: 2px; }
     .hist-session-time { font-size: 11px; color: #444; white-space: nowrap; }
     #hist-empty { font-size: 13px; color: #555; text-align: center; padding: 30px 0; display: none; }
+    #about-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:9999; align-items:center; justify-content:center; }
+#about-modal.open { display:flex; }
+.about-box { background:#1e1e1e; border:0.5px solid #333; border-radius:16px; padding:28px; width:320px; }
+.about-box h3 { font-size:16px; font-weight:600; color:#fff; margin-bottom:16px; }
+.about-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:0.5px solid #2a2a2a; font-size:13px; }
+.about-row:last-of-type { border-bottom:none; }
+.about-row .label { color:#666; }
+.about-row .value { color:#fff; font-weight:500; }
+.about-row .value.pro { color:#f0c040; }
+.about-row .value.free { color:#555; }
+.about-close { width:100%; margin-top:16px; padding:10px; background:#2e2e2e; border:0.5px solid #444; border-radius:8px; color:#ccc; font-size:13px; cursor:pointer; }
+.about-close:hover { background:#333; }
+.about-upgrade { width:100%; margin-top:8px; padding:10px; background:#fff; border:none; border-radius:8px; color:#111; font-size:13px; font-weight:600; cursor:pointer; }
+.about-upgrade:hover { background:#e0e0e0; }
   </style>
 </head>
 <body>
@@ -280,6 +294,7 @@
 <div id="options-dropdown">
   <div class="opt-item" onclick="handleLogout()">🚪 Se déconnecter</div>
   <div class="opt-item danger" onclick="confirmResetHistory()">🗑 Réinitialiser l'historique</div>
+  <div class="opt-item" onclick="showAbout()">ℹ️ À propos</div>
 </div>
 
 <!-- ══ CONFIG ══ -->
@@ -636,6 +651,7 @@ let progressiveQueue = []
 
 // ══ ANIMATION STATE ══
 let animFrames = []       // [{ path, dataUrl }]
+let animNavPath = []
 let animIndex = 0
 let animLooping = false
 let animInterval = null
@@ -996,47 +1012,80 @@ function updateAllBtn() {
   btn.classList.toggle('selected', Object.keys(categories).every(c => selectedCats.has(c)))
 }
 
-// ══ SÉQUENCES ══
 function renderSequences() {
   const wrap = document.getElementById('sequences-wrap')
   wrap.innerHTML = ''
-  const seqs = Object.keys(sequences).sort()
-  if (seqs.length === 0) {
+
+  if (Object.keys(sequences).length === 0) {
     wrap.innerHTML = '<div style="font-size:13px;color:#555">Aucune séquence trouvée.</div>'
     return
   }
 
-  // Grouper par animCategory
-  const groups = {}
-  seqs.forEach(seq => {
-    const cat = sequences[seq].animCategory || 'Autres'
-    if (!groups[cat]) groups[cat] = []
-    groups[cat].push(seq)
+  // Bouton retour + breadcrumb
+  if (animNavPath.length > 0) {
+    const back = document.createElement('div')
+    back.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;margin-bottom:4px;cursor:pointer;color:#5b9bd5;font-size:13px;'
+    back.innerHTML = '← ' + (animNavPath.length === 1 ? 'Séquences' : animNavPath[animNavPath.length - 2])
+    back.onclick = () => { animNavPath.pop(); renderSequences() }
+    wrap.appendChild(back)
+
+    const bc = document.createElement('div')
+    bc.style.cssText = 'font-size:11px;color:#444;margin-bottom:12px;'
+    bc.textContent = animNavPath.join(' / ')
+    wrap.appendChild(bc)
+  }
+
+  // Collecter dossiers et séquences feuilles au niveau courant
+  const folders = new Set()
+  const leafSequences = []
+
+  for (const [seq, data] of Object.entries(sequences)) {
+    const firstPath = data.paths[0]
+    if (!firstPath) continue
+    const parts = firstPath.split('/')
+    // Animations/current/[tier]/[...dossiers]/fichier.jpg
+    const relativeParts = parts.slice(3, parts.length - 1)
+
+    const matchesPath = animNavPath.every((p, i) => relativeParts[i] === p)
+    if (!matchesPath) continue
+
+    const nextLevel = relativeParts[animNavPath.length]
+    if (nextLevel && relativeParts.length > animNavPath.length + 1) {
+      folders.add(nextLevel)
+    } else {
+      leafSequences.push(seq)
+    }
+  }
+
+  // Dossiers
+  folders.forEach(folder => {
+    const item = document.createElement('div')
+    item.className = 'seq-item'
+    item.innerHTML = `<span class="seq-name">📁 ${folder}</span><span class="seq-info">→</span>`
+    item.onclick = () => { animNavPath.push(folder); renderSequences() }
+    wrap.appendChild(item)
   })
 
-  Object.keys(groups).sort((a, b) => {
-  if (a === 'default') return -1
-  if (b === 'default') return 1
-  return a.localeCompare(b)
-}).forEach(cat => {
-
-    groups[cat].forEach(seq => {
-      const isLocked = !currentUserIsPro && isR2Mode && cat !== 'free' && cat !== 'default'
-      const item = document.createElement('div')
-      item.className = 'seq-item'; item.dataset.seq = seq
-      item.innerHTML = '<span class="seq-name">' + seq + (isLocked ? ' 🔒' : '') + '</span><span class="seq-info">' + sequences[seq].paths.length + ' frames</span><span class="seq-check"></span>'
-      if (preloadCache[seq]) {
-        item.classList.add('ready')
-        item.querySelector('.seq-check').textContent = '✓'
-      }
-      item.onclick = () => isLocked ? showUpgradeModal() : selectSeq(seq, item)
-      wrap.appendChild(item)
-    })
+  // Séquences feuilles
+  leafSequences.forEach(seq => {
+    const isLocked = !currentUserIsPro && isR2Mode && sequences[seq]?.tier !== 'free'
+    const item = document.createElement('div')
+    item.className = 'seq-item'; item.dataset.seq = seq
+    if (preloadCache[seq]) item.classList.add('ready')
+    item.innerHTML = `
+      <span class="seq-name">${seq}${isLocked ? ' 🔒' : ''}</span>
+      <span class="seq-info">${sequences[seq].paths.length} frames</span>
+      <span class="seq-check">${preloadCache[seq] ? '✓' : ''}</span>
+    `
+    item.onclick = () => isLocked ? showUpgradeModal() : selectSeq(seq, item)
+    wrap.appendChild(item)
   })
 
-  // Sélectionner la première par défaut
-  const first = wrap.querySelector('.seq-item')
-  if (first) selectSeq(seqs[0], first)
+  // Sélection auto de la première séquence feuille
+  if (leafSequences.length > 0 && !selectedSeq) {
+    const firstItem = wrap.querySelector('.seq-item[data-seq]')
+    if (firstItem) selectSeq(leafSequences[0], firstItem)
+  }
 }
 
 const preloadCache = {}
@@ -2281,6 +2330,69 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 's' || e.key === 'S') { toggleFavAnim(); return }
   }
 })
+async function showAbout() {
+  document.getElementById('options-dropdown').classList.remove('open')
+  const modal = document.getElementById('about-modal')
+
+  const version = await window.electronAPI.getAppVersion()
+  document.getElementById('about-version').textContent = 'v' + version
+
+  const proData = await window.electronAPI.refreshProStatus()
+  const isPro = proData?.isPro || currentUserIsPro
+  const expiresAt = proData?.expiresAt
+
+  const planEl = document.getElementById('about-plan')
+  const expiryRow = document.getElementById('about-expiry-row')
+  const expiryEl = document.getElementById('about-expiry')
+  const upgradeBtn = document.getElementById('about-upgrade-btn')
+
+  if (isPro) {
+    planEl.textContent = '⭐ Pro'
+    planEl.className = 'value pro'
+    upgradeBtn.style.display = 'none'
+    if (expiresAt) {
+      const d = new Date(expiresAt)
+      expiryRow.style.display = 'flex'
+      expiryEl.textContent = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+      const daysLeft = Math.ceil((d - Date.now()) / 86400000)
+      if (daysLeft <= 7) {
+        expiryEl.style.color = daysLeft <= 3 ? '#E24B4A' : '#f0c040'
+        expiryEl.textContent += ' (' + daysLeft + ' j)'
+      }
+    }
+  } else {
+    planEl.textContent = 'Free'
+    planEl.className = 'value free'
+    expiryRow.style.display = 'none'
+    upgradeBtn.style.display = 'block'
+  }
+
+  modal.classList.add('open')
+}
+
+function closeAbout() {
+  document.getElementById('about-modal').classList.remove('open')
+}
 </script>
+<!-- MODAL À PROPOS -->
+<div id="about-modal" onclick="if(event.target===this)closeAbout()">
+  <div class="about-box">
+    <h3>À propos</h3>
+    <div class="about-row">
+      <span class="label">Version</span>
+      <span class="value" id="about-version">—</span>
+    </div>
+    <div class="about-row">
+      <span class="label">Plan</span>
+      <span class="value" id="about-plan">—</span>
+    </div>
+    <div class="about-row" id="about-expiry-row" style="display:none">
+      <span class="label">Expire le</span>
+      <span class="value" id="about-expiry">—</span>
+    </div>
+    <button class="about-close" onclick="closeAbout()">Fermer</button>
+    <button class="about-upgrade" id="about-upgrade-btn" style="display:none" onclick="closeAbout(); showUpgradeModal()">Passer Pro ⭐</button>
+  </div>
+</div>
 </body>
 </html>

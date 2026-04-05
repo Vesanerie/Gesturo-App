@@ -14,8 +14,8 @@ let mainWindow
 // ── Chemins ──────────────────────────────────────────────────────────────────
 const DEFAULT_LOCAL_FOLDER = path.join(os.homedir(), 'Desktop', 'Gesturo Photos', 'Sessions', 'current')
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-6f5ad41753f44365a1bf451423184422.r2.dev'
-const R2_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/sessions/current` : ''
-const R2_ANIM_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/animations/current` : ''
+const R2_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/Sessions/current` : ''
+const R2_ANIM_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/Animations/current` : ''
 
 // Catégories nudité → Pro uniquement
 const NUDITY_CATEGORIES = ['nudite']
@@ -266,34 +266,38 @@ credentials: {
   })
 
   const results = []
-  let continuationToken = undefined
+let continuationToken = undefined
 
-  do {
-    const cmd = new ListObjectsV2Command({
-      Bucket: process.env.R2_BUCKET || 'gesturo-photos',
-      Prefix: 'Sessions/current/',
-      ContinuationToken: continuationToken,
-    })
-    const res = await client.send(cmd)
-    for (const obj of (res.Contents || [])) {
-      const key = obj.Key // ex: sessions/current/corps-entier/photo.jpg
-      const parts = key.split('/')
-      // parts[0]=sessions, parts[1]=current, parts[2]=categorie, parts[3]=fichier
-      if (parts.length < 4) continue
-      const category = parts[2]
-      const ext = path.extname(parts[parts.length - 1]).toLowerCase()
-      if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) continue
+do {
+  const cmd = new ListObjectsV2Command({
+    Bucket: process.env.R2_BUCKET || 'gesturo-photos',
+    Prefix: 'Sessions/current/',
+    ContinuationToken: continuationToken,
+  })
+  const res = await client.send(cmd)
+  for (const obj of (res.Contents || [])) {
+    const key = obj.Key
+    const parts = key.split('/')
+    if (parts.length < 4) continue
 
-      // Nudité → Pro uniquement
-      if (NUDITY_CATEGORIES.includes(category) && !isPro) continue
+    const fileName = parts[parts.length - 1]
+    if (fileName.startsWith('.')) continue
 
-      const url = `${R2_PUBLIC_URL}/${key}`
-      results.push({ path: url, category, sequence: null, animCategory: null, isR2: true })
-    }
-    continuationToken = res.NextContinuationToken
-  } while (continuationToken)
+    const ext = path.extname(fileName).toLowerCase()
+    if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) continue
 
-  return results
+    const category = parts[parts.length - 2] // dossier parent direct
+
+    // Nudité → Pro uniquement
+    if (NUDITY_CATEGORIES.includes(category) && !isPro) continue
+
+    const url = `${R2_PUBLIC_URL}/${key}`
+    results.push({ path: url, category, sequence: null, animCategory: null, isR2: true })
+  }
+  continuationToken = res.NextContinuationToken
+} while (continuationToken)
+
+return results
 }
 
 async function listR2Animations(isPro) {
@@ -468,6 +472,16 @@ ipcMain.handle('list-r2-animations', async (event, { isPro }) => {
     return await listR2Animations(isPro)
   } catch(e) {
     console.warn('list-r2-animations error:', e.message)
+    return []
+  }
+})
+
+// Liste les photos R2
+ipcMain.handle('list-r2-photos', async (event, { isPro }) => {
+  try {
+    return await listR2Photos(isPro)
+  } catch(e) {
+    console.warn('list-r2-photos error:', e.message)
     return []
   }
 })
