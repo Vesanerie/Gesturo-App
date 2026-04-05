@@ -36,20 +36,31 @@ jobs:
           mkdir -p ~/private_keys
           echo "$APPLE_API_KEY" | base64 --decode > ~/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8
 
-      - name: Notarize
-        timeout-minutes: 30
+      - name: Notarize (submit)
         env:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: |
-          echo "--- démarrage notarisation ---"
+          echo "--- soumission notarisation ---"
           xcrun notarytool submit dist/Gesturo-*.dmg \
             --key ~/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8 \
             --key-id "$APPLE_API_KEY_ID" \
             --issuer "$APPLE_API_ISSUER" \
-            --wait --timeout 25m \
-            --verbose
-          echo "--- notarisation terminée ✅ ---"
+            --no-wait
+          echo "--- soumission envoyée ---"
+
+      - name: Wait and check notarization
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          echo "Attente 10 minutes..."
+          sleep 600
+          echo "--- vérification du statut ---"
+          xcrun notarytool history \
+            --key ~/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8 \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER"
 
       - name: Staple
         run: xcrun stapler staple dist/Gesturo-*.dmg
