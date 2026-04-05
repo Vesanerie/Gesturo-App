@@ -7,6 +7,12 @@ exports.default = async function notarizing(context) {
   const appName = context.packager.appInfo.productFilename
   const appBundleId = context.packager.config.appId
 
+  // --- DEBUG : vérifie que les variables existent ---
+console.log('APPLE_ID:', process.env.APPLE_ID ? '✅ défini' : '❌ VIDE')
+console.log('APPLE_TEAM_ID:', process.env.APPLE_TEAM_ID ? '✅ défini' : '❌ VIDE')
+console.log('APPLE_APP_SPECIFIC_PASSWORD:', process.env.APPLE_APP_SPECIFIC_PASSWORD ? '✅ défini' : '❌ VIDE')
+  console.log('App path:', `${appOutDir}/${appName}.app`)
+
   console.log('--- démarrage notarisation ---')
 
   await notarize({
