@@ -88,9 +88,6 @@ jobs:
           VERSION=$(node -e "console.log(require('./package.json').version)")
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Rename DMG to latest
-        run: cp dist/Gesturo-${{ steps.version.outputs.VERSION }}-arm64.dmg dist/Gesturo-latest-arm64.dmg
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -99,5 +96,18 @@ jobs:
           prerelease: false
           files: |
             dist/Gesturo-${{ steps.version.outputs.VERSION }}-arm64.dmg
-            dist/Gesturo-latest-arm64.dmg
           token: ${{ secrets.GH_TOKEN }}
+
+      - name: Update download.html on website
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/Vesanerie/gesturo-website.git site
+          cd site
+          sed -i '' "s|Gesturo-[0-9]*\.[0-9]*\.[0-9]*-arm64\.dmg|Gesturo-${VERSION}-arm64.dmg|g" download.html
+          git config user.email "bot@gesturo.fr"
+          git config user.name "Gesturo Bot"
+          git add download.html
+          git commit -m "chore: update download link to v${VERSION}"
+          git push
