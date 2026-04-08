@@ -26,6 +26,8 @@
       "index.html",
       "main.js",
       "preload.js",
+      "moodboard-preload.js",
+      "moodboard/**/*",
       "supabase.js",
       "whitelist.json",
       ".env",

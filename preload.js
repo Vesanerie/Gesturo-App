@@ -40,6 +40,6 @@ getFavorites: () => ipcRenderer.invoke('get-favorites'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getInstagramPosts: () => ipcRenderer.invoke('get-instagram-posts'),
 
-  // ── Gesturo Moodboard (extension) ──
-  openMoodboard: (projectName) => ipcRenderer.invoke('open-moodboard', projectName),
+  // ── Gesturo Moodboard (in-app via webview) ──
+  getMoodboardPreloadPath: () => ipcRenderer.invoke('mb:get-preload-path'),
 })

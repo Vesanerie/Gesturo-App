@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&display=swap" rel="stylesheet">
   <title>Gesture Drawing</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha512-q+4liFwdPC/bNdhUpZx6aXDx/h77yEQtn4I1slHydcbZK34nLaR3cAeYSJshoxIOq3mjEf7xJE8YWIUHMn+oCQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     ::-webkit-scrollbar { display: none; }
@@ -447,7 +447,7 @@ body::after {
       <button class="mode-tab active" id="tab-pose" onclick="switchMainMode('pose')">Poses</button>
       <button class="mode-tab" id="tab-anim" onclick="switchMainMode('anim')">Animation</button>
       <button class="mode-tab" id="tab-cinema" onclick="switchMainMode('cinema')">🎬 Cinéma</button>
-      <button class="mode-tab" id="tab-moodboard" onclick="window.electronAPI.openMoodboard('gesturo-default')">🖼 Moodboard</button>
+      <button class="mode-tab" id="tab-moodboard" onclick="openMoodboard()">🖼 Moodboard</button>
       <button class="mode-tab" id="tab-favs" onclick="switchMainMode('favs')">⭐ Favoris</button>
       <button class="mode-tab" id="tab-hist" onclick="switchMainMode('hist')">📈 Historique</button>
       <button class="mode-tab" id="tab-community" onclick="switchMainMode('community')">🌍 Commu.</button>
@@ -801,6 +801,15 @@ body::after {
   </div>
 </div>
 
+<!-- ══ MOODBOARD (in-app via webview) ══ -->
+<div class="screen" id="screen-moodboard" style="background:#0f0f0f;flex-direction:column;">
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 84px;background:#0f1923;border-bottom:0.5px solid #1e2d40;-webkit-app-region:drag;">
+    <button class="s-btn" style="-webkit-app-region:no-drag;" onclick="closeMoodboard()">← Retour</button>
+    <span style="font-size:13px;color:#4a6280;">🖼 Moodboard</span>
+  </div>
+  <webview id="moodboard-webview" style="flex:1;width:100%;"></webview>
+</div>
+
 <!-- LIGHTBOX -->
 <div id="lightbox" onclick="closeLightbox()">
   <div id="lightbox-close">✕</div>
@@ -970,6 +979,22 @@ function adminSetSource(source) {
 }
 
 window.addEventListener('resize', () => { if (gridMode > 0) positionGridOverlay() })
+
+// ══ MOODBOARD (in-app) ══
+let moodboardLoaded = false
+async function openMoodboard() {
+  const wv = document.getElementById('moodboard-webview')
+  if (!moodboardLoaded) {
+    try {
+      const p = await window.electronAPI.getMoodboardPreloadPath()
+      wv.setAttribute('preload', 'file://' + p)
+    } catch (e) { console.warn('moodboard preload path failed', e) }
+    wv.setAttribute('src', 'moodboard/index.html')
+    moodboardLoaded = true
+  }
+  showScreen('screen-moodboard')
+}
+function closeMoodboard() { showScreen('screen-config') }
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
