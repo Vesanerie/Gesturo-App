@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ── Supabase ──
   saveSession: (data) => ipcRenderer.invoke('save-session', data),
   getStreak: () => ipcRenderer.invoke('get-streak'),
+  saveFavorites: (favs) => ipcRenderer.invoke('save-favorites', favs),
+getFavorites: () => ipcRenderer.invoke('get-favorites'),
 
   // ── Utilitaires ──
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
@@ -37,4 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   refreshProStatus: () => ipcRenderer.invoke('refresh-pro-status'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getInstagramPosts: () => ipcRenderer.invoke('get-instagram-posts'),
+
+  // ── Gesturo Moodboard (extension) ──
+  openMoodboard: (projectName) => ipcRenderer.invoke('open-moodboard', projectName),
 })

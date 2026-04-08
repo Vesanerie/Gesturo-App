@@ -13,7 +13,7 @@ let mainWindow
 
 // ── Chemins ──────────────────────────────────────────────────────────────────
 const DEFAULT_LOCAL_FOLDER = path.join(os.homedir(), 'Desktop', 'Gesturo Photos', 'Sessions', 'current')
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-6f5ad41753f44365a1bf451423184422.r2.dev'
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL
 const R2_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/Sessions/current` : ''
 const R2_ANIM_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/Animations/current` : ''
 
@@ -255,15 +255,17 @@ function startOAuthFlow() {
 // ── R2 : lister les photos depuis Cloudflare ──────────────────────────────────
 // On liste les clés via l'API S3 (ListObjectsV2) depuis le main process
 async function listR2Photos(isPro) {
+  console.log('R2_BUCKET:', process.env.R2_BUCKET)
+  console.log('R2_PUBLIC_URL:', R2_PUBLIC_URL)
   if (!R2_PUBLIC_URL) return []
 
   const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3')
   const client = new S3Client({
     region: 'auto',
-    endpoint: process.env.R2_ENDPOINT || 'https://d0379cc6397c14c330d638302ebdb9b1.r2.cloudflarestorage.com',
+    endpoint: process.env.R2_ENDPOINT,
 credentials: {
-  accessKeyId: process.env.R2_ACCESS_KEY_ID || 'fe8488de9b90b28eccfccbcf12399143',
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || 'c63403c1735e0d1fb1862e7096db25c1e37e631487721cbb05d341e5a9469667',
+  accessKeyId: process.env.R2_ACCESS_KEY_ID,
+  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
 },
   })
 
@@ -272,7 +274,7 @@ let continuationToken = undefined
 
 do {
   const cmd = new ListObjectsV2Command({
-    Bucket: process.env.R2_BUCKET || 'gesturo-photos',
+    Bucket: process.env.R2_BUCKET,
     Prefix: 'Sessions/current/',
     ContinuationToken: continuationToken,
   })
@@ -288,14 +290,16 @@ do {
     const ext = path.extname(fileName).toLowerCase()
     if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) continue
 
-    const category = parts[parts.length - 2] // dossier parent direct
+    const category = parts[2] // premier dossier après Sessions/current/
+const subcategory = parts.length > 4 ? parts[3] : null
 
     // Nudité → Pro uniquement
     if (NUDITY_CATEGORIES.includes(category) && !isPro) continue
 
     const url = `${R2_PUBLIC_URL}/${key}`
-    results.push({ path: url, category, sequence: null, animCategory: null, isR2: true })
+    results.push({ path: url, category, subcategory, sequence: null, animCategory: null, isR2: true })
   }
+  
   continuationToken = res.NextContinuationToken
 } while (continuationToken)
 
@@ -308,10 +312,10 @@ async function listR2Animations(isPro) {
   const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3')
   const client = new S3Client({
     region: 'auto',
-    endpoint: process.env.R2_ENDPOINT || 'https://d0379cc6397c14c330d638302ebdb9b1.r2.cloudflarestorage.com',
+    endpoint: process.env.R2_ENDPOINT,
 credentials: {
-  accessKeyId: process.env.R2_ACCESS_KEY_ID || 'fe8488de9b90b28eccfccbcf12399143',
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || 'c63403c1735e0d1fb1862e7096db25c1e37e631487721cbb05d341e5a9469667',
+  accessKeyId: process.env.R2_ACCESS_KEY_ID,
+  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
 },
   })
 
@@ -324,7 +328,7 @@ credentials: {
     let continuationToken = undefined
     do {
       const cmd = new ListObjectsV2Command({
-        Bucket: process.env.R2_BUCKET || 'gesturo-photos',
+        Bucket: process.env.R2_BUCKET ,
         Prefix: prefix,
         ContinuationToken: continuationToken,
       })
@@ -332,15 +336,18 @@ credentials: {
       for (const obj of (res.Contents || [])) {
         const key = obj.Key
         const parts = key.split('/')
-        // animations/current/[free|pro]/sequence/fichier.jpg
         if (parts.length < 5) continue
-        const tier = parts[2] // free ou pro
-        const animCategory = parts.length >= 6 ? parts[3] : 'default'
-        const sequenceName = parts.length >= 6 ? parts[4] : parts[3]
-        const ext = path.extname(parts[parts.length - 1]).toLowerCase()
+        const fileName = parts[parts.length - 1]
+        if (fileName.startsWith('.')) continue
+        const ext = path.extname(fileName).toLowerCase()
         if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) continue
+        // Chemin complet depuis "current" jusqu'au dossier parent du fichier
+        // ex: Animations/current/pro/Men/sword-motion/Sword-Attack/file.jpg
+        // → sequenceName = "current/pro/Men/sword-motion/Sword-Attack"
+        const navParts = parts.slice(1, parts.length - 1) // enlève "Animations" et le fichier
+        const sequenceName = navParts.join('/')
         const url = `${R2_PUBLIC_URL}/${key}`
-        results.push({ path: url, category: null, sequence: sequenceName, animCategory, isR2: true })
+        results.push({ path: url, sequence: sequenceName, isR2: true })
       }
       continuationToken = res.NextContinuationToken
     } while (continuationToken)
@@ -402,6 +409,9 @@ function createWindow() {
     }
   })
   mainWindow.loadFile('index.html')
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+  callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [''] } })
+})
   mainWindow.webContents.on('did-finish-load', async () => {
     const token = loadToken()
     if (!token || !token.email) {
@@ -497,6 +507,50 @@ ipcMain.handle('auth-check', async () => {
 
 ipcMain.handle('get-app-version', () => {
   return app.getVersion()
+})
+
+// ── Gesturo Moodboard (extension) ────────────────────────────────────────────
+const MOODBOARD_DEV_PATH = '/Users/mardoukhaevvalentin/Desktop/Gesturo Moodboard'
+const MOODBOARD_PROD_BIN = '/Applications/Gesturo Moodboard.app/Contents/MacOS/Gesturo Moodboard'
+
+ipcMain.handle('open-moodboard', (_evt, projectName) => {
+  const { spawn } = require('child_process')
+  const name = String(projectName || 'default')
+  try {
+    if (app.isPackaged && fs.existsSync(MOODBOARD_PROD_BIN)) {
+      spawn(MOODBOARD_PROD_BIN, [`--project=${name}`], { detached: true, stdio: 'ignore' }).unref()
+    } else {
+      spawn('npm', ['start', '--', `--project=${name}`], {
+        cwd: MOODBOARD_DEV_PATH, detached: true, stdio: 'ignore',
+      }).unref()
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('get-favorites', async () => {
+  const token = loadToken()
+  if (!token || !token.email || isAdminToken(token)) return []
+  try {
+    const { data: profile } = await supabase.from('profiles').select('id').eq('email', token.email).single()
+    if (!profile) return []
+    const { data } = await supabase.from('favorites').select('src, label, added_at').eq('user_id', profile.id).order('added_at', { ascending: true })
+    return data || []
+  } catch(e) { return [] }
+})
+
+ipcMain.handle('save-favorites', async (event, favs) => {
+  const token = loadToken()
+  if (!token || !token.email || isAdminToken(token)) return
+  try {
+    const { data: profile } = await supabase.from('profiles').select('id').eq('email', token.email).single()
+    if (!profile) return
+    await supabase.from('favorites_images').delete().eq('user_id', profile.id)
+    if (favs.length === 0) return
+    await supabase.from('favorites_images').insert(favs.map(f => ({ user_id: profile.id, email: token.email, src: f.src, label: f.label })))
+  } catch(e) { console.warn('save-favorites error:', e.message) }
 })
 
 // Liste les animations R2
