@@ -1639,7 +1639,7 @@ function toggleBadgesPanel() {
   if (!photoArea || !sessionEl) return
   let hintShown = false
   photoArea.addEventListener('click', (e) => {
-    if (window.innerWidth > 768) return
+    if (window.innerWidth > 1199) return
     if (e.target.closest('button')) return
     const willHide = !sessionEl.classList.contains('controls-hidden')
     sessionEl.classList.toggle('controls-hidden')
@@ -1695,15 +1695,15 @@ function toggleBadgesPanel() {
       }
       card.appendChild(body)
       h3.addEventListener('click', () => {
-        // Accordion-only sur mobile (≤768px). Sur desktop, le clic est
-        // sans effet visible car le CSS desktop n'a pas de .collapsed.
-        if (window.innerWidth > 768) return
+        // Accordion-only sur mobile (≤767px). Sur tablet + desktop, le
+        // clic est sans effet car le CSS n'a pas de .collapsed.
+        if (window.innerWidth > 767) return
         card.classList.toggle('collapsed')
       })
     })
     // Première card de chaque conteneur reste ouverte, les autres collapsed
     // (uniquement à l'init et seulement en mobile).
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 767) {
       ['pose-options', 'anim-options'].forEach((id) => {
         const wrap = document.getElementById(id)
         if (!wrap) return
