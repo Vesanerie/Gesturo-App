@@ -201,19 +201,81 @@ jetables) — **Option B** retenue : **mobile-first repensé**.
 
 ### Ordre de refonte des écrans
 
-1. **Session pose** (cœur de l'app, 90% du temps de l'user) — photo plein
-   écran, controls flottants
-2. **Démarrer / Config** (point d'entrée, doit pas faire peur) — segmented
-   control + sections accordion
+1. ✅ **Session pose** — photo plein écran, controls flottants avec
+   backdrop-filter blur, tap-to-toggle. Voir « Conventions mobile établies »
+   ci-dessous. Pas encore committée à l'heure où ce paragraphe est écrit
+   (en attente de validation user).
+2. ⏳ **Démarrer / Config** (en cours suivant) — segmented control +
+   sections accordion
 3. **Recap** (post-session) — grille 2 colonnes phone
 4. **Animation** — structurellement comme Session, photo plein écran +
    timeline scrollable au pouce
 5. **Cinéma** — idem
 6. **Favoris / Historique / Communauté** — grilles responsive simples,
    accédées via bottom tab bar
-7. **Moodboard** — cas spécial : la `<webview>` Electron n'existe pas en
-   Android WebView. À remplacer par Capacitor InAppBrowser ou ouverture
-   externe via `mobile-shim.js`.
+7. **Moodboard** — **désactivé sur phone, point**. Le moodboard sert de
+   référence visuelle pendant qu'on dessine — inutile sur un écran phone
+   trop petit pour être consulté à côté d'un carnet. Donc :
+   - Cacher l'accès au moodboard sous `@media (max-width: 768px)` (le
+     bottom tab bar ne l'inclut déjà pas — 4 onglets : Démarrer / Favoris
+     / Historique / Profil).
+   - Guard JS dans `src/app.js` : si `matchMedia('(max-width: 768px)')`
+     match et qu'on tente d'activer l'écran moodboard, redirect vers
+     Démarrer (au cas où un état sauvegardé / deep link y mène).
+   - Tablette (≥768px) et desktop : intouchés, `<webview>` Electron
+     continue de marcher en desktop, et la tablette aura sa propre passe
+     plus tard si besoin.
+   - **Plus besoin de fallback Capacitor InAppBrowser** — n'est plus
+     bloquant pour le 1er run Android.
+
+### Conventions mobile établies (à réutiliser pour les autres écrans)
+
+Patterns décidés et appliqués lors de la refonte de Session, à reprendre
+tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
+
+- **`BrowserWindow.minWidth: 360`** dans `main.js` (avant : 800). Permet
+  de tester les media queries en redimensionnant la fenêtre Electron sans
+  rebuild. Ne pas remonter cette valeur sans raison.
+- **Calque transparent over photo** : pour passer une bar du bas en
+  controls flottants, on garde la bar dans le HTML mais on lui met
+  `position: absolute; inset: 0; pointer-events: none; background: transparent;`
+  dans le @media. Chaque enfant interactif reprend `pointer-events: auto`
+  individuellement. Avantage : zéro modif HTML, zéro modif JS, le desktop
+  reste pixel-pour-pixel identique.
+- **Backdrop-filter blur** : tous les éléments flottants utilisent
+  `background: rgba(10,21,32,0.55-0.62); backdrop-filter: blur(14-20px)`
+  pour rester lisibles sans cacher la photo. Toujours préfixer
+  `-webkit-backdrop-filter` pour compat Safari/iOS WebView.
+- **Tap-to-toggle des controls** : sur écran photo plein écran, un tap sur
+  `#photo-area` (hors bouton) toggle `.controls-hidden` sur le screen
+  parent. Snippet JS dans `src/app.js` (~20 lignes IIFE en bas du fichier).
+  Le selecteur `e.target.closest('button')` empêche le toggle quand l'user
+  vise un vrai bouton. À répliquer pour Animation et Cinéma quand on
+  passera dessus.
+- **Hint discret « Tape pour révéler »** : `::after` sur `#photo-area` quand
+  `.controls-hidden` est actif, animation fade-in/fade-out automatique
+  via `@keyframes` (2.2s). Sert juste à éduquer l'user au geste.
+- **Tap zones ≥ 44px** systématique sur tous les boutons interactifs en
+  mobile (norme HIG/Material). Les boutons desktop à 32px sont overridés
+  via `min-height: 44px; padding: 11px ...`.
+- **Safe-area-insets** : utiliser
+  `top: calc(env(safe-area-inset-top, 0px) + Npx)` et idem pour bottom.
+  Le `, 0px` fallback est nécessaire sinon la valeur est `unset` sur les
+  desktops sans notch.
+- **Cacher les boutons globaux selon l'écran actif** : utiliser le sélecteur
+  `body:has(#screen-X.active) #global-btn { display: none !important; }`.
+  Ça marche en Chromium ≥105 (Electron 30 OK, Android WebView récent OK).
+  Évite les collisions sans avoir besoin de toucher au JS global.
+
+### Fichiers déjà touchés par la refonte mobile
+
+- `main.js` — `minWidth` baissé à 360 (commit en attente)
+- `styles/screens/session.css` — bloc `@media (max-width: 768px)` ~210 lignes
+  ajouté en bas (commit en attente)
+- `src/app.js` — IIFE tap-to-toggle ajouté en bas du fichier (commit en
+  attente)
+- Aucune autre modification jusqu'ici. Les autres `styles/screens/*.css`
+  et `index.html` n'ont pas encore été touchés.
 
 ### Workflow de test pendant la refonte
 
@@ -233,9 +295,10 @@ jetables) — **Option B** retenue : **mobile-first repensé**.
   après la refonte avant de bouger sur d'autres chantiers, pour valider
   les vrais gestes tactiles + safe-area-inset sur device réel.
 
-### État actuel des fichiers à toucher
+### État du chantier au début (avant refonte Session)
 
-- **Aucune `@media` query** dans `styles/` aujourd'hui — tout est à créer.
+- **Aucune `@media` query** dans `styles/` — tout à créer (Session a ouvert
+  le bal, voir « Conventions mobile établies » ci-dessous).
 - **Tailles fixes en pixels** partout (ex : `.config-inner { width: 580px }`).
 - **7 mode-tabs** en flexbox horizontal qui débordent sur phone.
 - **Tap zones à 32px** (norme tactile = 44px min).
@@ -299,6 +362,11 @@ jetables) — **Option B** retenue : **mobile-first repensé**.
 
 ## Commits récents importants
 
+- `4ee0f66` docs: plan de refonte UI mobile (Option B mobile-first)
+- `51afaac` fix(admin-r2): bump presigned PUT TTL from 5min to 1h
+- `f85200b` fix(admin-r2): refuse to overwrite existing destination on move
+- `b5713d0` fix(admin-web): reach archive zone + keep success message visible
+- `1f39819` docs: update CLAUDE.md with admin-web stack and Phase D status
 - `2606aed` feat(admin): upload + unarchive + in-app move + context menu (Phase C)
 - `5efffdf` feat(admin): selection + delete/archive + Finder-like nav (Phase B)
 - `81abbb4` feat(admin-web): scaffold + file browser navigation (Phase A)
@@ -308,7 +376,6 @@ jetables) — **Option B** retenue : **mobile-first repensé**.
 - `0c5f458` fix(poses): ne plus auto-sélectionner les catégories
 - `803e53f` refactor(js): extract bubbles + cinema into src/
 - `7803bd8` refactor(css): extract inline styles into styles/ modules
-- `ced1c12` ci: add Android debug APK build workflow
 - `396a71d` fix(security): enforce server-side Pro check on R2 functions
 - `3915352` feat: add Capacitor Android scaffold + mobile web shim
 - `96ee74c` refactor: move R2/Instagram/OAuth secrets server-side
