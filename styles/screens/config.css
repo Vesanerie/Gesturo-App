@@ -13,6 +13,61 @@
 
 /* Catégories */
 #categories-wrap { display: block; }
+
+/* ── Bloc free-tier (Catégories pour utilisateur non-Pro) ── */
+.free-preview-block { padding: 6px 0 4px; }
+.free-mosaic {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.free-mosaic-tile {
+  position: relative;
+  aspect-ratio: 3/4;
+  background: #0f1923;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.free-mosaic-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.85);
+  transition: filter 0.2s;
+}
+.free-mosaic-tile:hover img { filter: brightness(1); }
+.free-preview-caption { text-align: center; margin-bottom: 16px; }
+.fpc-title {
+  font-size: 16px;
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.fpc-sub {
+  font-size: 13px;
+  color: #4a6280;
+  line-height: 1.5;
+  padding: 0 8px;
+}
+.free-pro-btn {
+  display: block;
+  margin: 0 auto;
+  background: #2983eb;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 24px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.free-pro-btn:hover { background: #1a6fd4; }
+.free-pro-btn:active { transform: scale(0.97); }
 .cat-chip { display: flex; align-items: center; gap: 6px; border: 1.5px solid #1e2d40; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: transparent; color: #4a6280; user-select: none; transition: all 0.15s; }
 .cat-chip:hover { border-color: #2983eb; color: #6aaccc; }
 .cat-chip.selected { background: #d6e8ff; color: #0d2040; border-color: #d6e8ff; font-weight: 500; }
@@ -117,6 +172,19 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
   /* Communauté : promu en onglet de la bottom tab bar — disparaît du
      segmented control sur mobile pour éviter le doublon. */
   #screen-config #tab-community { display: none; }
+
+  /* Free preview mosaic : 2 colonnes plus grandes sur phone (3 = trop petit) */
+  #screen-config .free-mosaic {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  #screen-config .fpc-title { font-size: 18px; }
+  #screen-config .free-pro-btn {
+    min-height: 48px;
+    width: 100%;
+    max-width: 280px;
+    font-size: 15px;
+  }
 
   /* Communauté : grille Instagram 2 colonnes au lieu de 3 sur mobile
      (sinon les posts sont trop petits). L'inline style JS force 3 cols
@@ -254,4 +322,16 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     min-height: 52px;
     font-size: 16px;
   }
+  /* La bottom tab bar mobile vit aussi en position:fixed bottom:0 et
+     recouvrait #start-bar (z-index 500 vs 100). On remonte #start-bar
+     juste au-dessus de la tab bar (~76px de haut avec safe-area). */
+  #start-bar {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 60px);
+    padding: 12px 16px 12px;
+    background: linear-gradient(transparent, #0f1923 50%);
+    z-index: 501;
+  }
+  /* Compense l'espace pris par #start-bar + #bottom-tab-bar pour que
+     la dernière card du config ne soit pas cachée. */
+  #screen-config { padding-bottom: 160px !important; }
 }
