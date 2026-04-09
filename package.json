@@ -6,9 +6,15 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --mac"
+    "build": "electron-builder --mac",
+    "mobile:sync": "node scripts/sync-web.js && cap sync",
+    "mobile:ios": "npm run mobile:sync && cap open ios",
+    "mobile:android": "npm run mobile:sync && cap open android"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1023.0",
+    "@aws-sdk/lib-storage": "^3.1023.0",
+    "@capacitor/cli": "^8.3.0",
     "@electron/notarize": "^3.1.1",
     "electron": "^30.0.0",
     "electron-builder": "^26.8.1"
@@ -29,8 +35,8 @@
       "moodboard-preload.js",
       "moodboard/**/*",
       "supabase.js",
+      "config.js",
       "whitelist.json",
-      ".env",
       "package.json",
       "node_modules/**/*"
     ],
@@ -44,7 +50,9 @@
       "notarize": false,
       "target": {
         "target": "dmg",
-        "arch": ["arm64"]
+        "arch": [
+          "arm64"
+        ]
       }
     },
     "dmg": {
@@ -52,8 +60,12 @@
     }
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1023.0",
-    "@aws-sdk/lib-storage": "^3.1023.0",
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/ios": "^8.3.0",
     "@supabase/supabase-js": "^2.101.1",
     "dotenv": "^17.4.0",
     "electron-updater": "^6.8.3"

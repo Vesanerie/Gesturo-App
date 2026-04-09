@@ -1,11 +1,9 @@
-require('dotenv').config()
-const { supabase } = require('./supabase')
-const crypto = require('crypto')
+try { require('dotenv').config() } catch (e) {}
+const { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, clearAuthStorage } = require('./supabase')
 const { app, BrowserWindow, ipcMain, dialog, protocol } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
-const https = require('https')
 const { shell } = require('electron')
 const { autoUpdater } = require('electron-updater')
 
@@ -13,30 +11,10 @@ let mainWindow
 
 // ── Chemins ──────────────────────────────────────────────────────────────────
 const DEFAULT_LOCAL_FOLDER = path.join(os.homedir(), 'Desktop', 'Gesturo Photos', 'Sessions', 'current')
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL
-const R2_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/Sessions/current` : ''
-const R2_ANIM_BASE = R2_PUBLIC_URL ? `${R2_PUBLIC_URL}/Animations/current` : ''
 
-// Catégories nudité → Pro uniquement
-const NUDITY_CATEGORIES = ['nudite']
-
-// ── OAuth ─────────────────────────────────────────────────────────────────────
-let OAUTH_CREDS = { client_id: '', client_secret: '' }
-try {
-  const raw = fs.readFileSync(path.join(__dirname, 'oauth_credentials.json'), 'utf8')
-  const parsed = JSON.parse(raw)
-  const creds = parsed.installed || parsed.web || parsed
-  OAUTH_CREDS.client_id = creds.client_id
-  OAUTH_CREDS.client_secret = creds.client_secret
-} catch(e) {
-  OAUTH_CREDS.client_id = process.env.GOOGLE_CLIENT_ID || ''
-  OAUTH_CREDS.client_secret = process.env.GOOGLE_CLIENT_SECRET || ''
-  console.warn('oauth_credentials.json introuvable, utilisation des env vars')
-}
-
-const REDIRECT_URI = 'http://localhost:9876/oauth/callback'
-const SCOPES = 'openid email profile'
-const TOKEN_PATH = path.join(os.homedir(), '.gesture_drawing_token.json')
+// ── Auth (Supabase) ───────────────────────────────────────────────────────────
+const REDIRECT_URI = 'http://localhost:9876/auth/callback'
+const ADMIN_MARKER_PATH = path.join(os.homedir(), '.gesturo-admin')
 const WHITELIST_PATH = path.join(__dirname, 'whitelist.json')
 const BETA_LANDING = 'https://gesturo.art'
 
@@ -115,89 +93,45 @@ function isBetaExpired() {
   return new Date() > new Date(expires + 'T23:59:59')
 }
 
-// ── Token ─────────────────────────────────────────────────────────────────────
-function saveToken(token) {
-  fs.writeFileSync(TOKEN_PATH, JSON.stringify(token, null, 2))
+// ── Admin marker (local-only mode, bypasses Supabase) ────────────────────────
+function isAdminMode() {
+  try { return fs.existsSync(ADMIN_MARKER_PATH) } catch (e) { return false }
+}
+// Compat shims so the local-admin file handlers below keep working unchanged.
+function loadToken() { return isAdminMode() ? { email: 'admin' } : null }
+function isAdminToken(token) { return token && token.email === 'admin' }
+function setAdminMode() {
+  try { fs.writeFileSync(ADMIN_MARKER_PATH, '1', { mode: 0o600 }) } catch (e) {}
+}
+function clearAdminMode() {
+  try { fs.unlinkSync(ADMIN_MARKER_PATH) } catch (e) {}
 }
 
-function loadToken() {
-  try { return JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8')) } catch(e) { return null }
-}
-
-function isAdminToken(token) {
-  return token && token.email === 'admin'
-}
-
-// ── HTTP helpers ──────────────────────────────────────────────────────────────
-function httpsPost(options, body) {
-  return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let data = ''
-      res.on('data', chunk => data += chunk)
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)) } catch(e) { reject(e) }
-      })
-    })
-    req.on('error', reject)
-    req.write(body)
-    req.end()
-  })
-}
-
-function httpsGet(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = ''
-      res.on('data', chunk => data += chunk)
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)) } catch(e) { reject(e) }
-      })
-    }).on('error', reject)
-  })
-}
-
-// ── OAuth Flow ────────────────────────────────────────────────────────────────
-async function exchangeCode(code) {
-  const body = new URLSearchParams({
-    code,
-    client_id: OAUTH_CREDS.client_id,
-    client_secret: OAUTH_CREDS.client_secret,
-    redirect_uri: REDIRECT_URI,
-    grant_type: 'authorization_code'
-  }).toString()
-
-  return httpsPost({
-    hostname: 'oauth2.googleapis.com',
-    path: '/token',
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) }
-  }, body)
-}
-
-async function getUserInfo(accessToken) {
-  return httpsGet(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`)
-}
-
+// ── Supabase OAuth (loopback PKCE) ───────────────────────────────────────────
+// Replaces the previous direct Google OAuth flow. We ask Supabase Auth for
+// the provider URL, open it in the system browser, catch the ?code=... on the
+// loopback server, then exchange the code for a session via supabase-js.
 let oauthServer = null
 
-function startOAuthFlow() {
+function startSupabaseOAuth() {
   return new Promise((resolve, reject) => {
     const http = require('http')
 
-    // Fermer le serveur précédent s'il existe encore
     if (oauthServer) {
-      try { oauthServer.close() } catch(e) {}
+      try { oauthServer.close() } catch (e) {}
       oauthServer = null
     }
 
     const server = http.createServer(async (req, res) => {
-      const url = new URL(req.url, 'http://localhost:9876')
-      if (url.pathname !== '/oauth/callback') {
+      console.log('[oauth] callback hit:', req.url)
+      const url = new URL(req.url, REDIRECT_URI)
+      if (url.pathname !== '/auth/callback') {
         res.writeHead(404); res.end('Not found'); return
       }
-
       const code = url.searchParams.get('code')
       const error = url.searchParams.get('error')
+      const errorDescription = url.searchParams.get('error_description')
+      console.log('[oauth] params:', { code: code ? 'present' : 'missing', error, errorDescription })
 
       const html = code
         ? `<html><body style="font-family:sans-serif;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column"><h2>✅ Connexion réussie</h2><p style="color:#555;margin-top:12px">Vous pouvez fermer cet onglet et retourner dans l'app.</p></body></html>`
@@ -208,43 +142,36 @@ function startOAuthFlow() {
       server.close()
       oauthServer = null
 
-      if (error || !code) return reject(new Error(error || 'Code manquant'))
+      if (error || !code) return reject(new Error((error || 'Code manquant') + (errorDescription ? ': ' + errorDescription : '')))
 
       try {
-        const tokenData = await exchangeCode(code)
-        const userInfo = await getUserInfo(tokenData.access_token)
-        resolve({ tokenData, userInfo })
-      } catch(e) { reject(e) }
+        const { data, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code)
+        if (exchangeErr) return reject(exchangeErr)
+        resolve(data.session)
+      } catch (e) { reject(e) }
     })
 
     oauthServer = server
 
-    server.listen(9876, '127.0.0.1', () => {
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${OAUTH_CREDS.client_id}` +
-        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&response_type=code` +
-        `&scope=${encodeURIComponent(SCOPES)}` +
-        `&access_type=offline` +
-        `&prompt=select_account`
-      shell.openExternal(authUrl)
+    server.listen(9876, '127.0.0.1', async () => {
+      try {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: REDIRECT_URI,
+            skipBrowserRedirect: true,
+            queryParams: { prompt: 'select_account', access_type: 'offline' },
+          },
+        })
+        if (error) { console.error('[oauth] signInWithOAuth error:', error); reject(error); return }
+        console.log('[oauth] opening:', data.url)
+        shell.openExternal(data.url)
+      } catch (e) { reject(e) }
     })
 
     server.on('error', (e) => {
       if (e.code === 'EADDRINUSE') {
-        // Le port est bloqué par un processus externe — on tente de le libérer
-        const tmp = new require('net').Server()
-        tmp.once('error', () => {
-          reject(new Error('Port 9876 bloqué par un autre programme. Ferme-le et réessaie.'))
-        })
-        tmp.once('close', () => {
-          // Réessayer après un court délai
-          setTimeout(() => {
-            server.listen(9876, '127.0.0.1')
-          }, 500)
-        })
-        tmp.listen(9876, '127.0.0.1')
-        tmp.close()
+        reject(new Error('Port 9876 bloqué par un autre programme. Ferme-le et réessaie.'))
       } else {
         reject(e)
       }
@@ -252,132 +179,91 @@ function startOAuthFlow() {
   })
 }
 
-// ── R2 : lister les photos depuis Cloudflare ──────────────────────────────────
-// On liste les clés via l'API S3 (ListObjectsV2) depuis le main process
-async function listR2Photos(isPro) {
-  console.log('R2_BUCKET:', process.env.R2_BUCKET)
-  console.log('R2_PUBLIC_URL:', R2_PUBLIC_URL)
-  if (!R2_PUBLIC_URL) return []
-
-  const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3')
-  const client = new S3Client({
-    region: 'auto',
-    endpoint: process.env.R2_ENDPOINT,
-credentials: {
-  accessKeyId: process.env.R2_ACCESS_KEY_ID,
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-},
+// ── Edge Function helper (calls user-data with the current session JWT) ─────
+async function callUserData(action, payload) {
+  const { data: sess } = await supabase.auth.getSession()
+  const accessToken = sess?.session?.access_token
+  console.log('[callUserData]', action, 'session?', !!sess?.session, 'token len:', accessToken?.length || 0)
+  if (!accessToken) throw new Error('not authenticated')
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/user-data`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ action, payload }),
   })
-
-  const results = []
-let continuationToken = undefined
-
-do {
-  const cmd = new ListObjectsV2Command({
-    Bucket: process.env.R2_BUCKET,
-    Prefix: 'Sessions/current/',
-    ContinuationToken: continuationToken,
-  })
-  const res = await client.send(cmd)
-  for (const obj of (res.Contents || [])) {
-    const key = obj.Key
-    const parts = key.split('/')
-    if (parts.length < 4) continue
-
-    const fileName = parts[parts.length - 1]
-    if (fileName.startsWith('.')) continue
-
-    const ext = path.extname(fileName).toLowerCase()
-    if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) continue
-
-    const category = parts[2] // premier dossier après Sessions/current/
-const subcategory = parts.length > 4 ? parts[3] : null
-
-    // Nudité → Pro uniquement
-    if (NUDITY_CATEGORIES.includes(category) && !isPro) continue
-
-    const url = `${R2_PUBLIC_URL}/${key}`
-    results.push({ path: url, category, subcategory, sequence: null, animCategory: null, isR2: true })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.warn('[callUserData] FAIL', action, res.status, body)
+    throw new Error(`user-data ${action} ${res.status}`)
   }
-  
-  continuationToken = res.NextContinuationToken
-} while (continuationToken)
+  return res.json()
+}
 
-return results
+// Build the profile shape the renderer expects from a Supabase user.
+async function buildProfile(user) {
+  const email = user.email
+  if (isBetaExpired()) return { authenticated: false, reason: 'expired', landingUrl: BETA_LANDING }
+  if (!await isEmailAllowed(email)) return { authenticated: false, reason: 'not_allowed', email }
+  let isPro = isProEmail(email)
+  try {
+    if (!isPro) {
+      const supabasePro = await checkProFromSupabase(email)
+      if (supabasePro) isPro = true
+    }
+  } catch (e) {}
+  return {
+    authenticated: true,
+    email,
+    name: user.user_metadata?.full_name || user.user_metadata?.name || email,
+    picture: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+    isAdmin: false,
+    isPro,
+  }
+}
+
+// ── R2 : délégué aux Edge Functions Supabase ─────────────────────────────────
+// Les credentials R2 ne vivent QUE côté serveur (Supabase Function secrets).
+// Le client desktop n'appelle plus jamais l'API S3 directement.
+async function callEdgeFunction(name, body) {
+  const url = `${SUPABASE_URL}/functions/v1/${name}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify(body || {}),
+  })
+  if (!res.ok) throw new Error(`${name} ${res.status}`)
+  return res.json()
+}
+
+async function listR2Photos(isPro) {
+  try {
+    const data = await callEdgeFunction('list-r2-photos', { isPro: !!isPro })
+    return Array.isArray(data) ? data : []
+  } catch (e) {
+    console.warn('listR2Photos error:', e.message)
+    return []
+  }
 }
 
 async function listR2Animations(isPro) {
-  if (!R2_PUBLIC_URL) return []
-
-  const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3')
-  const client = new S3Client({
-    region: 'auto',
-    endpoint: process.env.R2_ENDPOINT,
-credentials: {
-  accessKeyId: process.env.R2_ACCESS_KEY_ID,
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-},
-  })
-
-  const results = []
-  // Free : uniquement animations/current/free/
-  // Pro  : animations/current/free/ + animations/current/pro/
-  const prefixes = ['Animations/current/free/', 'Animations/current/pro/']
-
-  for (const prefix of prefixes) {
-    let continuationToken = undefined
-    do {
-      const cmd = new ListObjectsV2Command({
-        Bucket: process.env.R2_BUCKET ,
-        Prefix: prefix,
-        ContinuationToken: continuationToken,
-      })
-      const res = await client.send(cmd)
-      for (const obj of (res.Contents || [])) {
-        const key = obj.Key
-        const parts = key.split('/')
-        if (parts.length < 5) continue
-        const fileName = parts[parts.length - 1]
-        if (fileName.startsWith('.')) continue
-        const ext = path.extname(fileName).toLowerCase()
-        if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) continue
-        // Chemin complet depuis "current" jusqu'au dossier parent du fichier
-        // ex: Animations/current/pro/Men/sword-motion/Sword-Attack/file.jpg
-        // → sequenceName = "current/pro/Men/sword-motion/Sword-Attack"
-        const navParts = parts.slice(1, parts.length - 1) // enlève "Animations" et le fichier
-        const sequenceName = navParts.join('/')
-        const url = `${R2_PUBLIC_URL}/${key}`
-        results.push({ path: url, sequence: sequenceName, isR2: true })
-      }
-      continuationToken = res.NextContinuationToken
-    } while (continuationToken)
+  try {
+    const data = await callEdgeFunction('list-r2-animations', { isPro: !!isPro })
+    return Array.isArray(data) ? data : []
+  } catch (e) {
+    console.warn('listR2Animations error:', e.message)
+    return []
   }
-
-  return results
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
-async function refreshInstagramToken() {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN
-  if (!token) return
-  try {
-    const res = await httpsGet(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${token}`)
-    if (res.access_token) {
-      // Mettre à jour le .env
-      const envPath = path.join(__dirname, '.env')
-      let envContent = fs.readFileSync(envPath, 'utf8')
-      envContent = envContent.replace(
-        /INSTAGRAM_ACCESS_TOKEN=.*/,
-        `INSTAGRAM_ACCESS_TOKEN=${res.access_token}`
-      )
-      fs.writeFileSync(envPath, envContent)
-      process.env.INSTAGRAM_ACCESS_TOKEN = res.access_token
-      console.log('✅ Token Instagram renouvelé, expire dans', res.expires_in, 'secondes')
-    }
-  } catch(e) {
-    console.warn('Instagram token refresh error:', e.message)
-  }
-}
+// NOTE: Le rafraîchissement du token Instagram est désormais géré côté Supabase
+// (Edge Function user-data + cron). Le desktop ne stocke plus le token.
 
 app.whenReady().then(() => {
   protocol.registerFileProtocol('file', (request, callback) => {
@@ -386,15 +272,6 @@ app.whenReady().then(() => {
   })
   createWindow()
   autoUpdater.checkForUpdatesAndNotify()
-  refreshInstagramToken()
-  let refreshDayCount = 0
-  setInterval(() => {
-    refreshDayCount++
-    if (refreshDayCount >= 30) {
-      refreshInstagramToken()
-      refreshDayCount = 0
-    }
-  }, 24 * 60 * 60 * 1000)
 })
 
 function createWindow() {
@@ -414,12 +291,7 @@ function createWindow() {
   callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [''] } })
 })
   mainWindow.webContents.on('did-finish-load', async () => {
-    const token = loadToken()
-    if (!token || !token.email) {
-      mainWindow.webContents.send('auth-required')
-      return
-    }
-    if (isAdminToken(token)) {
+    if (isAdminMode()) {
       mainWindow.webContents.send('auth-success', { email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true })
       setTimeout(() => {
         if (fs.existsSync(DEFAULT_LOCAL_FOLDER)) {
@@ -428,20 +300,21 @@ function createWindow() {
           mainWindow.webContents.send('use-r2-mode', { isPro: true })
         }
       }, 500)
-    } else if (isBetaExpired()) {
-      mainWindow.webContents.send('auth-expired', { email: token.email, landingUrl: BETA_LANDING })
-    } else if (await isEmailAllowed(token.email)) {
-      let isPro = isProEmail(token.email)
-      try {
-        const supabasePro = await checkProFromSupabase(token.email)
-        if (supabasePro) isPro = true
-      } catch(e) {}
-      mainWindow.webContents.send('auth-success', { email: token.email, name: token.name, picture: token.picture, isAdmin: false, isPro })
-      setTimeout(() => {
-        mainWindow.webContents.send('use-r2-mode', { isPro })
-      }, 500)
+      return
+    }
+    const { data } = await supabase.auth.getSession()
+    const user = data?.session?.user
+    if (!user) { mainWindow.webContents.send('auth-required'); return }
+    const profile = await buildProfile(user)
+    if (profile.authenticated) {
+      mainWindow.webContents.send('auth-success', profile)
+      setTimeout(() => mainWindow.webContents.send('use-r2-mode', { isPro: profile.isPro }), 500)
+    } else if (profile.reason === 'expired') {
+      mainWindow.webContents.send('auth-expired', { email: user.email, landingUrl: BETA_LANDING })
+    } else if (profile.reason === 'not_allowed') {
+      mainWindow.webContents.send('auth-not-allowed', user.email)
     } else {
-      mainWindow.webContents.send('auth-not-allowed', token.email)
+      mainWindow.webContents.send('auth-required')
     }
   })
 }
@@ -449,31 +322,26 @@ function createWindow() {
 // ── IPC Auth ──────────────────────────────────────────────────────────────────
 ipcMain.handle('auth-google', async () => {
   try {
-    if (!OAUTH_CREDS.client_id || !OAUTH_CREDS.client_secret) {
-      console.error('❌ OAuth credentials manquantes — vérifie oauth_credentials.json')
-      return { success: false, reason: 'error', message: 'Fichier oauth_credentials.json introuvable ou invalide. Vérifie qu\'il est présent à côté de main.js.' }
-    }
-    const { tokenData, userInfo } = await startOAuthFlow()
-    if (!await isEmailAllowed(userInfo.email)) {
-      return { success: false, reason: 'not_allowed', email: userInfo.email }
-    }
-    if (isBetaExpired()) {
-      return { success: false, reason: 'expired', landingUrl: BETA_LANDING }
-    }
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({ email: userInfo.email }, { onConflict: 'email', ignoreDuplicates: true })
-    if (error) console.warn('Supabase upsert error:', error.message)
-    saveToken({ ...tokenData, email: userInfo.email, name: userInfo.name, picture: userInfo.picture })
-    return { success: true, email: userInfo.email, name: userInfo.name, picture: userInfo.picture }
-  } catch(e) {
+    const session = await startSupabaseOAuth()
+    const user = session?.user
+    if (!user) return { success: false, reason: 'error', message: 'Session vide' }
+    const profile = await buildProfile(user)
+    if (!profile.authenticated) return { success: false, reason: profile.reason, email: user.email, landingUrl: profile.landingUrl }
+    // Best-effort upsert into profiles (idempotent)
+    try {
+      await supabase.from('profiles').upsert({ email: user.email }, { onConflict: 'email', ignoreDuplicates: true })
+    } catch (e) {}
+    return { success: true, ...profile }
+  } catch (e) {
     console.error('❌ auth-google error:', e)
     return { success: false, reason: 'error', message: e.message }
   }
 })
 
-ipcMain.handle('auth-logout', () => {
-  try { fs.unlinkSync(TOKEN_PATH) } catch(e) {}
+ipcMain.handle('auth-logout', async () => {
+  try { await supabase.auth.signOut() } catch (e) {}
+  clearAuthStorage()
+  clearAdminMode()
   mainWindow.webContents.send('auth-required')
   return true
 })
@@ -483,27 +351,21 @@ ipcMain.handle('auth-admin', (event, password) => {
     const raw = JSON.parse(fs.readFileSync(WHITELIST_PATH, 'utf8'))
     const adminPassword = raw.admin_password || 'admin'
     if (password === adminPassword) {
-      saveToken({ email: 'admin', name: 'Admin', picture: null })
+      setAdminMode()
       return { success: true }
     }
     return { success: false }
-  } catch(e) {
+  } catch (e) {
     return { success: false }
   }
 })
 
 ipcMain.handle('auth-check', async () => {
-  const token = loadToken()
-  if (!token || !token.email) return { authenticated: false }
-  if (isAdminToken(token)) return { authenticated: true, email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true }
-  if (!await isEmailAllowed(token.email)) return { authenticated: false, reason: 'not_allowed' }
-  if (isBetaExpired()) return { authenticated: false, reason: 'expired', landingUrl: BETA_LANDING }
-  let isPro = isProEmail(token.email)
-  try {
-    const supabasePro = await checkProFromSupabase(token.email)
-    if (supabasePro) isPro = true
-  } catch(e) {}
-  return { authenticated: true, email: token.email, name: token.name, picture: token.picture, isAdmin: false, isPro }
+  if (isAdminMode()) return { authenticated: true, email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true }
+  const { data } = await supabase.auth.getSession()
+  const user = data?.session?.user
+  if (!user) return { authenticated: false }
+  return await buildProfile(user)
 })
 
 ipcMain.handle('get-app-version', () => {
@@ -672,26 +534,18 @@ ipcMain.handle('mb:save-pdf', async (_, defaultName, jpegDataUrl, w, h) => {
 })
 
 ipcMain.handle('get-favorites', async () => {
-  const token = loadToken()
-  if (!token || !token.email || isAdminToken(token)) return []
+  if (isAdminMode()) return []
   try {
-    const { data: profile } = await supabase.from('profiles').select('id').eq('email', token.email).single()
-    if (!profile) return []
-    const { data } = await supabase.from('favorites').select('src, label, added_at').eq('user_id', profile.id).order('added_at', { ascending: true })
-    return data || []
-  } catch(e) { return [] }
+    const data = await callUserData('getFavorites')
+    return (data && data.favs) || []
+  } catch (e) { return [] }
 })
 
 ipcMain.handle('save-favorites', async (event, favs) => {
-  const token = loadToken()
-  if (!token || !token.email || isAdminToken(token)) return
+  if (isAdminMode()) return
   try {
-    const { data: profile } = await supabase.from('profiles').select('id').eq('email', token.email).single()
-    if (!profile) return
-    await supabase.from('favorites_images').delete().eq('user_id', profile.id)
-    if (favs.length === 0) return
-    await supabase.from('favorites_images').insert(favs.map(f => ({ user_id: profile.id, email: token.email, src: f.src, label: f.label })))
-  } catch(e) { console.warn('save-favorites error:', e.message) }
+    await callUserData('saveFavorites', Array.isArray(favs) ? favs : [])
+  } catch (e) { console.warn('save-favorites error:', e.message) }
 })
 
 // Liste les animations R2
@@ -785,51 +639,22 @@ ipcMain.handle('read-file-buffer', (event, filePath) => {
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
 })
 
-// ── IPC Sessions & Streak ─────────────────────────────────────────────────────
+// ── IPC Sessions & Streak (delegated to user-data Edge Function) ──────────────
 ipcMain.handle('save-session', async (event, sessionData) => {
-  const token = loadToken()
-  if (!token || !token.email) return { success: false }
+  if (isAdminMode()) return { success: true }
   try {
-    const { data: profile } = await supabase
-      .from('profiles').select('id').eq('email', token.email).single()
-    if (!profile) return { success: false }
-    const { error } = await supabase.from('sessions').insert({
-      user_id: profile.id,
-      duration_seconds: sessionData.minutes * 60,
-      photo_count: sessionData.poses,
-      category: sessionData.cats || null,
-    })
-    if (error) console.warn('Session save error:', error.message)
-    return { success: true }
-  } catch(e) {
-    console.warn('Session save error:', e.message)
+    return await callUserData('saveSession', sessionData)
+  } catch (e) {
+    console.warn('save-session error:', e.message)
     return { success: false }
   }
 })
 
 ipcMain.handle('get-streak', async () => {
-  const token = loadToken()
-  if (!token || !token.email) return { streak: 0 }
+  if (isAdminMode()) return { streak: 0 }
   try {
-    const { data: profile } = await supabase
-      .from('profiles').select('id').eq('email', token.email).single()
-    if (!profile) return { streak: 0 }
-    const { data: sessions } = await supabase
-      .from('sessions').select('created_at').eq('user_id', profile.id)
-      .order('created_at', { ascending: false })
-    if (!sessions || sessions.length === 0) return { streak: 0 }
-    const days = new Set(sessions.map(s => new Date(s.created_at).toISOString().split('T')[0]))
-    let streak = 0
-    const today = new Date()
-    for (let i = 0; i < 365; i++) {
-      const d = new Date(today)
-      d.setDate(today.getDate() - i)
-      const key = d.toISOString().split('T')[0]
-      if (days.has(key)) streak++
-      else if (i > 0) break
-    }
-    return { streak }
-  } catch(e) {
+    return await callUserData('getStreak')
+  } catch (e) {
     console.warn('get-streak error:', e.message)
     return { streak: 0 }
   }
@@ -845,34 +670,32 @@ function safeOpenExternal(url) {
 }
 ipcMain.handle('open-external', (event, url) => safeOpenExternal(url))
 
-ipcMain.handle('get-payment-links', () => {
-  const token = loadToken()
-  const email = token?.email || ''
-  return {
-    monthly: STRIPE_LINK_MONTHLY + (email ? '?prefilled_email=' + encodeURIComponent(email) : ''),
-    yearly: STRIPE_LINK_YEARLY + (email ? '?prefilled_email=' + encodeURIComponent(email) : ''),
-  }
+ipcMain.handle('get-payment-links', async () => {
+  let email = ''
+  try {
+    const { data } = await supabase.auth.getSession()
+    email = data?.session?.user?.email || ''
+  } catch (e) {}
+  const q = email ? '?prefilled_email=' + encodeURIComponent(email) : ''
+  return { monthly: STRIPE_LINK_MONTHLY + q, yearly: STRIPE_LINK_YEARLY + q }
 })
 
 ipcMain.handle('refresh-pro-status', async () => {
-  const token = loadToken()
-  if (!token || !token.email || isAdminToken(token)) return { isPro: true }
-  let isPro = isProEmail(token.email)
+  if (isAdminMode()) return { isPro: true }
   try {
-    const supabasePro = await checkProFromSupabase(token.email)
-    if (supabasePro) isPro = true
-  } catch(e) {}
-  return { isPro }
+    return await callUserData('refreshProStatus')
+  } catch (e) {
+    console.warn('refresh-pro-status error:', e.message)
+    return { isPro: false }
+  }
 })
 
 ipcMain.handle('get-instagram-posts', async () => {
-  const token = process.env.INSTAGRAM_ACCESS_TOKEN
-  if (!token) return []
   try {
-    const res = await httpsGet(`https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,permalink,timestamp,like_count&limit=20&access_token=${token}`)
-    return res.data || []
-  } catch(e) {
-    console.warn('Instagram API error:', e.message)
+    const data = await callEdgeFunction('list-instagram-posts')
+    return Array.isArray(data) ? data : []
+  } catch (e) {
+    console.warn('[insta] error:', e.message)
     return []
   }
 })
