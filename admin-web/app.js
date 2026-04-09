@@ -75,6 +75,11 @@ const selected   = new Set();              // selected file keys (clears on navi
 const navHistory = [];   // visited prefixes BEFORE the current one
 const navFuture  = [];   // prefixes you've gone "back" from (cleared on new navigation)
 
+// Pending message to display AFTER the next loadGrid() finishes rendering.
+// Used so action confirmations ("✓ 12 ok") aren't immediately wiped by the
+// "Chargement…" placeholder that loadGrid() sets at the start.
+let pendingMsg = null;
+
 // Centralised navigation. Use this everywhere instead of touching currentPrefix
 // directly so the navHistory stack stays consistent.
 function navigateTo(prefix) {
@@ -107,11 +112,22 @@ function navigateUp() {
   navigateTo(parts.join('/') + '/');
 }
 
-document.querySelectorAll('.root-btn').forEach((btn) => {
+document.querySelectorAll('.root-btn[data-root]').forEach((btn) => {
   btn.addEventListener('click', () => {
     currentRoot = btn.dataset.root;
     navigateTo(currentRoot);
   });
+});
+
+// Toggle current ↔ archive on the active family (Sessions or Animations).
+// Lets the user reach Sessions/archive/ and Animations/archive/, which were
+// otherwise unreachable from the UI (and made the unarchive flow dead code).
+$('archive-toggle').addEventListener('click', () => {
+  const family = currentPrefix.startsWith('Animations/') ? 'Animations/' : 'Sessions/';
+  const inArchive = currentPrefix.startsWith(family + 'archive/');
+  const target = family + (inArchive ? 'current/' : 'archive/');
+  currentRoot = target;
+  navigateTo(target);
 });
 
 $('nav-back').addEventListener('click', navigateBack);
@@ -136,9 +152,15 @@ function updateNavButtons() {
 }
 
 function setActiveRoot() {
-  document.querySelectorAll('.root-btn').forEach((b) => {
-    b.classList.toggle('active', currentPrefix.startsWith(b.dataset.root));
+  // Mark Photos / Animations active based on the FAMILY of currentPrefix
+  // (Sessions/* or Animations/*), so the right tab stays lit even when
+  // browsing the archive zone of that family.
+  const family = currentPrefix.startsWith('Animations/') ? 'Animations/' : 'Sessions/';
+  document.querySelectorAll('.root-btn[data-root]').forEach((b) => {
+    b.classList.toggle('active', b.dataset.root.startsWith(family));
   });
+  const inArchive = currentPrefix.startsWith(family + 'archive/');
+  $('archive-toggle').classList.toggle('active', inArchive);
 }
 
 // Thumbnail proxy: wsrv.nl resizes + converts to webp on the fly, cached on their CDN.
@@ -184,7 +206,15 @@ async function loadGrid() {
     const files = data.files || [];
     currentFiles = files;
     countEl.textContent = `${folders.length} dossiers · ${files.length} fichiers`;
-    setMsg(msg, '');
+    if (pendingMsg) {
+      setMsg(msg, pendingMsg.text, pendingMsg.kind);
+      const captured = pendingMsg;
+      pendingMsg = null;
+      // Auto-clear after a few seconds, but only if nothing else has overwritten it.
+      setTimeout(() => { if (msg.textContent === captured.text) setMsg(msg, ''); }, 4000);
+    } else {
+      setMsg(msg, '');
+    }
     renderGrid(folders, files);
   } catch (e) {
     setMsg(msg, 'Erreur réseau : ' + e.message, 'err');
@@ -409,8 +439,12 @@ async function callAdmin(action, body, busyMsg) {
     const data = await res.json();
     const okCount = data.moved ?? data.count ?? 0;
     const failCount = (data.failed && data.failed.length) || 0;
-    setMsg(msg, `✓ ${okCount} ok${failCount ? ` · ${failCount} échec(s)` : ''}`, 'ok');
-    // Reload current folder so the user sees the result immediately.
+    // Stash the result so loadGrid() can display it AFTER it finishes rendering
+    // (otherwise its "Chargement…" placeholder wipes the success message).
+    pendingMsg = {
+      text: `✓ ${okCount} ok${failCount ? ` · ${failCount} échec(s)` : ''}`,
+      kind: failCount ? 'err' : 'ok',
+    };
     loadGrid();
   } catch (e) {
     setMsg(msg, 'Erreur réseau : ' + e.message, 'err');
