@@ -186,7 +186,9 @@ Deno.serve(async (req) => {
         if (relParts.length === 0) continue;
         const key = prefix + relParts.join('/');
         if (!isAllowedAdminKey(key)) continue;
-        const url = await presignPut(key, f.contentType, 300);
+        // 1h TTL: large folder uploads on slow connections were timing out
+        // before all files finished. Safe — the URL is admin-gated upstream.
+        const url = await presignPut(key, f.contentType, 3600);
         out.push({ name: f.name, key, url });
       }
       return jsonOk({ prefix, uploads: out });
