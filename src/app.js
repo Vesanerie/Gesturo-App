@@ -365,7 +365,7 @@ function renderCategories(parentCat = null) {
   const wrap = document.getElementById('categories-wrap')
   wrap.innerHTML = ''
   if (!currentUserIsPro && isR2Mode) {
-    wrap.innerHTML = `<div style="text-align:center;padding:20px 0;"><div style="font-size:32px;margin-bottom:10px;">🎲</div><div style="font-size:14px;color:#fff;font-weight:500;margin-bottom:6px;">150 poses aléatoires</div><div style="font-size:13px;color:#4a6280;margin-bottom:16px;">Passe Pro pour choisir tes catégories</div><button onclick="showUpgradeModal()" style="background:#2983eb;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;padding:9px 20px;cursor:pointer;">Découvrir Pro ⭐</button></div>`
+    wrap.innerHTML = `<div class="free-random-block"><div class="frb-icon">🎲</div><div class="frb-title">150 poses aléatoires</div><div class="frb-sub">Passe Pro pour choisir tes catégories</div><button onclick="showUpgradeModal()" class="frb-cta">Découvrir Pro ⭐</button></div>`
     selectedCats = new Set(Object.keys(categories)); return
   }
   const cats = Object.keys(categories).sort()

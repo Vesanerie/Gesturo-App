@@ -14,6 +14,38 @@
 /* Catégories */
 #categories-wrap { display: block; }
 
+/* Bloc "150 poses aléatoires" affiché aux users free en mode R2.
+   Injecté dans #categories-wrap par renderCategories() dans src/app.js.
+   Desktop : centré dans la card, largeur contenue (380px) pour que le
+   texte et le bouton ne s'étalent pas sur toute la largeur de la card.
+   Mobile / tablet : responsive overrides dans leurs @media respectifs. */
+.free-random-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 16px 12px 8px;
+  text-align: center;
+}
+.free-random-block .frb-icon { font-size: 40px; line-height: 1; margin-bottom: 4px; }
+.free-random-block .frb-title { font-size: 16px; color: #fff; font-weight: 600; }
+.free-random-block .frb-sub { font-size: 13px; color: #4a6280; line-height: 1.5; margin-bottom: 10px; }
+.free-random-block .frb-cta {
+  background: #2983eb;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 26px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.free-random-block .frb-cta:hover { background: #1a6fd4; }
+.free-random-block .frb-cta:active { transform: scale(0.97); }
+
 /* ── Bloc free-tier (Catégories pour utilisateur non-Pro) ── */
 .free-preview-block { padding: 6px 0 4px; }
 .free-mosaic {
@@ -178,6 +210,22 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
   }
+
+  /* Bloc "150 poses aléatoires" (free R2) : plus ramassé sur phone,
+     tap zone ≥48px sur le CTA */
+  #screen-config .free-random-block {
+    max-width: 100%;
+    padding: 14px 8px 6px;
+  }
+  #screen-config .free-random-block .frb-icon { font-size: 36px; }
+  #screen-config .free-random-block .frb-title { font-size: 16px; }
+  #screen-config .free-random-block .frb-sub { font-size: 13px; padding: 0 6px; }
+  #screen-config .free-random-block .frb-cta {
+    min-height: 48px;
+    width: 100%;
+    max-width: 280px;
+    font-size: 15px;
+  }
   #screen-config .fpc-title { font-size: 18px; }
   #screen-config .free-pro-btn {
     min-height: 48px;
@@ -335,3 +383,255 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
      la dernière card du config ne soit pas cachée. */
   #screen-config { padding-bottom: 160px !important; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   TABLET — Config (768-1199px, iPad portrait/landscape + Android tablets)
+
+   Philosophie C : UI tablet repensée pour l'écran + le doigt.
+   - Sidebar permanente à gauche (260px) qui remplace mode-tabs + bottom
+     tab bar. Navigation unifiée et naturelle en tactile.
+   - Zone principale à droite : plus dense que mobile (4 cols au lieu de 2
+     pour les grilles), plus aérée que desktop.
+   - Tap zones ≥44px partout (norme HIG).
+   - Sidebar utilise position:fixed pour échapper à .config-inner et ne
+     scroll pas avec le contenu.
+   - Zéro modif HTML : on réutilise .mode-tabs en le transformant via
+     CSS only (flex-direction column + position fixed).
+
+   ⚠ Desktop intouché : tout est strictement dans ce @media bloc.
+   ───────────────────────────────────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1199px) {
+  /* Variables locales — changer d'un seul endroit si on retouche la
+     largeur de la sidebar. */
+  :root {
+    --tablet-sidebar-width: 260px;
+    --tablet-content-max: 720px;
+  }
+
+  /* ── Zone principale décalée de la largeur de la sidebar ── */
+  #screen-config {
+    padding: 40px 32px 40px calc(var(--tablet-sidebar-width) + 40px);
+    align-items: flex-start;
+  }
+  .config-inner {
+    width: 100%;
+    max-width: var(--tablet-content-max);
+    margin: 0;
+    padding-bottom: 140px;
+  }
+  .config-inner h1 {
+    font-size: 52px;
+    text-align: left;
+    margin-bottom: 4px;
+  }
+  .config-inner .subtitle {
+    text-align: left;
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+
+  /* ── Mode tabs → sidebar fixe à gauche ── */
+  #screen-config .mode-tabs {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--tablet-sidebar-width);
+    flex-direction: column;
+    gap: 2px;
+    padding: calc(env(safe-area-inset-top, 0px) + 72px) 14px
+             calc(env(safe-area-inset-bottom, 0px) + 18px) 14px;
+    border: none;
+    border-right: 0.5px solid #1e2d40;
+    border-radius: 0;
+    margin-bottom: 0;
+    background: #0c1620;
+    overflow-y: auto;
+    z-index: 400;
+  }
+  #screen-config .mode-tabs::-webkit-scrollbar { display: none; }
+
+  /* Logo Gesturo en haut de la sidebar (pseudo-element pour éviter
+     toute modif HTML) */
+  #screen-config .mode-tabs::before {
+    content: 'Gesturo';
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    left: 24px;
+    right: 24px;
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  #screen-config .mode-tabs::after {
+    content: '';
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 58px);
+    left: 14px;
+    right: 14px;
+    height: 0.5px;
+    background: #1e2d40;
+  }
+
+  /* Chaque tab → bouton full-width avec texte à gauche */
+  #screen-config .mode-tab {
+    flex: none;
+    width: 100%;
+    height: auto;
+    min-height: 48px;
+    padding: 12px 16px;
+    background: transparent;
+    border-radius: 10px;
+    text-align: left;
+    justify-content: flex-start;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6a8aaa;
+    white-space: normal;
+  }
+  #screen-config .mode-tab:hover {
+    background: #131f2e;
+    color: #a8c4e0;
+  }
+  #screen-config .mode-tab.active {
+    background: #2983eb;
+    color: #fff;
+  }
+  /* Moodboard utilise une <webview> Electron. Sur iPad via Capacitor la
+     webview n'existe pas → on cache (comme pour mobile). À réactiver
+     quand on aura implémenté un fallback InAppBrowser côté mobile-shim. */
+  #screen-config #tab-moodboard { display: none; }
+
+  /* ── Titre + subtitle : on exploite l'espace horizontal libéré ── */
+  /* (déjà fait plus haut via .config-inner h1 text-align: left) */
+
+  /* ── Semaine streak : reste en haut, occupe toute la largeur dispo ── */
+  #screen-config #week-bar {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* ── Cards : padding plus généreux, grilles plus larges ── */
+  .card {
+    padding: 22px 24px;
+    margin-bottom: 16px;
+  }
+  .card h3 {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  /* Catégories : grille large, tap zones 44px */
+  #screen-config #categories-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  #screen-config .cat-chip {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  /* Free-mosaic : 4 colonnes au lieu de 2/3, tuiles plus grandes */
+  #screen-config .free-mosaic {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  /* Bloc "150 poses aléatoires" (free R2) : centré dans la card,
+     plus d'air qu'en mobile, CTA généreux. Sur tablet la card parent
+     fait ~672px de large (720 - 48 padding), on cadre à 420px pour
+     pas que le texte s'étale. */
+  #screen-config .free-random-block {
+    max-width: 420px;
+    padding: 24px 16px 10px;
+  }
+  #screen-config .free-random-block .frb-icon { font-size: 46px; }
+  #screen-config .free-random-block .frb-title { font-size: 18px; }
+  #screen-config .free-random-block .frb-sub { font-size: 14px; }
+  #screen-config .free-random-block .frb-cta {
+    min-height: 48px;
+    padding: 13px 32px;
+    font-size: 15px;
+  }
+  #screen-config .fpc-title { font-size: 19px; }
+  #screen-config .fpc-sub { font-size: 14px; }
+  #screen-config .free-pro-btn {
+    min-height: 48px;
+    padding: 13px 32px;
+    font-size: 15px;
+  }
+
+  /* Communauté grille : 3 colonnes confortables */
+  #community-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Sub-mode cards : 2 colonnes, plus aérées */
+  #screen-config .sub-mode-cards {
+    gap: 12px;
+  }
+  #screen-config .sub-mode-card {
+    padding: 18px 20px;
+    min-height: 80px;
+  }
+  #screen-config .sub-mode-card .t { font-size: 15px; }
+  #screen-config .sub-mode-card .d { font-size: 13px; }
+  /* Anim : 3 colonnes */
+  #screen-config #anim-options .sub-mode-cards {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px;
+  }
+  #screen-config #anim-options .sub-mode-card { padding: 14px 12px; min-height: 90px; }
+
+  /* Chips durée / FPS */
+  #screen-config .chips { gap: 10px; }
+  #screen-config .chip {
+    min-height: 44px;
+    padding: 11px 20px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Inputs : tap zones 44px, pas de zoom iOS */
+  #screen-config input[type=number],
+  #screen-config select {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 11px 14px;
+  }
+  #screen-config input[type=range] { height: 32px; }
+
+  /* Folder buttons */
+  #screen-config .folder-btn {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  /* Séquences animation */
+  #screen-config .seq-item {
+    min-height: 56px;
+    padding: 14px 18px;
+  }
+
+  /* ── Start bar : décalée du sidebar, centrée sur la zone de contenu ── */
+  #screen-config + #start-bar,
+  #start-bar {
+    left: var(--tablet-sidebar-width);
+    padding: 16px 32px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  }
+  #start-bar .btn-start {
+    width: 100%;
+    max-width: var(--tablet-content-max);
+    min-height: 56px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
