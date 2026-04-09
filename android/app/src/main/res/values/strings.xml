@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Gesturo</string>
+    <string name="title_activity_main">Gesturo</string>
+    <string name="package_name">com.gesturo.app</string>
+    <string name="custom_url_scheme">com.gesturo.app</string>
+</resources>

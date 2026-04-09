@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 oauth_credentials.json
+www/
+tag-results.json
