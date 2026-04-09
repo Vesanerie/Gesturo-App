@@ -1,6 +1,12 @@
 // Shared R2 client + listing helpers used by list-r2-photos / list-r2-animations.
 // Credentials live in Supabase function secrets — never sent to clients.
-import { S3Client, ListObjectsV2Command } from 'npm:@aws-sdk/client-s3@3';
+import {
+  S3Client,
+  ListObjectsV2Command,
+  CopyObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+} from 'npm:@aws-sdk/client-s3@3';
 
 export const NUDITY_CATEGORIES = ['nudite'];
 export const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -60,6 +66,57 @@ export async function browseLevel(prefix: string) {
     token = res.NextContinuationToken;
   } while (token);
   return { folders, files };
+}
+
+// Allowed roots for any admin write operation. Hard guard against malicious or
+// buggy clients trying to touch keys outside the catalog.
+export const ADMIN_ALLOWED_ROOTS = ['Sessions/', 'Animations/'];
+
+export function isAllowedAdminKey(key: string): boolean {
+  if (!key || key.includes('..')) return false;
+  return ADMIN_ALLOWED_ROOTS.some((r) => key.startsWith(r));
+}
+
+// Copy + Delete (S3/R2 has no atomic move). Used by archive and move actions.
+export async function moveObject(srcKey: string, destKey: string) {
+  const client = r2Client();
+  const bucket = Deno.env.get('R2_BUCKET')!;
+  // CopySource must be URL-encoded (spaces, accents, etc.)
+  const copySource = `${bucket}/${srcKey.split('/').map(encodeURIComponent).join('/')}`;
+  await client.send(new CopyObjectCommand({
+    Bucket: bucket,
+    CopySource: copySource,
+    Key: destKey,
+  }));
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: srcKey }));
+}
+
+// Bulk delete (up to 1000 keys per call per S3 spec).
+export async function deleteKeys(keys: string[]) {
+  if (keys.length === 0) return;
+  const client = r2Client();
+  const bucket = Deno.env.get('R2_BUCKET')!;
+  // Chunk by 1000 to stay within S3 limits.
+  for (let i = 0; i < keys.length; i += 1000) {
+    const chunk = keys.slice(i, i + 1000);
+    await client.send(new DeleteObjectsCommand({
+      Bucket: bucket,
+      Delete: { Objects: chunk.map((Key) => ({ Key })), Quiet: true },
+    }));
+  }
+}
+
+// Archive a key by moving it from "<root>/current/<rest>" to "<root>/archive/<ts>/<rest>".
+// Returns the new key. The timestamp groups all keys archived in the same admin
+// call, so a single "archive batch" stays together and can be restored as a unit.
+export function archiveKeyFor(key: string, timestamp: string): string | null {
+  for (const root of ADMIN_ALLOWED_ROOTS) {
+    const currentPrefix = root + 'current/';
+    if (key.startsWith(currentPrefix)) {
+      return root + 'archive/' + timestamp + '/' + key.slice(currentPrefix.length);
+    }
+  }
+  return null;
 }
 
 export function extOf(name: string) {

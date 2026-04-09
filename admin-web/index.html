@@ -33,6 +33,11 @@
     </header>
 
     <div class="toolbar">
+      <div class="nav-arrows">
+        <button id="nav-back" class="nav-btn" title="Précédent (Cmd+[)">←</button>
+        <button id="nav-fwd"  class="nav-btn" title="Suivant (Cmd+])">→</button>
+        <button id="nav-up"   class="nav-btn" title="Dossier parent (Cmd+↑)">↑</button>
+      </div>
       <div class="roots">
         <button class="root-btn" data-root="Sessions/current/">Photos</button>
         <button class="root-btn" data-root="Animations/current/">Animations</button>
@@ -44,7 +49,36 @@
 
     <div id="grid" class="grid"></div>
     <div id="grid-msg" class="msg"></div>
+
+    <!-- Action bar (sticky bottom) — only visible when something is selected -->
+    <div id="action-bar" class="action-bar hidden">
+      <span id="selection-count"></span>
+      <div class="action-bar-buttons">
+        <button id="action-archive" class="btn-secondary">📦 Archiver</button>
+        <button id="action-delete" class="btn-danger">🗑 Supprimer</button>
+        <button id="action-clear" class="btn-ghost">Annuler</button>
+      </div>
+    </div>
   </section>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox hidden">
+    <button id="lightbox-close" class="lightbox-close">×</button>
+    <img id="lightbox-img" alt="">
+  </div>
+
+  <!-- Confirmation modale (utilisée pour delete) -->
+  <div id="confirm-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2 id="confirm-title">Confirmer</h2>
+      <p id="confirm-text"></p>
+      <div id="confirm-extra"></div>
+      <div class="modal-buttons">
+        <button id="confirm-cancel" class="btn-ghost">Annuler</button>
+        <button id="confirm-ok" class="btn-danger">Confirmer</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
