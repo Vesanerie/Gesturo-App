@@ -17,3 +17,9 @@ android/.idea/
 android/app/capacitor.build.gradle
 android/capacitor.settings.gradle
 .venv/
+
+# Claude Code — outillage local (settings, skills, sessions d'audit).
+# Exception : on peut commit .claude/agents/ si on veut partager des
+# agents custom avec le repo (fait sur la branch mobile-refonte).
+.claude/
+!.claude/agents/
