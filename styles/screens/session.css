@@ -47,3 +47,234 @@
   padding: 4px 8px; border-radius: 6px; display: none; z-index: 200;
   height: 32px; align-items: center; justify-content: center;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE — Session pose (≤768px)
+
+   Stratégie : photo plein écran, controls flottants. La barre #session-bar
+   devient un calque transparent qui couvre toute la fenêtre, et chacun
+   de ses enfants se positionne en absolute par-dessus la photo. Le HTML
+   et le JS restent strictement identiques.
+
+   ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Ancre les enfants absolute (session-bar et photo-area) au screen
+     plutôt qu'au viewport. Sans ça, ça marche par coïncidence. */
+  #screen-session { position: relative; }
+
+  /* Le calque container : couvre tout, ne capte pas les clics par défaut.
+     Chaque enfant interactif réactive pointer-events. */
+  #screen-session #session-bar {
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    border-top: none;
+    padding: 0;
+    display: block;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* La SVG circle est sortie : la prog-bar dans timer-block suffit comme
+     feedback visuel et le SVG ferait doublon avec le timer floating. */
+  #screen-session #countdown-circle { display: none; }
+
+  /* Counter / mode → pill flottante en haut à gauche */
+  #screen-session #info-block {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: 14px;
+    background: rgba(10, 21, 32, 0.6);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+    padding: 7px 14px;
+    pointer-events: auto;
+    flex: none;
+  }
+  #screen-session #session-info { font-size: 12px; color: #fff; font-weight: 500; }
+  #screen-session #mode-label { font-size: 10px; color: rgba(255, 255, 255, 0.5); margin-top: 1px; }
+
+  /* Timer + progression → carte flottante en haut centre */
+  #screen-session #timer-block {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 21, 32, 0.55);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 10px 18px;
+    min-width: 110px;
+    pointer-events: auto;
+  }
+  #screen-session #timer-display { font-size: 30px; }
+  #screen-session #prog-wrap { margin-top: 6px; }
+
+  /* Boutons de session → dock flottante en bas centre */
+  #screen-session #controls {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 22px;
+    padding: 6px 8px;
+    gap: 2px;
+    pointer-events: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+  #screen-session #controls .s-btn {
+    min-height: 44px;
+    padding: 11px 14px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 16px;
+  }
+  #screen-session #controls .s-btn:hover { background: rgba(255, 255, 255, 0.05); }
+  #screen-session #controls .s-btn-danger { color: #E24B4A; }
+  #screen-session #controls .s-btn:disabled { opacity: 0.35; }
+
+  /* Confirm "Terminer ?" → modale plein écran centrée (sinon il serait
+     coincé dans la dock invisible) */
+  #screen-session #confirm-bar {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 12, 22, 0.88);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    flex-direction: column;
+    justify-content: center;
+    gap: 22px;
+    padding: 30px;
+    z-index: 600;
+    pointer-events: auto;
+  }
+  #screen-session #confirm-bar span {
+    font-size: 18px;
+    color: #fff;
+    font-weight: 500;
+  }
+  #screen-session #confirm-bar .s-btn {
+    width: 220px;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  /* Transform controls (grille / N&B / miroir / rotation) → colonne
+     verticale au milieu droit, comme apps photo natives */
+  #screen-session #photo-area #transform-controls {
+    bottom: auto;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: 8px;
+  }
+  #screen-session #photo-area .transform-btn {
+    width: 44px;
+    height: 44px;
+    background: rgba(10, 21, 32, 0.55);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 16px;
+    border-radius: 12px;
+  }
+
+  /* Bouton favori → flottant en haut à droite. On évite le bas pour ne pas
+     chevaucher le dock #controls qui est centré bas (sur écran ~360px le
+     dock prend toute la largeur centrale). */
+  #screen-session #photo-area .fav-star-btn {
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    right: 14px;
+    bottom: auto;
+    left: auto;
+    width: 44px;
+    height: 44px;
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    font-size: 20px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Phase badge (utilisé en mode progressif) → en bas du timer card */
+  #screen-session #photo-area #phase-badge {
+    top: calc(env(safe-area-inset-top, 0px) + 78px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 21, 32, 0.6);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Boutons globaux du haut (options/discord/plan) cachés sur l'écran
+     session mobile : ils chevauchent la timer card. Réapparaîtront sur les
+     autres écrans grâce à la spécificité du sélecteur :has(). */
+  body:has(#screen-session.active) #options-btn,
+  body:has(#screen-session.active) #discord-btn,
+  body:has(#screen-session.active) #plan-badge {
+    display: none !important;
+  }
+
+  /* ─── Tap-to-toggle des controls flottants ─────────────────────────
+     Le tap sur la photo (géré dans app.js) toggle .controls-hidden sur
+     #screen-session. Tous les éléments flottants fadent ensemble pour
+     révéler la photo en immersif total. Ré-tap pour les ramener. */
+  #screen-session #info-block,
+  #screen-session #timer-block,
+  #screen-session #controls,
+  #screen-session #photo-area .fav-star-btn,
+  #screen-session #photo-area #transform-controls,
+  #screen-session #photo-area #phase-badge {
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  #screen-session.controls-hidden #info-block,
+  #screen-session.controls-hidden #timer-block,
+  #screen-session.controls-hidden #controls,
+  #screen-session.controls-hidden #photo-area .fav-star-btn,
+  #screen-session.controls-hidden #photo-area #transform-controls,
+  #screen-session.controls-hidden #photo-area #phase-badge {
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Hint visuel « Tape pour révéler » : seulement la première fois (classe
+     .show-hint posée par JS, retirée après le 1er affichage de la session
+     courante). Évite que l'animation se rejoue à chaque toggle. */
+  #screen-session.controls-hidden.show-hint #photo-area::after {
+    content: 'Tape pour révéler';
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    pointer-events: none;
+    animation: hint-fade 2.2s ease forwards;
+  }
+  @keyframes hint-fade {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+}

@@ -282,7 +282,7 @@ app.whenReady().then(() => {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280, height: 900, minWidth: 800, minHeight: 600,
+    width: 1280, height: 900, minWidth: 360, minHeight: 600,
     titleBarStyle: 'hiddenInset', backgroundColor: '#111111',
     webPreferences: {
       nodeIntegration: false,

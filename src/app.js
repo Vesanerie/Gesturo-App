@@ -1582,3 +1582,42 @@ function toggleBadgesPanel() {
     document.getElementById('hist-badges-count').textContent = unlockedCount + ' / ' + BADGES_DEF.length
   }
 }
+
+// ─── MOBILE — tap-to-toggle des controls flottants sur écran Session ────
+// Sur mobile (≤768px), tap sur la photo pour cacher / révéler les flottants
+// (timer, dock, transform, fav). Comportement standard apps photo natives.
+// Le clic est ignoré si on a tapé un vrai bouton (pour ne pas interférer).
+;(function () {
+  const photoArea = document.getElementById('photo-area')
+  const sessionEl = document.getElementById('screen-session')
+  if (!photoArea || !sessionEl) return
+  let hintShown = false
+  photoArea.addEventListener('click', (e) => {
+    if (window.innerWidth > 768) return
+    if (e.target.closest('button')) return
+    const willHide = !sessionEl.classList.contains('controls-hidden')
+    sessionEl.classList.toggle('controls-hidden')
+    // Hint « Tape pour révéler » : uniquement la 1re fois qu'on cache.
+    if (willHide && !hintShown) {
+      hintShown = true
+      sessionEl.classList.add('show-hint')
+      setTimeout(() => sessionEl.classList.remove('show-hint'), 2400)
+    }
+  })
+  // Reset à chaque entrée en session : controls visibles, hint réarmé,
+  // et nettoyage du display:none résiduel que askEnd() peut laisser sur
+  // #controls si la session précédente a été quittée sans cancelEnd().
+  const _origStartSession = window.startSession
+  if (typeof _origStartSession === 'function') {
+    window.startSession = function () {
+      sessionEl.classList.remove('controls-hidden')
+      sessionEl.classList.remove('show-hint')
+      hintShown = false
+      const ctrls = document.getElementById('controls')
+      if (ctrls) ctrls.style.display = ''
+      const cb = document.getElementById('confirm-bar')
+      if (cb) cb.style.display = 'none'
+      return _origStartSession.apply(this, arguments)
+    }
+  }
+})()
