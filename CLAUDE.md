@@ -100,10 +100,6 @@ supabase/functions/
   global et c'est exactement ce qu'on veut.
 - **Ordre de chargement** : `src/app.js` AVANT `src/cinema.js` (cinema
   appelle `logSession` défini dans app.js).
-- **Bug latent connu** dans `styles/screens/config.css` :
-  `.mod.mode-tab.active` ressemble à un typo (devrait être
-  `.mode-tab.active`, qui existe par ailleurs). Préservé tel quel lors
-  du refactor CSS — à corriger un jour.
 - **Pour les onclicks dans `index.html`** : si tu renommes une fonction
   dans `src/app.js`, fais une passe `grep "nomFonction" index.html`.
 - **`main.js` Electron** ≠ **`src/app.js` renderer** — ne jamais les
