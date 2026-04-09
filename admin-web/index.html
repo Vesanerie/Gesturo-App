@@ -42,24 +42,53 @@
         <button class="root-btn" data-root="Sessions/current/">Photos</button>
         <button class="root-btn" data-root="Animations/current/">Animations</button>
       </div>
+      <button id="add-btn" class="add-btn">＋ Ajouter</button>
+      <input id="add-input" type="file" multiple hidden>
       <span id="result-count" class="muted"></span>
     </div>
 
     <nav id="breadcrumb" class="breadcrumb"></nav>
 
-    <div id="grid" class="grid"></div>
-    <div id="grid-msg" class="msg"></div>
+    <div id="grid-wrap" class="grid-wrap">
+      <div id="grid" class="grid"></div>
+      <div id="grid-msg" class="msg"></div>
+      <div id="drop-overlay" class="drop-overlay">
+        <div class="drop-card">
+          <div class="drop-icon">⬇</div>
+          <div class="drop-text">Lâche pour uploader ici</div>
+          <div class="drop-prefix" id="drop-prefix"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload progress (sticky bottom, distinct from action bar) -->
+    <div id="upload-bar" class="upload-bar hidden">
+      <div class="upload-info">
+        <span id="upload-status">Upload…</span>
+        <span id="upload-count" class="muted"></span>
+      </div>
+      <div class="upload-progress"><div id="upload-progress-fill"></div></div>
+    </div>
 
     <!-- Action bar (sticky bottom) — only visible when something is selected -->
     <div id="action-bar" class="action-bar hidden">
       <span id="selection-count"></span>
       <div class="action-bar-buttons">
+        <button id="action-restore" class="btn-secondary">♻ Restaurer</button>
         <button id="action-archive" class="btn-secondary">📦 Archiver</button>
         <button id="action-delete" class="btn-danger">🗑 Supprimer</button>
         <button id="action-clear" class="btn-ghost">Annuler</button>
       </div>
     </div>
   </section>
+
+  <!-- Context menu (clic droit) -->
+  <div id="ctx-menu" class="ctx-menu hidden">
+    <button class="ctx-item" data-act="open">👁 Ouvrir</button>
+    <button class="ctx-item" data-act="restore">♻ Restaurer</button>
+    <button class="ctx-item" data-act="archive">📦 Archiver</button>
+    <button class="ctx-item ctx-danger" data-act="delete">🗑 Supprimer</button>
+  </div>
 
   <!-- Lightbox -->
   <div id="lightbox" class="lightbox hidden">

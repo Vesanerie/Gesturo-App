@@ -6,7 +6,9 @@ import {
   CopyObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
+  PutObjectCommand,
 } from 'npm:@aws-sdk/client-s3@3';
+import { getSignedUrl } from 'npm:@aws-sdk/s3-request-presigner@3';
 
 export const NUDITY_CATEGORIES = ['nudite'];
 export const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -19,6 +21,10 @@ export function r2Client() {
       accessKeyId: Deno.env.get('R2_ACCESS_KEY_ID')!,
       secretAccessKey: Deno.env.get('R2_SECRET_ACCESS_KEY')!,
     },
+    // R2 doesn't validate AWS-style request checksums; the SDK's default of
+    // WHEN_SUPPORTED bakes a CRC32 placeholder into presigned URLs that the
+    // browser can't satisfy. WHEN_REQUIRED keeps presigning compatible.
+    requestChecksumCalculation: 'WHEN_REQUIRED',
   });
 }
 
@@ -117,6 +123,45 @@ export function archiveKeyFor(key: string, timestamp: string): string | null {
     }
   }
   return null;
+}
+
+// Inverse of archiveKeyFor: takes a key under "<root>/archive/<ts>/<rest>" and
+// returns the corresponding "<root>/current/<rest>" path. Returns null if the
+// key isn't an archived one.
+export function unarchiveKeyFor(key: string): string | null {
+  for (const root of ADMIN_ALLOWED_ROOTS) {
+    const archivePrefix = root + 'archive/';
+    if (!key.startsWith(archivePrefix)) continue;
+    const rest = key.slice(archivePrefix.length);   // e.g. "2026-04-09T08-30-00-000Z/animals/foo.jpg"
+    const slash = rest.indexOf('/');
+    if (slash === -1) return null;
+    return root + 'current/' + rest.slice(slash + 1);
+  }
+  return null;
+}
+
+// Sanitize a filename for safe use as the last segment of an R2 key.
+// Strips path separators, control chars, leading dots; collapses to "file" if empty.
+export function sanitizeFilename(name: string): string {
+  const cleaned = name
+    .replace(/[\x00-\x1f\x7f]/g, '')   // control chars
+    .replace(/[\\/]/g, '_')             // path separators
+    .replace(/^\.+/, '')                // leading dots
+    .trim();
+  return cleaned || 'file';
+}
+
+// Generate a short-lived presigned PUT URL so the browser can upload directly to R2.
+// The Edge Function never sees the file bytes — it just signs the URL.
+export async function presignPut(key: string, contentType?: string, expiresInSec = 300): Promise<string> {
+  const client = r2Client();
+  const bucket = Deno.env.get('R2_BUCKET')!;
+  const cmd = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ContentType: contentType,
+  });
+  return await getSignedUrl(client, cmd, { expiresIn: expiresInSec });
 }
 
 export function extOf(name: string) {

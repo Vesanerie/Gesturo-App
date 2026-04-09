@@ -61,6 +61,10 @@ $('logout-btn').addEventListener('click', async () => {
   await sb.auth.signOut();
 });
 
+// Custom MIME type used to distinguish in-app drags (file → folder moves)
+// from OS file drops (uploads). The dataTransfer carries a JSON array of keys.
+const IN_APP_MIME = 'application/x-gesturo-keys';
+
 // ── File browser state ─────────────────────────────────────────────────────
 let currentPrefix = 'Sessions/current/';   // always ends with '/'
 let currentRoot   = 'Sessions/current/';   // remembers which "tab" is active
@@ -207,7 +211,37 @@ function renderBreadcrumb() {
     if (i < parts.length - 1) {
       btn.addEventListener('click', () => navigateTo(target));
     }
+    // Every breadcrumb segment is also a drop target for in-app moves.
+    attachDropTarget(btn, target);
     bc.appendChild(btn);
+  });
+}
+
+// Attach in-app drop handlers to a node so it accepts files dragged from grid items.
+// `destPrefix` is where the dropped keys will be moved to.
+function attachDropTarget(node, destPrefix) {
+  node.addEventListener('dragover', (e) => {
+    if (!e.dataTransfer.types.includes(IN_APP_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    node.classList.add('drop-hover');
+  });
+  node.addEventListener('dragleave', () => node.classList.remove('drop-hover'));
+  node.addEventListener('drop', async (e) => {
+    if (!e.dataTransfer.types.includes(IN_APP_MIME)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    node.classList.remove('drop-hover');
+    let keys = [];
+    try { keys = JSON.parse(e.dataTransfer.getData(IN_APP_MIME)); } catch {}
+    if (!Array.isArray(keys) || keys.length === 0) return;
+    // Don't move into the same folder (would be a no-op or duplicate-name conflict).
+    const allAlreadyThere = keys.every((k) => {
+      const parent = k.slice(0, k.lastIndexOf('/') + 1);
+      return parent === destPrefix;
+    });
+    if (allAlreadyThere) return;
+    await callAdmin('move', { keys, destPrefix }, `Déplacement vers ${destPrefix}…`);
   });
 }
 
@@ -219,6 +253,12 @@ function renderGrid(folders, files) {
     card.className = 'grid-item folder';
     card.innerHTML = `<div class="icon">📁</div><div class="name">${escapeHtml(f.name)}</div><div class="hint">Ouvrir →</div>`;
     card.addEventListener('click', () => navigateTo(f.prefix));
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      openCtxMenu(e.clientX, e.clientY, { folder: f });
+    });
+    // Folders are valid drop targets for in-app moves.
+    attachDropTarget(card, f.prefix);
     grid.appendChild(card);
   }
   const slice = files.slice(0, 500);
@@ -264,6 +304,31 @@ function renderGrid(folders, files) {
       openLightbox(it.url);
     });
 
+    // In-app drag: allow dragging files onto folders / breadcrumbs to move them.
+    // If the dragged file is part of the current selection, move the whole
+    // selection. Otherwise just the single dragged file.
+    card.draggable = true;
+    card.addEventListener('dragstart', (e) => {
+      const keysToMove = selected.has(it.key) && selected.size > 0 ? [...selected] : [it.key];
+      e.dataTransfer.setData(IN_APP_MIME, JSON.stringify(keysToMove));
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    // Right-click → context menu. If the file isn't already selected, select
+    // just it before opening the menu (Finder behavior).
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (!selected.has(it.key)) {
+        selected.clear();
+        selected.add(it.key);
+        document.querySelectorAll('.grid-item[data-key]').forEach((el) => {
+          el.classList.toggle('selected', selected.has(el.dataset.key));
+        });
+        updateActionBar();
+      }
+      openCtxMenu(e.clientX, e.clientY, { url: it.url });
+    });
+
     grid.appendChild(card);
   });
   if (files.length > 500) {
@@ -285,7 +350,16 @@ function updateActionBar() {
   if (count === 0) { bar.classList.add('hidden'); return; }
   bar.classList.remove('hidden');
   $('selection-count').textContent = `${count} fichier${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`;
+  // In archive zones, show Restaurer instead of Archiver.
+  const inArchive = currentPrefix.includes('/archive/');
+  $('action-restore').style.display = inArchive ? '' : 'none';
+  $('action-archive').style.display = inArchive ? 'none' : '';
 }
+
+document.getElementById('action-restore').addEventListener('click', async () => {
+  if (selected.size === 0) return;
+  await callAdmin('unarchive', { keys: [...selected] }, 'Restauration…');
+});
 
 $('action-clear').addEventListener('click', () => {
   selected.clear();
@@ -379,6 +453,283 @@ function openConfirm({ title, text, requireType, onConfirm }) {
   confirmCallback = onConfirm;
   $('confirm-modal').classList.remove('hidden');
 }
+// ── Drag & drop upload ─────────────────────────────────────────────────────
+// Browser-wide drag tracking. We use a counter because dragenter/dragleave fire
+// for every child element entering/leaving, and we want to detect "really left"
+// only when the counter reaches 0.
+let dragCounter = 0;
+const screenAdmin = $('screen-admin');
+
+screenAdmin.addEventListener('dragenter', (e) => {
+  if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+  if (e.dataTransfer.types.includes(IN_APP_MIME)) return; // in-app move, not an upload
+  e.preventDefault();
+  dragCounter++;
+  $('drop-prefix').textContent = currentPrefix;
+  $('drop-overlay').classList.add('visible');
+});
+
+screenAdmin.addEventListener('dragover', (e) => {
+  if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+});
+
+screenAdmin.addEventListener('dragleave', (e) => {
+  if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    $('drop-overlay').classList.remove('visible');
+  }
+});
+
+screenAdmin.addEventListener('drop', async (e) => {
+  if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+  dragCounter = 0;
+  $('drop-overlay').classList.remove('visible');
+
+  // Use webkitGetAsEntry to walk directories. items[].webkitGetAsEntry()
+  // returns FileSystemEntry which can be a file or a directory; for directories
+  // we recurse and yield every leaf file with its relative path.
+  const items = [...e.dataTransfer.items];
+  const entries = items
+    .map((it) => (it.webkitGetAsEntry ? it.webkitGetAsEntry() : null))
+    .filter(Boolean);
+
+  let collected = [];
+  if (entries.length > 0) {
+    $('upload-bar').classList.remove('hidden');
+    $('upload-status').textContent = 'Lecture des dossiers…';
+    $('upload-count').textContent = '';
+    $('upload-progress-fill').style.width = '0%';
+    for (const entry of entries) {
+      collected = collected.concat(await walkEntry(entry, ''));
+    }
+  } else {
+    // Fallback (rare): no items API → use plain files (no folder support).
+    collected = [...e.dataTransfer.files]
+      .filter((f) => !f.name.startsWith('.'))
+      .map((file) => ({ file, path: file.name }));
+  }
+
+  // Drop hidden files (.DS_Store, ._foo etc.)
+  collected = collected.filter((c) => !c.path.split('/').some((seg) => seg.startsWith('.')));
+
+  if (collected.length === 0) {
+    $('upload-bar').classList.add('hidden');
+    return;
+  }
+  await uploadFiles(collected, currentPrefix);
+});
+
+// Recursively walk a FileSystemEntry. Returns [{ file, path }] for every leaf file,
+// where `path` is the path relative to the dropped root.
+async function walkEntry(entry, basePath) {
+  if (!entry) return [];
+  if (entry.isFile) {
+    const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+    return [{ file, path: basePath + file.name }];
+  }
+  if (entry.isDirectory) {
+    const reader = entry.createReader();
+    let allEntries = [];
+    // readEntries returns chunks of 100, so loop until empty
+    while (true) {
+      const chunk = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+      if (!chunk.length) break;
+      allEntries = allEntries.concat(chunk);
+    }
+    let out = [];
+    for (const child of allEntries) {
+      out = out.concat(await walkEntry(child, basePath + entry.name + '/'));
+    }
+    return out;
+  }
+  return [];
+}
+
+// uploadFiles takes an array of { file, path } where path is the relative
+// path inside the dropped folder (or just the filename for individual files).
+async function uploadFiles(items, targetPrefix) {
+  const bar = $('upload-bar');
+  const fill = $('upload-progress-fill');
+  const status = $('upload-status');
+  const counter = $('upload-count');
+  bar.classList.remove('hidden');
+  status.textContent = 'Préparation…';
+  counter.textContent = `0 / ${items.length}`;
+  fill.style.width = '0%';
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { status.textContent = 'Pas de session.'; return; }
+
+  // Step 1: ask backend for presigned PUT URLs in batches of 100 (backend cap).
+  let urls = [];
+  try {
+    const BATCH = 100;
+    for (let i = 0; i < items.length; i += BATCH) {
+      const slice = items.slice(i, i + BATCH);
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'upload-urls',
+          prefix: targetPrefix,
+          files: slice.map(({ file, path }) => ({
+            name: file.name,
+            path,
+            contentType: file.type || 'application/octet-stream',
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        status.textContent = `Erreur ${res.status} — ${err.error || res.statusText}`;
+        setTimeout(() => bar.classList.add('hidden'), 4000);
+        return;
+      }
+      urls = urls.concat((await res.json()).uploads || []);
+    }
+  } catch (e) {
+    status.textContent = 'Erreur réseau : ' + e.message;
+    setTimeout(() => bar.classList.add('hidden'), 4000);
+    return;
+  }
+
+  // Step 2: upload each file to its presigned URL with bounded concurrency.
+  status.textContent = 'Upload en cours…';
+  let done = 0;
+  let failed = 0;
+  const MAX_CONCURRENT = 4;
+  const queue = items.map(({ file }, i) => ({ file, upload: urls[i] }));
+  const next = async () => {
+    while (queue.length) {
+      const { file, upload } = queue.shift();
+      if (!upload) { failed++; continue; }
+      try {
+        const res = await fetch(upload.url, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+          body: file,
+        });
+        if (!res.ok) failed++;
+      } catch {
+        failed++;
+      }
+      done++;
+      counter.textContent = `${done} / ${items.length}`;
+      fill.style.width = `${(done / items.length) * 100}%`;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, items.length) }, next));
+
+  // Step 3: report and reload.
+  if (failed === 0) status.textContent = `✓ ${done} fichier(s) uploadé(s)`;
+  else status.textContent = `${done - failed} ok · ${failed} échec(s)`;
+  setTimeout(() => bar.classList.add('hidden'), 2500);
+  loadGrid();
+}
+
+// ── Context menu (clic droit) ──────────────────────────────────────────────
+// Holds the target of the menu: { url } for a file, or { folder: {prefix,name} } for a folder.
+let ctxTarget = null;
+
+function openCtxMenu(x, y, target) {
+  ctxTarget = target;
+  const menu = $('ctx-menu');
+  // For a folder, "Ouvrir" means navigate into it (not lightbox).
+  const openBtn = menu.querySelector('[data-act="open"]');
+  openBtn.textContent = target.folder ? '📂 Ouvrir' : '👁 Ouvrir';
+  // Restaurer is only relevant when browsing inside an archive zone.
+  // Conversely, Archiver is hidden inside archive zones (would be a no-op).
+  const inArchive = currentPrefix.includes('/archive/');
+  menu.querySelector('[data-act="restore"]').style.display  = inArchive ? '' : 'none';
+  menu.querySelector('[data-act="archive"]').style.display  = inArchive ? 'none' : '';
+  menu.style.left = Math.min(x, window.innerWidth - 180) + 'px';
+  menu.style.top  = Math.min(y, window.innerHeight - 140) + 'px';
+  menu.classList.remove('hidden');
+}
+
+document.querySelectorAll('#ctx-menu .ctx-item').forEach((btn) => {
+  btn.addEventListener('click', async () => {
+    const action = btn.dataset.act;
+    const target = ctxTarget;
+    $('ctx-menu').classList.add('hidden');
+    if (!target) return;
+
+    // ── Folder target ──────────────────────────────────────────────────────
+    if (target.folder) {
+      const { prefix, name } = target.folder;
+      if (action === 'open') { navigateTo(prefix); return; }
+      if (action === 'restore') {
+        await callAdmin('unarchive', { prefix }, 'Restauration du dossier…');
+        return;
+      }
+      if (action === 'archive') {
+        openConfirm({
+          title: `Archiver le dossier "${name}"`,
+          text: `Tous les fichiers sous ${prefix} seront déplacés vers archive/. C'est réversible (les fichiers restent dans R2).`,
+          onConfirm: async () => callAdmin('archive', { prefix }, 'Archivage du dossier…'),
+        });
+        return;
+      }
+      if (action === 'delete') {
+        openConfirm({
+          title: `Supprimer le dossier "${name}"`,
+          text: `Tous les fichiers sous ${prefix} seront supprimés DÉFINITIVEMENT. Cette action est irréversible.`,
+          requireType: 'SUPPRIMER',
+          onConfirm: async () => callAdmin('delete', { prefix }, 'Suppression du dossier…'),
+        });
+      }
+      return;
+    }
+
+    // ── File target (acts on the current selection, like Finder) ──────────
+    if (action === 'open') { openLightbox(target.url); return; }
+    if (action === 'restore') {
+      await callAdmin('unarchive', { keys: [...selected] }, 'Restauration…');
+      return;
+    }
+    if (action === 'archive') {
+      await callAdmin('archive', { keys: [...selected] }, 'Archivage…');
+      return;
+    }
+    if (action === 'delete') {
+      const count = selected.size;
+      openConfirm({
+        title: 'Suppression définitive',
+        text: `Tu vas supprimer ${count} fichier${count > 1 ? 's' : ''} DÉFINITIVEMENT du bucket R2. Cette action est irréversible.`,
+        requireType: 'SUPPRIMER',
+        onConfirm: async () => callAdmin('delete', { keys: [...selected] }, 'Suppression…'),
+      });
+    }
+  });
+});
+
+// Click ailleurs / Escape → ferme le menu
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#ctx-menu')) $('ctx-menu').classList.add('hidden');
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') $('ctx-menu').classList.add('hidden');
+});
+
+// ── Bouton "Ajouter" (alternative au drag & drop) ──────────────────────────
+$('add-btn').addEventListener('click', () => $('add-input').click());
+$('add-input').addEventListener('change', async (e) => {
+  const files = [...e.target.files].filter((f) => !f.name.startsWith('.'));
+  e.target.value = ''; // reset so the same file can be picked again
+  if (files.length === 0) return;
+  const items = files.map((file) => ({ file, path: file.name }));
+  await uploadFiles(items, currentPrefix);
+});
+
 $('confirm-cancel').addEventListener('click', () => { $('confirm-modal').classList.add('hidden'); confirmCallback = null; });
 $('confirm-ok').addEventListener('click', async () => {
   $('confirm-modal').classList.add('hidden');

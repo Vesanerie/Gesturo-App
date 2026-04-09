@@ -48,6 +48,16 @@ body { display: flex; flex-direction: column; }
 .root-btn { background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .root-btn:hover { color: var(--text); border-color: var(--accent); }
 .root-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.add-btn { background: var(--accent); border: none; border-radius: 6px; color: #fff; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.add-btn:hover { background: var(--accent-hover); }
+
+/* Context menu */
+.ctx-menu { position: fixed; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 4px; min-width: 160px; z-index: 150; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+.ctx-menu.hidden { display: none; }
+.ctx-item { display: block; width: 100%; text-align: left; background: transparent; border: none; color: var(--text); padding: 9px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; }
+.ctx-item:hover { background: var(--accent); color: #fff; }
+.ctx-danger { color: var(--danger); }
+.ctx-danger:hover { background: var(--danger); color: #fff; }
 
 /* Breadcrumb */
 .breadcrumb { display: flex; align-items: center; gap: 4px; padding: 12px 24px; border-bottom: 1px solid var(--border); font-size: 13px; flex-wrap: wrap; }
@@ -69,7 +79,26 @@ body { display: flex; flex-direction: column; }
 .grid-item.folder .name { color: var(--text); font-size: 13px; font-weight: 600; text-align: center; word-break: break-word; }
 .grid-item.folder .hint { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0; transition: opacity 0.15s; }
 .grid-item.folder:hover .hint { opacity: 1; }
+.grid-item.folder.drop-hover { background: linear-gradient(180deg, #1c3556 0%, #15243d 100%); border-color: var(--accent); transform: scale(1.04); box-shadow: 0 0 0 3px rgba(41, 131, 235, 0.4); }
+.breadcrumb .crumb.drop-hover { background: var(--accent); color: #fff; }
 #grid-msg { padding: 14px 24px; }
+
+/* Drop zone overlay */
+.grid-wrap { position: relative; min-height: 200px; }
+.drop-overlay { position: absolute; inset: 0; background: rgba(5,10,18,0.92); border: 3px dashed var(--accent); border-radius: 12px; margin: 16px 24px; display: none; align-items: center; justify-content: center; pointer-events: none; z-index: 30; }
+.drop-overlay.visible { display: flex; }
+.drop-card { text-align: center; }
+.drop-icon { font-size: 64px; line-height: 1; color: var(--accent); margin-bottom: 14px; }
+.drop-text { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.drop-prefix { font-size: 12px; color: var(--muted); font-family: monospace; }
+
+/* Upload progress bar (sticky) */
+.upload-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-2); border-top: 1px solid var(--accent); padding: 12px 24px; z-index: 60; }
+.upload-bar.hidden { display: none; }
+.upload-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
+#upload-status { color: var(--text); font-weight: 500; }
+.upload-progress { background: var(--bg); border-radius: 4px; height: 6px; overflow: hidden; }
+#upload-progress-fill { background: var(--accent); height: 100%; width: 0%; transition: width 0.2s; }
 
 /* Selection state on grid items */
 .grid-item.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }

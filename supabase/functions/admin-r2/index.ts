@@ -7,16 +7,21 @@ import {
   moveObject,
   deleteKeys,
   archiveKeyFor,
+  unarchiveKeyFor,
   isAllowedAdminKey,
+  presignPut,
+  sanitizeFilename,
   CORS_HEADERS,
   requireAdmin,
 } from '../_shared/r2.ts';
 
+interface UploadFile { name: string; contentType?: string; path?: string }
 interface Body {
   action?: string;
   prefix?: string;
   keys?: string[];
   destPrefix?: string;
+  files?: UploadFile[];
 }
 
 Deno.serve(async (req) => {
@@ -63,8 +68,19 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'delete' || action === 'archive') {
-      const keys = Array.isArray(body.keys) ? body.keys : [];
-      if (keys.length === 0) return jsonError('keys is required (non-empty array)', 400);
+      // Two modes:
+      //   1. Explicit keys: { keys: [...] }
+      //   2. Whole prefix:  { prefix: "Sessions/current/foo/" }
+      //      → we expand to all keys under that prefix server-side.
+      let keys: string[] = Array.isArray(body.keys) ? body.keys : [];
+      if (keys.length === 0 && body.prefix) {
+        const prefix = body.prefix.replace(/^\/+/, '');
+        if (!prefix.endsWith('/')) return jsonError('prefix must end with /', 400);
+        if (!isAllowedAdminKey(prefix)) return jsonError(`forbidden prefix: ${prefix}`, 400);
+        const objects = await listAll(prefix);
+        keys = objects.map((o) => o.Key);
+      }
+      if (keys.length === 0) return jsonError('keys or prefix is required', 400);
       // Hard guard: every key must live under an allowed admin root.
       for (const k of keys) {
         if (!isAllowedAdminKey(k)) return jsonError(`forbidden key: ${k}`, 400);
@@ -93,6 +109,34 @@ Deno.serve(async (req) => {
       return jsonOk({ action: 'archive', timestamp: ts, moved: moved.length, failed });
     }
 
+    if (action === 'unarchive') {
+      // Two modes (same as delete/archive): explicit keys, or a prefix to expand.
+      let keys: string[] = Array.isArray(body.keys) ? body.keys : [];
+      if (keys.length === 0 && body.prefix) {
+        const prefix = body.prefix.replace(/^\/+/, '');
+        if (!prefix.endsWith('/')) return jsonError('prefix must end with /', 400);
+        if (!isAllowedAdminKey(prefix)) return jsonError(`forbidden prefix: ${prefix}`, 400);
+        const objects = await listAll(prefix);
+        keys = objects.map((o) => o.Key);
+      }
+      if (keys.length === 0) return jsonError('keys or prefix is required', 400);
+
+      const moved: { from: string; to: string }[] = [];
+      const failed: { key: string; reason: string }[] = [];
+      for (const k of keys) {
+        if (!isAllowedAdminKey(k)) { failed.push({ key: k, reason: 'forbidden' }); continue; }
+        const dest = unarchiveKeyFor(k);
+        if (!dest) { failed.push({ key: k, reason: 'not under <root>/archive/<ts>/' }); continue; }
+        try {
+          await moveObject(k, dest);
+          moved.push({ from: k, to: dest });
+        } catch (err) {
+          failed.push({ key: k, reason: (err as Error).message });
+        }
+      }
+      return jsonOk({ action: 'unarchive', moved: moved.length, failed });
+    }
+
     if (action === 'move') {
       const keys = Array.isArray(body.keys) ? body.keys : [];
       const destPrefix = (body.destPrefix || '').replace(/^\/+/, '');
@@ -116,6 +160,36 @@ Deno.serve(async (req) => {
         }
       }
       return jsonOk({ action: 'move', moved: moved.length, failed });
+    }
+
+    if (action === 'upload-urls') {
+      // Generate presigned PUT URLs so the browser uploads directly to R2.
+      // The Edge Function never proxies the bytes — fast and free of size limits.
+      const prefix = (body.prefix || '').replace(/^\/+/, '');
+      const files = Array.isArray(body.files) ? body.files : [];
+      if (!prefix.endsWith('/')) return jsonError('prefix must end with /', 400);
+      if (!isAllowedAdminKey(prefix)) return jsonError(`forbidden prefix: ${prefix}`, 400);
+      if (files.length === 0) return jsonError('files is required', 400);
+      if (files.length > 100) return jsonError('max 100 files per call', 400);
+
+      const out: { name: string; key: string; url: string }[] = [];
+      for (const f of files) {
+        // Build the relative path under `prefix`. If `path` is provided (folder
+        // drop), sanitize each segment so subfolders are preserved but no
+        // traversal/escape is possible.
+        let relParts: string[];
+        if (f.path && f.path.trim()) {
+          relParts = f.path.split('/').filter(Boolean).map(sanitizeFilename);
+        } else {
+          relParts = [sanitizeFilename(f.name || '')];
+        }
+        if (relParts.length === 0) continue;
+        const key = prefix + relParts.join('/');
+        if (!isAllowedAdminKey(key)) continue;
+        const url = await presignPut(key, f.contentType, 300);
+        out.push({ name: f.name, key, url });
+      }
+      return jsonOk({ prefix, uploads: out });
     }
 
     return jsonError(`unknown action: ${action}`, 400);
