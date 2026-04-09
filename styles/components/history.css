@@ -56,3 +56,45 @@
     border-radius: 12px !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TABLET — Historique (768-1199px)
+   4 stat cards en une rangée (comme desktop) mais avec tailles
+   plus généreuses. Liste des sessions plus aérée.
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) and (max-width: 1199px) {
+  #hist-summary {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .hist-stat-card {
+    padding: 18px 18px;
+    border-radius: 12px;
+  }
+  .hist-stat-card .hsc-val { font-size: 30px; }
+  .hist-stat-card .hsc-label { font-size: 11px; }
+
+  .hist-period-tabs { gap: 8px; margin-bottom: 14px; }
+  .hist-period-tab {
+    min-height: 44px;
+    padding: 11px 18px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  .hist-session-row {
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    min-height: 56px;
+  }
+  .hist-session-info { font-size: 14px; }
+  .hist-session-meta { font-size: 12px; margin-top: 3px; }
+  .hist-session-time { font-size: 12px; }
+
+  #badges-panel {
+    padding: 18px !important;
+    border-radius: 14px !important;
+  }
+}

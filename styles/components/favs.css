@@ -68,3 +68,45 @@
     font-size: 13px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TABLET — Favoris (768-1199px)
+   #favs-grid-config est injecté par JS dans Démarrer (onglet Favoris
+   du mode segment). Sur tablet on profite de l'espace avec 4 colonnes.
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) and (max-width: 1199px) {
+  #favs-grid-config {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 12px !important;
+  }
+  #favs-grid-config .fav-item {
+    border-radius: 10px !important;
+  }
+  /* Bouton retirer : toujours visible (tactile) */
+  #favs-grid-config .fav-item button {
+    opacity: 1 !important;
+    width: 38px;
+    height: 38px;
+    font-size: 16px !important;
+    padding: 0 !important;
+    background: rgba(10, 21, 32, 0.78) !important;
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #favs-empty-config {
+    padding: 60px 20px !important;
+    font-size: 15px !important;
+  }
+
+  /* Lightbox favori : bouton plus gros */
+  #lb-fav-remove {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+    right: 24px;
+    min-height: 48px;
+    padding: 13px 22px;
+    font-size: 14px;
+  }
+}
