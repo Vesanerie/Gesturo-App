@@ -613,6 +613,13 @@ function switchMainMode(mode) {
   if (mode === 'hist') renderHist()
   if (mode === 'community') { renderCommunity(); startCommunityRefresh() }
   if (mode !== 'community' && communityInterval) { clearInterval(communityInterval); communityInterval = null }
+  // Sync bottom tab bar (mobile) — Démarrer = tout sauf community
+  const btabStart = document.getElementById('btab-start')
+  const btabCommu = document.getElementById('btab-community')
+  if (btabStart && btabCommu) {
+    btabStart.classList.toggle('active', mode !== 'community')
+    btabCommu.classList.toggle('active', mode === 'community')
+  }
 }
 
 const preloadCache = {}

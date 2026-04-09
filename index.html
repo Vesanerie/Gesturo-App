@@ -466,6 +466,18 @@
   </div>
 </div>
 
+<!-- Bottom tab bar — visible uniquement sur mobile via CSS -->
+<nav id="bottom-tab-bar">
+  <button class="bottom-tab" id="btab-start" onclick="switchMainMode('pose')">
+    <span class="btab-icon">▶</span>
+    <span class="btab-label">Démarrer</span>
+  </button>
+  <button class="bottom-tab" id="btab-community" onclick="switchMainMode('community')">
+    <span class="btab-icon">🌍</span>
+    <span class="btab-label">Communauté</span>
+  </button>
+</nav>
+
 <script src="src/app.js"></script>
 
 <script src="src/bubbles.js"></script>
