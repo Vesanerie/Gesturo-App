@@ -376,10 +376,6 @@ function renderCategories(parentCat = null) {
       card.onclick = () => toggleSubCat(parentCat, sub, card)
       grid.appendChild(card)
     })
-    if (!Object.keys(subs).some(s => selectedCats.has(parentCat + '/' + s))) {
-      Object.keys(subs).forEach(s => selectedCats.add(parentCat + '/' + s))
-      renderCategories(parentCat)
-    }
   } else {
     cats.forEach(cat => {
       const nudity = isNudity(cat)
@@ -398,10 +394,6 @@ function renderCategories(parentCat = null) {
       } else { card.onclick = () => toggleCat(cat, card) }
       grid.appendChild(card)
     })
-    if (selectedCats.size === 0) {
-      cats.forEach(c => { if (!isNudity(c)) selectedCats.add(c) })
-      renderCategories()
-    }
   }
 }
 
@@ -694,7 +686,7 @@ async function startSession() {
     if (e.subcategory && selectedCats.has(e.category + '/' + e.subcategory)) return true
     return false
   })
-  if (pool.length === 0) pool = [...allEntries]
+  if (pool.length === 0) { alert('Sélectionne au moins une catégorie pour démarrer.'); return }
   let imgPool = pool.filter(e => e.type === 'image')
   const pdfPool = pool.filter(e => e.type === 'pdf-pending' || e.type === 'pdf')
   pool = [...imgPool, ...pdfPool]; pool.sort(() => Math.random() - 0.5)
