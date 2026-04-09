@@ -168,6 +168,95 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   `profiles.is_admin` aussi déjà ajoutée. Voir migration dans l'historique
   de chat / SQL editor — pas de dossier `supabase/migrations/` géré.
 
+## Refonte UI mobile (en cours, avant 1er run Android)
+
+Le user veut une UI vraiment mobile-friendly **avant** de lancer le premier
+run Android sur device. Tester sur device une UI desktop telle quelle
+n'apporte aucune info utile.
+
+### Décision visuelle
+
+Trois directions ont été mockupées dans `mobile-mockups/` (gitignored,
+jetables) — **Option B** retenue : **mobile-first repensé**.
+
+- Bottom tab bar fixe (4 onglets : Démarrer / Favoris / Historique / Profil)
+- Segmented control en haut de l'écran Démarrer pour switcher
+  Poses / Animation / Cinéma
+- Écran config découpé en sections accordion (Catégories / Durée / Mode /
+  Options avancées) pour réduire la densité
+- Écran Session : photo plein écran, controls flottants en bas avec
+  backdrop-filter blur, timer flottant en haut
+- Look natif moderne, ergonomie pensée pour le pouce
+
+### Stratégie de cohabitation desktop/mobile
+
+- **Desktop intouché** : tout le travail mobile passe par
+  `@media (max-width: 768px)`. L'UI desktop reste strictement identique
+  pixel-pour-pixel à aujourd'hui. On ne casse pas un produit qui marche.
+- **Pas de cas tablet pour l'instant** : phone vs desktop, point. La tablet
+  sera traitée si/quand le besoin se présente — probablement avec son propre
+  breakpoint à 1024px dans un second temps.
+- **2 systèmes de nav qui coexistent** dans le code (mode-tabs en haut sur
+  desktop, bottom tab bar sur mobile), assumé.
+
+### Ordre de refonte des écrans
+
+1. **Session pose** (cœur de l'app, 90% du temps de l'user) — photo plein
+   écran, controls flottants
+2. **Démarrer / Config** (point d'entrée, doit pas faire peur) — segmented
+   control + sections accordion
+3. **Recap** (post-session) — grille 2 colonnes phone
+4. **Animation** — structurellement comme Session, photo plein écran +
+   timeline scrollable au pouce
+5. **Cinéma** — idem
+6. **Favoris / Historique / Communauté** — grilles responsive simples,
+   accédées via bottom tab bar
+7. **Moodboard** — cas spécial : la `<webview>` Electron n'existe pas en
+   Android WebView. À remplacer par Capacitor InAppBrowser ou ouverture
+   externe via `mobile-shim.js`.
+
+### Workflow de test pendant la refonte
+
+- **Pendant le dev** : `npm start` puis l'user **redimensionne la fenêtre
+  Electron** au pouce jusqu'à ~375px de large. Les media queries se
+  déclenchent (le renderer est Chromium, pareil qu'Android WebView), donc
+  c'est un test fidèle du rendu mobile, sans aucun cycle build.
+- **Tester aussi en plein écran** après chaque écran refondu pour vérifier
+  qu'on n'a rien cassé en desktop. Les media queries doivent rester
+  strictement isolées dans `@media (max-width: 768px) { ... }`.
+- **DMG final à la fin de toute la refonte** : quand les 7 écrans sont
+  validés, bump version + `electron-builder` build un DMG signé/notarized
+  à distribuer aux beta testers (`v0.2.0` probablement). Pas de DMG
+  intermédiaire — overkill et lent.
+- **Device Android réel** : pas pendant la refonte mobile elle-même
+  (Chromium = Android WebView pour ce qui nous intéresse), mais juste
+  après la refonte avant de bouger sur d'autres chantiers, pour valider
+  les vrais gestes tactiles + safe-area-inset sur device réel.
+
+### État actuel des fichiers à toucher
+
+- **Aucune `@media` query** dans `styles/` aujourd'hui — tout est à créer.
+- **Tailles fixes en pixels** partout (ex : `.config-inner { width: 580px }`).
+- **7 mode-tabs** en flexbox horizontal qui débordent sur phone.
+- **Tap zones à 32px** (norme tactile = 44px min).
+- **Pas de `safe-area-inset-*`** pour les notch / gesture bars.
+- **Inline styles** dans `index.html` (~30 occurrences) qui rendent les
+  media queries plus chiantes à appliquer.
+- Architecture CSS déjà bien éclatée (`styles/screens/` + `styles/components/`)
+  → on peut bosser écran par écran.
+
+### Gotchas spécifiques mobile
+
+- **`<webview id="moodboard-webview">`** dans `index.html` : balise
+  Electron-only, n'existe pas en Android. Faut un fallback dans
+  `mobile-shim.js` avant le 1er run Android, sinon l'écran moodboard crash.
+- **Onclicks inline préservés** : on ne peut pas refondre vers une vraie
+  architecture event delegation tant que les 74 `onclick=` de `index.html`
+  ne sont pas migrés. Pour la refonte mobile on **garde** les onclicks
+  (juste du CSS, pas de refactor JS).
+- **Bottom tab bar** doit utiliser `padding-bottom: env(safe-area-inset-bottom)`
+  sinon elle passe sous la gesture bar Android / home indicator iOS.
+
 ## Workflow préféré
 
 - Commits incrémentaux, un par sujet logique. Le user teste manuellement

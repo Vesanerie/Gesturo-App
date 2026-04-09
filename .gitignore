@@ -5,3 +5,6 @@ oauth_credentials.json
 www/
 tag-results.json
 *.code-workspace
+
+# Throwaway visual mockups for mobile UI direction choice
+mobile-mockups/
