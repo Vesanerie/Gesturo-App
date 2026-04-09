@@ -38,24 +38,45 @@ export function extOf(name: string) {
   return i === -1 ? '' : name.slice(i).toLowerCase();
 }
 
-// Auth: require a valid Supabase JWT. Returns user email or throws 401.
-export async function requireUser(req: Request): Promise<string> {
-  const auth = req.headers.get('Authorization') || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!token) throw new Response('Unauthorized', { status: 401 });
-  const url = Deno.env.get('SUPABASE_URL')!;
-  const anon = Deno.env.get('SUPABASE_ANON_KEY')!;
-  const res = await fetch(`${url}/auth/v1/user`, {
-    headers: { Authorization: `Bearer ${token}`, apikey: anon },
-  });
-  if (!res.ok) throw new Response('Unauthorized', { status: 401 });
-  const data = await res.json();
-  if (!data?.email) throw new Response('Unauthorized', { status: 401 });
-  return data.email as string;
-}
-
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Auth: require a valid Supabase JWT. Returns user email or throws 401.
+export async function requireUser(req: Request): Promise<string> {
+  const auth = req.headers.get('Authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token) throw new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
+  const url = Deno.env.get('SUPABASE_URL')!;
+  const anon = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const res = await fetch(`${url}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${token}`, apikey: anon },
+  });
+  if (!res.ok) throw new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
+  const data = await res.json();
+  if (!data?.email) throw new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
+  return data.email as string;
+}
+
+// Server-side Pro resolution. NEVER trust a client-supplied isPro flag.
+// Mirrors checkProFromSupabase() in main.js: plan === 'pro' and not expired.
+export async function resolveIsPro(email: string): Promise<boolean> {
+  try {
+    const url = Deno.env.get('SUPABASE_URL')!;
+    const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const res = await fetch(
+      `${url}/rest/v1/profiles?select=plan,pro_expires_at&email=eq.${encodeURIComponent(email.toLowerCase())}`,
+      { headers: { apikey: service, Authorization: `Bearer ${service}` } },
+    );
+    if (!res.ok) return false;
+    const rows = await res.json();
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (!row || row.plan !== 'pro') return false;
+    if (row.pro_expires_at && new Date(row.pro_expires_at) < new Date()) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}

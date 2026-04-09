@@ -227,13 +227,19 @@ async function buildProfile(user) {
 // Les credentials R2 ne vivent QUE côté serveur (Supabase Function secrets).
 // Le client desktop n'appelle plus jamais l'API S3 directement.
 async function callEdgeFunction(name, body) {
+  // Auth-gated Edge Functions: pass the current user's JWT, not the
+  // publishable key. requireUser() on the server validates the email and
+  // server-side resolves Pro status — the client cannot grant itself Pro.
+  const { data: sess } = await supabase.auth.getSession()
+  const accessToken = sess?.session?.access_token
+  if (!accessToken) throw new Error('not authenticated')
   const url = `${SUPABASE_URL}/functions/v1/${name}`
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'apikey': SUPABASE_PUBLISHABLE_KEY,
-      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      'Authorization': `Bearer ${accessToken}`,
     },
     body: JSON.stringify(body || {}),
   })

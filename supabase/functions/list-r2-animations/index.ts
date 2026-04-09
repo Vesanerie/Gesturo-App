@@ -1,12 +1,17 @@
 // List R2 animations under Animations/current/{free,pro}/. Mirrors main.js listR2Animations.
-import { listAll, extOf, IMAGE_EXTS, CORS_HEADERS } from '../_shared/r2.ts';
+import { listAll, extOf, IMAGE_EXTS, CORS_HEADERS, requireUser, resolveIsPro } from '../_shared/r2.ts';
 
-// NOTE: no auth — listing returns public CDN URLs (R2_PUBLIC_URL is public).
+// Auth-gated: caller must present a valid Supabase JWT, and Pro status is
+// resolved server-side. Free users only see free/, Pro users see free/ + pro/.
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
   try {
+    const email = await requireUser(req);
+    const isPro = await resolveIsPro(email);
     const publicUrl = Deno.env.get('R2_PUBLIC_URL')!;
-    const prefixes = ['Animations/current/free/', 'Animations/current/pro/'];
+    const prefixes = isPro
+      ? ['Animations/current/free/', 'Animations/current/pro/']
+      : ['Animations/current/free/'];
     const results: any[] = [];
     for (const prefix of prefixes) {
       const objects = await listAll(prefix);
