@@ -10,9 +10,12 @@ import {
   unarchiveKeyFor,
   isAllowedAdminKey,
   presignPut,
+  putEmpty,
   sanitizeFilename,
   CORS_HEADERS,
   requireAdmin,
+  logAction,
+  fetchAuditLog,
 } from '../_shared/r2.ts';
 
 interface UploadFile { name: string; contentType?: string; path?: string }
@@ -20,6 +23,8 @@ interface Body {
   action?: string;
   prefix?: string;
   keys?: string[];
+  key?: string;
+  newName?: string;
   destPrefix?: string;
   files?: UploadFile[];
 }
@@ -27,7 +32,7 @@ interface Body {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
   try {
-    await requireAdmin(req);
+    const adminEmail = await requireAdmin(req);
 
     let body: Body = {};
     try { body = await req.json(); } catch { /* empty body ok for some actions later */ }
@@ -88,6 +93,7 @@ Deno.serve(async (req) => {
 
       if (action === 'delete') {
         await deleteKeys(keys);
+        await logAction(adminEmail, 'delete', body.prefix || keys[0], keys.length, { sample: keys.slice(0, 5) });
         return jsonOk({ action: 'delete', count: keys.length });
       }
 
@@ -106,6 +112,7 @@ Deno.serve(async (req) => {
           failed.push({ key: k, reason: (err as Error).message });
         }
       }
+      await logAction(adminEmail, 'archive', body.prefix || keys[0], moved.length, { timestamp: ts, failed: failed.length });
       return jsonOk({ action: 'archive', timestamp: ts, moved: moved.length, failed });
     }
 
@@ -134,6 +141,7 @@ Deno.serve(async (req) => {
           failed.push({ key: k, reason: (err as Error).message });
         }
       }
+      await logAction(adminEmail, 'unarchive', body.prefix || keys[0], moved.length, { failed: failed.length });
       return jsonOk({ action: 'unarchive', moved: moved.length, failed });
     }
 
@@ -159,6 +167,7 @@ Deno.serve(async (req) => {
           failed.push({ key: k, reason: (err as Error).message });
         }
       }
+      await logAction(adminEmail, 'move', destPrefix, moved.length, { failed: failed.length });
       return jsonOk({ action: 'move', moved: moved.length, failed });
     }
 
@@ -191,7 +200,107 @@ Deno.serve(async (req) => {
         const url = await presignPut(key, f.contentType, 3600);
         out.push({ name: f.name, key, url });
       }
+      await logAction(adminEmail, 'upload', prefix, out.length);
       return jsonOk({ prefix, uploads: out });
+    }
+
+    if (action === 'audit-list') {
+      const rows = await fetchAuditLog(200);
+      return jsonOk({ rows });
+    }
+
+    if (action === 'stats') {
+      // Compte + taille totale par root admin (Sessions/, Animations/).
+      const out: Record<string, { count: number; bytes: number }> = {};
+      const client = (await import('../_shared/r2.ts')).r2Client();
+      const { ListObjectsV2Command } = await import('npm:@aws-sdk/client-s3@3');
+      const bucket = Deno.env.get('R2_BUCKET')!;
+      for (const root of ['Sessions/', 'Animations/']) {
+        let count = 0; let bytes = 0;
+        let token: string | undefined;
+        do {
+          const res = await client.send(new ListObjectsV2Command({
+            Bucket: bucket, Prefix: root, ContinuationToken: token,
+          }));
+          for (const o of res.Contents || []) {
+            if (!o.Key || o.Key.endsWith('/.keep')) continue;
+            count++;
+            bytes += o.Size || 0;
+          }
+          token = res.NextContinuationToken;
+        } while (token);
+        out[root] = { count, bytes };
+      }
+      return jsonOk({ action: 'stats', roots: out });
+    }
+
+    if (action === 'mkdir') {
+      // Create an empty folder by writing a `.keep` placeholder.
+      // body: { prefix: "Sessions/current/foo/", newName: "bar" }
+      const prefix = (body.prefix || '').replace(/^\/+/, '');
+      const raw = (body.newName || '').trim();
+      if (!prefix.endsWith('/')) return jsonError('prefix must end with /', 400);
+      if (!isAllowedAdminKey(prefix)) return jsonError(`forbidden prefix: ${prefix}`, 400);
+      const name = sanitizeFilename(raw);
+      if (!name || name === 'file') return jsonError('invalid folder name', 400);
+      const newPrefix = prefix + name + '/';
+      const keepKey = newPrefix + '.keep';
+      if (!isAllowedAdminKey(keepKey)) return jsonError('forbidden', 400);
+      await putEmpty(keepKey);
+      await logAction(adminEmail, 'mkdir', newPrefix, 1);
+      return jsonOk({ action: 'mkdir', prefix: newPrefix, count: 1 });
+    }
+
+    if (action === 'rename') {
+      // Two modes:
+      //   1. File: { key, newName } → renames the single object in place.
+      //   2. Folder: { prefix, newName } → moves every key under prefix to a sibling prefix.
+      const raw = (body.newName || '').trim();
+      const newName = sanitizeFilename(raw);
+      if (!newName || newName === 'file') return jsonError('invalid new name', 400);
+
+      if (body.key) {
+        const key = body.key.replace(/^\/+/, '');
+        if (!isAllowedAdminKey(key)) return jsonError('forbidden key', 400);
+        const slash = key.lastIndexOf('/');
+        const parent = slash === -1 ? '' : key.slice(0, slash + 1);
+        const dest = parent + newName;
+        if (dest === key) return jsonOk({ action: 'rename', moved: 0 });
+        if (!isAllowedAdminKey(dest)) return jsonError('forbidden dest', 400);
+        await moveObject(key, dest);
+        await logAction(adminEmail, 'rename', key, 1, { to: dest });
+        return jsonOk({ action: 'rename', moved: 1, from: key, to: dest });
+      }
+
+      if (body.prefix) {
+        const prefix = body.prefix.replace(/^\/+/, '');
+        if (!prefix.endsWith('/')) return jsonError('prefix must end with /', 400);
+        if (!isAllowedAdminKey(prefix)) return jsonError('forbidden prefix', 400);
+        // Compute parent + new prefix (sibling of the renamed folder).
+        const parts = prefix.split('/').filter(Boolean);
+        if (parts.length < 2) return jsonError('cannot rename root', 400);
+        parts.pop();
+        const parent = parts.join('/') + '/';
+        const newPrefix = parent + newName + '/';
+        if (newPrefix === prefix) return jsonOk({ action: 'rename', moved: 0 });
+        if (!isAllowedAdminKey(newPrefix)) return jsonError('forbidden dest prefix', 400);
+        const objects = await listAll(prefix);
+        const moved: { from: string; to: string }[] = [];
+        const failed: { key: string; reason: string }[] = [];
+        for (const o of objects) {
+          const dest = newPrefix + o.Key.slice(prefix.length);
+          try {
+            await moveObject(o.Key, dest);
+            moved.push({ from: o.Key, to: dest });
+          } catch (err) {
+            failed.push({ key: o.Key, reason: (err as Error).message });
+          }
+        }
+        await logAction(adminEmail, 'rename', prefix, moved.length, { to: newPrefix, failed: failed.length });
+        return jsonOk({ action: 'rename', moved: moved.length, failed, prefix: newPrefix });
+      }
+
+      return jsonError('key or prefix is required', 400);
     }
 
     return jsonError(`unknown action: ${action}`, 400);

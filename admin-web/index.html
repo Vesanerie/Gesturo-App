@@ -26,8 +26,10 @@
   <section id="screen-admin" class="screen hidden">
     <header class="topbar">
       <div class="brand">Gesturo <span class="dim">Admin</span></div>
+      <div id="global-stats" class="global-stats muted" title="Cliquer pour rafraîchir">📊 Calcul…</div>
       <div class="user">
         <span id="user-email"></span>
+        <button id="audit-btn" title="Historique des actions admin">📜 Historique</button>
         <button id="logout-btn">Déconnexion</button>
       </div>
     </header>
@@ -43,8 +45,21 @@
         <button class="root-btn" data-root="Animations/current/">Animations</button>
         <button id="archive-toggle" class="root-btn" title="Voir / quitter la zone archive du root actif">📦 Archives</button>
       </div>
+      <button id="mkdir-btn" class="btn-secondary" title="Nouveau dossier">📁＋</button>
       <button id="add-btn" class="add-btn">＋ Ajouter</button>
       <input id="add-input" type="file" multiple hidden>
+      <input id="search-input" type="search" placeholder="🔍 Rechercher…" autocomplete="off">
+      <div class="thumb-toggle" title="Taille des miniatures">
+        <button data-size="S" class="thumb-btn">S</button>
+        <button data-size="M" class="thumb-btn">M</button>
+        <button data-size="L" class="thumb-btn">L</button>
+      </div>
+      <select id="sort-select" title="Trier">
+        <option value="name-asc">Nom A→Z</option>
+        <option value="name-desc">Nom Z→A</option>
+        <option value="size-desc">Taille ↓</option>
+        <option value="size-asc">Taille ↑</option>
+      </select>
       <span id="result-count" class="muted"></span>
     </div>
 
@@ -52,6 +67,7 @@
 
     <div id="grid-wrap" class="grid-wrap">
       <div id="grid" class="grid"></div>
+      <div id="marquee" class="marquee hidden"></div>
       <div id="grid-msg" class="msg"></div>
       <div id="drop-overlay" class="drop-overlay">
         <div class="drop-card">
@@ -83,9 +99,15 @@
     </div>
   </section>
 
+  <!-- Context menu sur l'espace vide (clic droit dans le vide) -->
+  <div id="ctx-empty" class="ctx-menu hidden">
+    <button class="ctx-item" data-act="mkdir">📁＋ Nouveau dossier</button>
+  </div>
+
   <!-- Context menu (clic droit) -->
   <div id="ctx-menu" class="ctx-menu hidden">
     <button class="ctx-item" data-act="open">👁 Ouvrir</button>
+    <button class="ctx-item" data-act="rename">✏️ Renommer</button>
     <button class="ctx-item" data-act="restore">♻ Restaurer</button>
     <button class="ctx-item" data-act="archive">📦 Archiver</button>
     <button class="ctx-item ctx-danger" data-act="delete">🗑 Supprimer</button>
@@ -94,7 +116,44 @@
   <!-- Lightbox -->
   <div id="lightbox" class="lightbox hidden">
     <button id="lightbox-close" class="lightbox-close">×</button>
+    <button id="lightbox-prev" class="lightbox-nav lightbox-prev">‹</button>
+    <button id="lightbox-next" class="lightbox-nav lightbox-next">›</button>
     <img id="lightbox-img" alt="">
+    <div id="lightbox-meta" class="lightbox-meta">
+      <div class="lightbox-meta-name" id="lightbox-meta-name"></div>
+      <div class="lightbox-meta-info" id="lightbox-meta-info"></div>
+      <button id="lightbox-meta-copy" class="lightbox-meta-copy">📋 Copier la key</button>
+    </div>
+  </div>
+
+  <!-- Modale Historique (audit log) -->
+  <div id="audit-modal" class="modal-backdrop hidden">
+    <div class="modal audit-modal">
+      <div class="audit-header">
+        <h2>📜 Historique admin</h2>
+        <button id="audit-close" class="btn-ghost">Fermer</button>
+      </div>
+      <div id="audit-list" class="audit-list">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- Toasts container -->
+  <div id="toasts" class="toasts"></div>
+
+  <!-- Hover preview agrandi -->
+  <div id="hover-preview" class="hover-preview hidden"><img id="hover-preview-img" alt=""></div>
+
+  <!-- Prompt modale (mkdir / rename) -->
+  <div id="prompt-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2 id="prompt-title">Nouveau</h2>
+      <p id="prompt-text"></p>
+      <input id="prompt-input" type="text" autocomplete="off">
+      <div class="modal-buttons">
+        <button id="prompt-cancel" class="btn-ghost">Annuler</button>
+        <button id="prompt-ok" class="btn-secondary">OK</button>
+      </div>
+    </div>
   </div>
 
   <!-- Confirmation modale (utilisée pour delete) -->

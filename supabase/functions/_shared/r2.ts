@@ -68,6 +68,8 @@ export async function browseLevel(prefix: string) {
       if (!o.Key) continue;
       // Skip "directory marker" objects (some S3 clients create empty keys ending in '/')
       if (o.Key === prefix || o.Key.endsWith('/')) continue;
+      // Skip .keep placeholders used to materialize empty folders.
+      if (o.Key.endsWith('/.keep')) continue;
       files.push({ Key: o.Key, Size: o.Size });
     }
     token = res.NextContinuationToken;
@@ -182,6 +184,15 @@ export async function presignPut(key: string, contentType?: string, expiresInSec
   return await getSignedUrl(client, cmd, { expiresIn: expiresInSec });
 }
 
+// Create an empty placeholder object so an empty "folder" appears in browseLevel().
+// R2/S3 has no real folders — this writes "<prefix>/.keep" which is filtered out
+// of listings (see browseLevel) but still makes the CommonPrefix exist.
+export async function putEmpty(key: string) {
+  const client = r2Client();
+  const bucket = Deno.env.get('R2_BUCKET')!;
+  await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: '' }));
+}
+
 export function extOf(name: string) {
   const i = name.lastIndexOf('.');
   return i === -1 ? '' : name.slice(i).toLowerCase();
@@ -232,6 +243,43 @@ export async function requireAdmin(req: Request): Promise<string> {
     if (e instanceof Response) throw e;
     throw new Response('Forbidden', { status: 403, headers: CORS_HEADERS });
   }
+}
+
+// Insert a row into admin_audit_log via the service role REST endpoint.
+// Best-effort: a logging failure must NEVER block the underlying admin action.
+export async function logAction(
+  email: string,
+  action: string,
+  target: string | null,
+  count: number | null,
+  details?: unknown,
+) {
+  try {
+    const url = Deno.env.get('SUPABASE_URL')!;
+    const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    await fetch(`${url}/rest/v1/admin_audit_log`, {
+      method: 'POST',
+      headers: {
+        apikey: service,
+        Authorization: `Bearer ${service}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ email, action, target, count, details: details ?? null }),
+    });
+  } catch { /* swallow */ }
+}
+
+// Fetch the last N audit log rows. Admin only — caller must have validated requireAdmin.
+export async function fetchAuditLog(limit = 100) {
+  const url = Deno.env.get('SUPABASE_URL')!;
+  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const res = await fetch(
+    `${url}/rest/v1/admin_audit_log?select=*&order=ts.desc&limit=${limit}`,
+    { headers: { apikey: service, Authorization: `Bearer ${service}` } },
+  );
+  if (!res.ok) return [];
+  return await res.json();
 }
 
 // Server-side Pro resolution. NEVER trust a client-supplied isPro flag.

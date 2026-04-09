@@ -11,6 +11,28 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, 
 
 // ── DOM helpers ─────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
+
+// Format a byte count into a human-readable string (KB / MB / GB).
+function formatBytes(n) {
+  if (!n || n < 0) return '0 B';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+}
+
+// Toast notifications: stackable, auto-dismiss. kind = 'ok' | 'err' | undefined.
+function toast(text, kind, durationMs = 4000) {
+  const container = $('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = text;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('fade');
+    setTimeout(() => el.remove(), 300);
+  }, durationMs);
+}
 function show(screen) {
   $('screen-login').classList.toggle('hidden', screen !== 'login');
   $('screen-admin').classList.toggle('hidden', screen !== 'admin');
@@ -36,7 +58,38 @@ function onLoggedIn(session) {
   $('user-email').textContent = session.user.email || '';
   show('admin');
   loadGrid();
+  loadGlobalStats();
 }
+
+async function loadGlobalStats() {
+  const el = $('global-stats');
+  el.textContent = '📊 Calcul…';
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'stats' }),
+    });
+    if (!res.ok) { el.textContent = '📊 erreur'; return; }
+    const data = await res.json();
+    const s = data.roots['Sessions/'] || { count: 0, bytes: 0 };
+    const a = data.roots['Animations/'] || { count: 0, bytes: 0 };
+    const total = s.bytes + a.bytes;
+    el.textContent = `📊 Photos ${formatBytes(s.bytes)} (${s.count}) · Anim ${formatBytes(a.bytes)} (${a.count}) · Total ${formatBytes(total)}`;
+  } catch {
+    el.textContent = '📊 erreur';
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('global-stats');
+  if (el) el.addEventListener('click', loadGlobalStats);
+});
 
 $('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -68,8 +121,14 @@ const IN_APP_MIME = 'application/x-gesturo-keys';
 // ── File browser state ─────────────────────────────────────────────────────
 let currentPrefix = 'Sessions/current/';   // always ends with '/'
 let currentRoot   = 'Sessions/current/';   // remembers which "tab" is active
-let currentFiles  = [];                    // last loaded files (for shift-click range)
-const selected   = new Set();              // selected file keys (clears on navigation)
+let currentFolders = [];                   // last loaded folders (raw, unfiltered)
+let currentFiles  = [];                    // last loaded files (raw, unfiltered)
+let displayedFiles = [];                   // filtered+sorted files (for shift-click range)
+let searchQuery = '';                      // current search filter (lowercase)
+let sortMode = 'name-asc';                 // current sort mode
+const selected    = new Set();             // selected ids (file keys + folder prefixes), persistent cross-folder
+const selectedSize = new Map();            // id → bytes, pour calculer le total même après navigation
+let thumbSize = localStorage.getItem('admin-thumb-size') || 'M'; // S | M | L
 
 // Finder-like navHistory: back/forward navigation between visited folders.
 const navHistory = [];   // visited prefixes BEFORE the current one
@@ -175,8 +234,7 @@ async function loadGrid() {
   grid.innerHTML = '';
   countEl.textContent = '';
   setMsg(msg, 'Chargement…');
-  // Navigation always clears the selection — selecting across folders would be confusing.
-  selected.clear();
+  // La sélection persiste à travers les navigations (cross-folder).
   updateActionBar();
   setActiveRoot();
   updateNavButtons();
@@ -202,10 +260,8 @@ async function loadGrid() {
       return;
     }
     const data = await res.json();
-    const folders = data.folders || [];
-    const files = data.files || [];
-    currentFiles = files;
-    countEl.textContent = `${folders.length} dossiers · ${files.length} fichiers`;
+    currentFolders = data.folders || [];
+    currentFiles = data.files || [];
     if (pendingMsg) {
       setMsg(msg, pendingMsg.text, pendingMsg.kind);
       const captured = pendingMsg;
@@ -215,7 +271,7 @@ async function loadGrid() {
     } else {
       setMsg(msg, '');
     }
-    renderGrid(folders, files);
+    applyAndRender();
   } catch (e) {
     setMsg(msg, 'Erreur réseau : ' + e.message, 'err');
   }
@@ -271,16 +327,49 @@ function attachDropTarget(node, destPrefix) {
       return parent === destPrefix;
     });
     if (allAlreadyThere) return;
+    if (keys.length >= BULK_CONFIRM_THRESHOLD) {
+      const preview = keys.slice(0, 5).map((k) => k.split('/').pop()).join(', ')
+        + (keys.length > 5 ? ` … (+${keys.length - 5} autres)` : '');
+      openConfirm({
+        title: `Déplacer ${keys.length} fichiers`,
+        text: `Tu vas déplacer ${keys.length} fichiers vers :\n${destPrefix}\n\nAperçu : ${preview}`,
+        onConfirm: async () => callAdmin('move', { keys, destPrefix }, `Déplacement vers ${destPrefix}…`),
+      });
+      return;
+    }
     await callAdmin('move', { keys, destPrefix }, `Déplacement vers ${destPrefix}…`);
   });
 }
 
+// Apply current search filter + sort to currentFolders/currentFiles, then render.
+// Called by loadGrid (after fetch) and by the search/sort handlers.
+function applyAndRender() {
+  const q = searchQuery.trim().toLowerCase();
+  const folders = q ? currentFolders.filter((f) => f.name.toLowerCase().includes(q)) : currentFolders.slice();
+  let files = q ? currentFiles.filter((f) => f.name.toLowerCase().includes(q)) : currentFiles.slice();
+  files.sort((a, b) => {
+    switch (sortMode) {
+      case 'name-desc': return b.name.localeCompare(a.name);
+      case 'size-desc': return (b.size || 0) - (a.size || 0);
+      case 'size-asc':  return (a.size || 0) - (b.size || 0);
+      default:          return a.name.localeCompare(b.name);
+    }
+  });
+  displayedFiles = files;
+  const totalBytes = files.reduce((acc, f) => acc + (f.size || 0), 0);
+  const sizeStr = totalBytes > 0 ? ` · ${formatBytes(totalBytes)}` : '';
+  $('result-count').textContent = `${folders.length} dossiers · ${files.length} fichiers${sizeStr}`;
+  renderGrid(folders, files);
+}
+
 function renderGrid(folders, files) {
   const grid = $('grid');
+  grid.innerHTML = '';
   // Folders first, then files. Cap files to 500 for perf.
   for (const f of folders) {
     const card = document.createElement('div');
-    card.className = 'grid-item folder';
+    card.className = 'grid-item folder' + (selected.has(f.prefix) ? ' selected' : '');
+    card.dataset.prefix = f.prefix;
     card.innerHTML = `<div class="icon">📁</div><div class="name">${escapeHtml(f.name)}</div><div class="hint">Ouvrir →</div>`;
     card.addEventListener('click', () => navigateTo(f.prefix));
     card.addEventListener('contextmenu', (e) => {
@@ -291,17 +380,24 @@ function renderGrid(folders, files) {
     attachDropTarget(card, f.prefix);
     grid.appendChild(card);
   }
-  const slice = files.slice(0, 500);
+  const slice = files.slice(0, 2000);
   let lastClickedIdx = -1;
   slice.forEach((it, idx) => {
     const card = document.createElement('div');
     card.className = 'grid-item' + (selected.has(it.key) ? ' selected' : '');
     card.dataset.key = it.key;
+    card.dataset.size = String(it.size || 0);
     const img = document.createElement('img');
     img.loading = 'lazy';
     img.src = thumbUrl(it.url);
     img.alt = it.name;
     card.appendChild(img);
+    if (it.size) {
+      const badge = document.createElement('div');
+      badge.className = 'size-badge';
+      badge.textContent = formatBytes(it.size);
+      card.appendChild(badge);
+    }
     const label = document.createElement('div');
     label.className = 'label';
     label.textContent = it.name;
@@ -315,10 +411,10 @@ function renderGrid(folders, files) {
       // Shift-click → range select from last clicked to here
       if (e.shiftKey && lastClickedIdx >= 0) {
         const [a, b] = [lastClickedIdx, idx].sort((x, y) => x - y);
-        for (let i = a; i <= b; i++) selected.add(slice[i].key);
+        for (let i = a; i <= b; i++) selectAdd(slice[i].key, slice[i].size || 0);
       } else {
-        if (selected.has(it.key)) selected.delete(it.key);
-        else selected.add(it.key);
+        if (selected.has(it.key)) selectDelete(it.key);
+        else selectAdd(it.key, it.size || 0);
         lastClickedIdx = idx;
       }
       // Re-render selection state without rebuilding the whole grid
@@ -339,7 +435,8 @@ function renderGrid(folders, files) {
     // selection. Otherwise just the single dragged file.
     card.draggable = true;
     card.addEventListener('dragstart', (e) => {
-      const keysToMove = selected.has(it.key) && selected.size > 0 ? [...selected] : [it.key];
+      const fileKeysOnly = [...selected].filter((id) => !id.endsWith('/'));
+      const keysToMove = selected.has(it.key) && fileKeysOnly.length > 0 ? fileKeysOnly : [it.key];
       e.dataTransfer.setData(IN_APP_MIME, JSON.stringify(keysToMove));
       e.dataTransfer.effectAllowed = 'move';
     });
@@ -349,8 +446,8 @@ function renderGrid(folders, files) {
     card.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (!selected.has(it.key)) {
-        selected.clear();
-        selected.add(it.key);
+        selectClearAll();
+        selectAdd(it.key, it.size || 0);
         document.querySelectorAll('.grid-item[data-key]').forEach((el) => {
           el.classList.toggle('selected', selected.has(el.dataset.key));
         });
@@ -361,10 +458,10 @@ function renderGrid(folders, files) {
 
     grid.appendChild(card);
   });
-  if (files.length > 500) {
+  if (files.length > 2000) {
     const note = document.createElement('div');
     note.className = 'msg muted';
-    note.textContent = `+ ${files.length - 500} fichiers non affichés (limite UI 500).`;
+    note.textContent = `+ ${files.length - 2000} fichiers non affichés (limite UI 2000). Affine la recherche.`;
     grid.appendChild(note);
   }
 }
@@ -373,54 +470,130 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Wrappers pour garder `selectedSize` à jour en parallèle de `selected`.
+function selectAdd(id, size) {
+  selected.add(id);
+  if (size != null) selectedSize.set(id, size);
+}
+function selectDelete(id) {
+  selected.delete(id);
+  selectedSize.delete(id);
+}
+function selectClearAll() {
+  selected.clear();
+  selectedSize.clear();
+}
+
+// Split la sélection en { keys, prefixes } — les prefixes finissent par '/'.
+function splitSelection() {
+  const keys = [];
+  const prefixes = [];
+  for (const id of selected) {
+    if (id.endsWith('/')) prefixes.push(id);
+    else keys.push(id);
+  }
+  return { keys, prefixes };
+}
+
+// Lance une action sur la sélection mixte (fichiers + dossiers).
+// Le backend admin-r2 accepte EITHER {keys} OR {prefix} par appel — donc on
+// fait 1 appel pour les fichiers + 1 appel par dossier, en parallèle.
+async function callAdminOnSelection(action, busyMsg) {
+  const { keys, prefixes } = splitSelection();
+  if (keys.length === 0 && prefixes.length === 0) return;
+  if (busyMsg) toast(busyMsg);
+  const calls = [];
+  if (keys.length > 0) calls.push(callAdmin(action, { keys }, null));
+  for (const prefix of prefixes) calls.push(callAdmin(action, { prefix }, null));
+  await Promise.all(calls);
+}
+
 // ── Selection / action bar ──────────────────────────────────────────────────
 function updateActionBar() {
   const bar = $('action-bar');
   const count = selected.size;
   if (count === 0) { bar.classList.add('hidden'); return; }
   bar.classList.remove('hidden');
-  $('selection-count').textContent = `${count} fichier${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`;
+  const { keys, prefixes } = splitSelection();
+  let totalBytes = 0;
+  for (const k of keys) totalBytes += selectedSize.get(k) || 0;
+  const sizeStr = totalBytes > 0 ? ` · ${formatBytes(totalBytes)}` : '';
+  const parts = [];
+  if (keys.length > 0) parts.push(`${keys.length} fichier${keys.length > 1 ? 's' : ''}`);
+  if (prefixes.length > 0) parts.push(`${prefixes.length} dossier${prefixes.length > 1 ? 's' : ''}`);
+  $('selection-count').textContent = `${parts.join(' · ')}${sizeStr}`;
   // In archive zones, show Restaurer instead of Archiver.
   const inArchive = currentPrefix.includes('/archive/');
   $('action-restore').style.display = inArchive ? '' : 'none';
   $('action-archive').style.display = inArchive ? 'none' : '';
 }
 
-document.getElementById('action-restore').addEventListener('click', async () => {
-  if (selected.size === 0) return;
-  await callAdmin('unarchive', { keys: [...selected] }, 'Restauration…');
+function confirmBulkIfNeeded(verb, action, busyMsg) {
+  const count = selected.size;
+  if (count === 0) return;
+  if (count < BULK_CONFIRM_THRESHOLD) {
+    callAdminOnSelection(action, busyMsg);
+    return;
+  }
+  openConfirm({
+    title: `${verb} ${count} éléments`,
+    text: `Tu vas ${verb.toLowerCase()} ${count} éléments en une fois.\n\nAperçu : ${buildSelectionPreview()}`,
+    onConfirm: async () => callAdminOnSelection(action, busyMsg),
+  });
+}
+
+document.getElementById('action-restore').addEventListener('click', () => {
+  confirmBulkIfNeeded('Restaurer', 'unarchive', 'Restauration…');
 });
 
 $('action-clear').addEventListener('click', () => {
-  selected.clear();
+  selectClearAll();
   document.querySelectorAll('.grid-item.selected').forEach((el) => el.classList.remove('selected'));
   updateActionBar();
 });
 
-$('action-archive').addEventListener('click', async () => {
-  if (selected.size === 0) return;
-  await callAdmin('archive', { keys: [...selected] }, 'Archivage en cours…');
+$('action-archive').addEventListener('click', () => {
+  confirmBulkIfNeeded('Archiver', 'archive', 'Archivage en cours…');
 });
 
 $('action-delete').addEventListener('click', () => {
   if (selected.size === 0) return;
-  const count = selected.size;
+  const { keys, prefixes } = splitSelection();
+  const parts = [];
+  if (keys.length) parts.push(`${keys.length} fichier${keys.length > 1 ? 's' : ''}`);
+  if (prefixes.length) parts.push(`${prefixes.length} dossier${prefixes.length > 1 ? 's' : ''} (et tout leur contenu)`);
   openConfirm({
     title: 'Suppression définitive',
-    text: `Tu vas supprimer ${count} fichier${count > 1 ? 's' : ''} DÉFINITIVEMENT du bucket R2. Cette action est irréversible.`,
+    text: `Tu vas supprimer ${parts.join(' + ')} DÉFINITIVEMENT du bucket R2. Cette action est irréversible.\n\nAperçu : ${buildSelectionPreview()}`,
     requireType: 'SUPPRIMER',
     onConfirm: async () => {
-      await callAdmin('delete', { keys: [...selected] }, 'Suppression…');
+      await callAdminOnSelection('delete', 'Suppression…');
     },
   });
 });
 
+// Seuil au-delà duquel toute action en masse demande une confirmation.
+const BULK_CONFIRM_THRESHOLD = 50;
+
+// Build une preview des N premiers noms de fichiers/dossiers de la sélection.
+function buildSelectionPreview(max = 5) {
+  const items = [...selected].map((id) => {
+    if (id.endsWith('/')) {
+      const parts = id.split('/').filter(Boolean);
+      return '📁 ' + parts[parts.length - 1];
+    }
+    return id.split('/').pop();
+  });
+  const head = items.slice(0, max).join(', ');
+  const more = items.length > max ? ` … (+${items.length - max} autres)` : '';
+  return head + more;
+}
+
 // Generic backend call helper for action bar operations.
 async function callAdmin(action, body, busyMsg) {
-  const msg = $('grid-msg');
-  setMsg(msg, busyMsg);
+  if (busyMsg) toast(busyMsg);
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { setMsg(msg, 'Pas de session.', 'err'); return; }
+  if (!session) { toast('Pas de session.', 'err'); return; }
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
       method: 'POST',
@@ -433,32 +606,78 @@ async function callAdmin(action, body, busyMsg) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      setMsg(msg, `Erreur ${res.status} — ${err.error || res.statusText}`, 'err');
+      toast(`Erreur ${res.status} — ${err.error || res.statusText}`, 'err', 6000);
       return;
     }
     const data = await res.json();
     const okCount = data.moved ?? data.count ?? 0;
     const failCount = (data.failed && data.failed.length) || 0;
-    // Stash the result so loadGrid() can display it AFTER it finishes rendering
-    // (otherwise its "Chargement…" placeholder wipes the success message).
-    pendingMsg = {
-      text: `✓ ${okCount} ok${failCount ? ` · ${failCount} échec(s)` : ''}`,
-      kind: failCount ? 'err' : 'ok',
-    };
+    toast(
+      `✓ ${okCount} ok${failCount ? ` · ${failCount} échec(s)` : ''}`,
+      failCount ? 'err' : 'ok',
+    );
     loadGrid();
   } catch (e) {
-    setMsg(msg, 'Erreur réseau : ' + e.message, 'err');
+    toast('Erreur réseau : ' + e.message, 'err', 6000);
   }
 }
 
 // ── Lightbox ────────────────────────────────────────────────────────────────
+let lightboxIdx = -1;
 function openLightbox(url) {
-  $('lightbox-img').src = url;
+  // Find index in displayedFiles to enable prev/next navigation.
+  lightboxIdx = displayedFiles.findIndex((f) => f.url === url);
+  showLightboxAt(lightboxIdx >= 0 ? lightboxIdx : 0, url);
   $('lightbox').classList.remove('hidden');
 }
+function showLightboxAt(idx, fallbackUrl) {
+  const file = displayedFiles[idx];
+  const img = $('lightbox-img');
+  const url = file ? file.url : fallbackUrl;
+  img.src = url;
+  // Update metadata panel. Dimensions are filled in once the image loads.
+  const nameEl = $('lightbox-meta-name');
+  const infoEl = $('lightbox-meta-info');
+  if (file) {
+    nameEl.textContent = file.name;
+    const sizeStr = formatBytes(file.size || 0);
+    infoEl.textContent = `${sizeStr} · ${file.key}`;
+    img.onload = () => {
+      if ($('lightbox-img').src !== url) return; // user already moved on
+      infoEl.textContent = `${img.naturalWidth}×${img.naturalHeight} · ${sizeStr} · ${file.key}`;
+    };
+  } else {
+    nameEl.textContent = '';
+    infoEl.textContent = '';
+  }
+}
+function lightboxStep(delta) {
+  if (displayedFiles.length === 0) return;
+  if (lightboxIdx < 0) lightboxIdx = 0;
+  lightboxIdx = (lightboxIdx + delta + displayedFiles.length) % displayedFiles.length;
+  showLightboxAt(lightboxIdx);
+}
+$('lightbox-meta-copy').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  const file = displayedFiles[lightboxIdx];
+  if (!file) return;
+  try {
+    await navigator.clipboard.writeText(file.key);
+    toast('Key copiée', 'ok', 2000);
+  } catch {
+    toast('Impossible de copier', 'err');
+  }
+});
 $('lightbox-close').addEventListener('click', () => $('lightbox').classList.add('hidden'));
+$('lightbox-prev').addEventListener('click', (e) => { e.stopPropagation(); lightboxStep(-1); });
+$('lightbox-next').addEventListener('click', (e) => { e.stopPropagation(); lightboxStep(1); });
 $('lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') $('lightbox').classList.add('hidden'); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('lightbox').classList.add('hidden'); });
+document.addEventListener('keydown', (e) => {
+  if ($('lightbox').classList.contains('hidden')) return;
+  if (e.key === 'Escape') $('lightbox').classList.add('hidden');
+  else if (e.key === 'ArrowLeft') lightboxStep(-1);
+  else if (e.key === 'ArrowRight') lightboxStep(1);
+});
 
 // ── Confirmation modal ──────────────────────────────────────────────────────
 let confirmCallback = null;
@@ -685,6 +904,9 @@ function openCtxMenu(x, y, target) {
   const inArchive = currentPrefix.includes('/archive/');
   menu.querySelector('[data-act="restore"]').style.display  = inArchive ? '' : 'none';
   menu.querySelector('[data-act="archive"]').style.display  = inArchive ? 'none' : '';
+  // Rename: visible for a single folder or a single-file selection.
+  const canRename = !!target.folder || (selected.size === 1);
+  menu.querySelector('[data-act="rename"]').style.display = canRename ? '' : 'none';
   menu.style.left = Math.min(x, window.innerWidth - 180) + 'px';
   menu.style.top  = Math.min(y, window.innerHeight - 140) + 'px';
   menu.classList.remove('hidden');
@@ -701,6 +923,7 @@ document.querySelectorAll('#ctx-menu .ctx-item').forEach((btn) => {
     if (target.folder) {
       const { prefix, name } = target.folder;
       if (action === 'open') { navigateTo(prefix); return; }
+      if (action === 'rename') { promptRenameFolder(prefix, name); return; }
       if (action === 'restore') {
         await callAdmin('unarchive', { prefix }, 'Restauration du dossier…');
         return;
@@ -726,6 +949,12 @@ document.querySelectorAll('#ctx-menu .ctx-item').forEach((btn) => {
 
     // ── File target (acts on the current selection, like Finder) ──────────
     if (action === 'open') { openLightbox(target.url); return; }
+    if (action === 'rename') {
+      // Rename only ever acts on a single file (the right-clicked one).
+      const key = [...selected][0];
+      if (key) promptRenameFile(key);
+      return;
+    }
     if (action === 'restore') {
       await callAdmin('unarchive', { keys: [...selected] }, 'Restauration…');
       return;
@@ -769,5 +998,327 @@ $('confirm-ok').addEventListener('click', async () => {
   $('confirm-modal').classList.add('hidden');
   if (confirmCallback) { const cb = confirmCallback; confirmCallback = null; await cb(); }
 });
+
+// ── Recherche / tri ────────────────────────────────────────────────────────
+$('search-input').addEventListener('input', (e) => {
+  searchQuery = e.target.value;
+  applyAndRender();
+});
+$('sort-select').addEventListener('change', (e) => {
+  sortMode = e.target.value;
+  applyAndRender();
+});
+
+// ── Raccourcis globaux supplémentaires (Cmd+A, Echap clear) ───────────────
+document.addEventListener('keydown', (e) => {
+  if (!$('confirm-modal').classList.contains('hidden')) return;
+  if (!$('prompt-modal').classList.contains('hidden')) return;
+  if (!$('lightbox').classList.contains('hidden')) return;
+  // Cmd+A is global (works even when typing in the search input).
+  // Other shortcuts are ignored when typing in an input.
+  const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+  if (e.metaKey && (e.key === 'a' || e.key === 'A')) {
+    e.preventDefault();
+    for (const f of displayedFiles) selectAdd(f.key, f.size || 0);
+    document.querySelectorAll('.grid-item[data-key]').forEach((el) => {
+      el.classList.toggle('selected', selected.has(el.dataset.key));
+    });
+    updateActionBar();
+  } else if (!inInput && e.key === 'Escape' && selected.size > 0) {
+    selectClearAll();
+    document.querySelectorAll('.grid-item.selected').forEach((el) => el.classList.remove('selected'));
+    updateActionBar();
+  }
+});
+
+// ── Prompt modal (mkdir / rename) ──────────────────────────────────────────
+let promptCallback = null;
+function openPrompt({ title, text, defaultValue, onConfirm }) {
+  $('prompt-title').textContent = title;
+  $('prompt-text').textContent = text || '';
+  const input = $('prompt-input');
+  input.value = defaultValue || '';
+  promptCallback = onConfirm;
+  $('prompt-modal').classList.remove('hidden');
+  setTimeout(() => { input.focus(); input.select(); }, 50);
+}
+$('prompt-cancel').addEventListener('click', () => {
+  $('prompt-modal').classList.add('hidden');
+  promptCallback = null;
+});
+$('prompt-ok').addEventListener('click', async () => {
+  const val = $('prompt-input').value.trim();
+  $('prompt-modal').classList.add('hidden');
+  if (promptCallback && val) { const cb = promptCallback; promptCallback = null; await cb(val); }
+});
+$('prompt-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('prompt-ok').click(); }
+  else if (e.key === 'Escape') { e.preventDefault(); $('prompt-cancel').click(); }
+});
+
+// Clic droit dans le vide → menu "Nouveau dossier"
+document.addEventListener('contextmenu', (e) => {
+  if ($('screen-admin').classList.contains('hidden')) return;
+  if (e.target.closest('.grid-item')) return;
+  if (e.target.closest('button, input, select, textarea, a, .ctx-menu, .modal-backdrop, .lightbox:not(.hidden)')) return;
+  e.preventDefault();
+  const menu = $('ctx-empty');
+  menu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+  menu.style.top  = Math.min(e.clientY, window.innerHeight - 60) + 'px';
+  menu.classList.remove('hidden');
+});
+$('ctx-empty').querySelector('[data-act="mkdir"]').addEventListener('click', () => {
+  $('ctx-empty').classList.add('hidden');
+  $('mkdir-btn').click();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#ctx-empty')) $('ctx-empty').classList.add('hidden');
+});
+
+// ── Nouveau dossier ────────────────────────────────────────────────────────
+$('mkdir-btn').addEventListener('click', () => {
+  openPrompt({
+    title: 'Nouveau dossier',
+    text: `Sera créé dans ${currentPrefix}`,
+    defaultValue: '',
+    onConfirm: async (name) => {
+      await callAdmin('mkdir', { prefix: currentPrefix, newName: name }, 'Création…');
+    },
+  });
+});
+
+// ── Rename helper (utilisé par le context menu) ────────────────────────────
+function promptRenameFile(key) {
+  const fileName = key.split('/').pop() || '';
+  openPrompt({
+    title: 'Renommer le fichier',
+    text: fileName,
+    defaultValue: fileName,
+    onConfirm: async (newName) => {
+      if (newName === fileName) return;
+      await callAdmin('rename', { key, newName }, 'Renommage…');
+    },
+  });
+}
+function promptRenameFolder(prefix, name) {
+  openPrompt({
+    title: 'Renommer le dossier',
+    text: name,
+    defaultValue: name,
+    onConfirm: async (newName) => {
+      if (newName === name) return;
+      await callAdmin('rename', { prefix, newName }, 'Renommage du dossier…');
+    },
+  });
+}
+
+// ── Audit log (Historique) ─────────────────────────────────────────────────
+async function openAuditLog() {
+  $('audit-modal').classList.remove('hidden');
+  const list = $('audit-list');
+  list.innerHTML = '<div class="audit-empty">Chargement…</div>';
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { list.innerHTML = '<div class="audit-empty">Pas de session.</div>'; return; }
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'audit-list' }),
+    });
+    if (!res.ok) { list.innerHTML = '<div class="audit-empty">Erreur de chargement.</div>'; return; }
+    const data = await res.json();
+    const rows = data.rows || [];
+    if (rows.length === 0) {
+      list.innerHTML = '<div class="audit-empty">Aucune action enregistrée pour le moment.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    for (const r of rows) {
+      const row = document.createElement('div');
+      row.className = 'audit-row';
+      const ts = new Date(r.ts);
+      const today = new Date();
+      const sameDay = ts.toDateString() === today.toDateString();
+      const tsStr = sameDay
+        ? ts.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+        : ts.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ' ' + ts.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      const countLabel = r.count != null ? `${r.count} élément${r.count > 1 ? 's' : ''}` : '';
+      row.innerHTML = `
+        <div class="audit-row-head">
+          <div class="audit-ts">${escapeHtml(tsStr)}</div>
+          <div class="audit-action ${escapeHtml(r.action)}">${escapeHtml(r.action)}</div>
+          <div class="audit-count">${escapeHtml(countLabel)}</div>
+        </div>
+        <div class="audit-target" title="${escapeHtml(r.target || '')}">${escapeHtml(r.target || '—')}</div>
+      `;
+      list.appendChild(row);
+    }
+  } catch (e) {
+    list.innerHTML = `<div class="audit-empty">Erreur : ${escapeHtml(e.message)}</div>`;
+  }
+}
+$('audit-btn').addEventListener('click', openAuditLog);
+$('audit-close').addEventListener('click', () => $('audit-modal').classList.add('hidden'));
+$('audit-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'audit-modal') $('audit-modal').classList.add('hidden');
+});
+
+// ── Marquee selection (lasso à la souris) ──────────────────────────────────
+// Click-drag dans le vide de la grille pour dessiner un rectangle qui
+// sélectionne tous les fichiers qu'il croise (comme dans le Finder).
+// Ignore si on clique sur une card (drag de la card prend le dessus).
+(function setupMarquee() {
+  const marquee = $('marquee');
+  // Sortir le marquee du grid-wrap pour qu'aucun ancestor ne casse position:fixed.
+  document.body.appendChild(marquee);
+  marquee.style.position = 'fixed';
+  marquee.style.zIndex = '500';
+  let active = false;
+  // Coordonnées en VIEWPORT (clientX/clientY) — plus simple, marche partout.
+  let startVX = 0, startVY = 0;
+  let baseSelection = new Set();
+
+  document.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    // On démarre le lasso depuis n'importe où dans la zone admin sauf :
+    if (e.target.closest('.grid-item')) return;       // click sur card → comportement normal
+    if (e.target.closest('button, input, select, textarea, a, .ctx-menu, .modal-backdrop, .lightbox:not(.hidden)')) return;
+    if ($('screen-admin').classList.contains('hidden')) return; // pas en login
+    active = true;
+    startVX = e.clientX;
+    startVY = e.clientY;
+    if (!e.metaKey && !e.shiftKey) {
+      selectClearAll();
+      document.querySelectorAll('.grid-item.selected').forEach((el) => el.classList.remove('selected'));
+      updateActionBar();
+    }
+    baseSelection = new Set(selected);
+    // Marquee positionné en FIXED → coords viewport directement, pas de scroll math.
+    marquee.style.position = 'fixed';
+    marquee.style.left = startVX + 'px';
+    marquee.style.top = startVY + 'px';
+    marquee.style.width = '0px';
+    marquee.style.height = '0px';
+    marquee.classList.remove('hidden');
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!active) return;
+    const x = Math.min(startVX, e.clientX);
+    const y = Math.min(startVY, e.clientY);
+    const w = Math.abs(e.clientX - startVX);
+    const h = Math.abs(e.clientY - startVY);
+    marquee.style.left = x + 'px';
+    marquee.style.top = y + 'px';
+    marquee.style.width = w + 'px';
+    marquee.style.height = h + 'px';
+    const mRight = x + w;
+    const mBottom = y + h;
+    document.querySelectorAll('.grid-item').forEach((el) => {
+      const id = el.dataset.key || el.dataset.prefix;
+      if (!id) return;
+      const r = el.getBoundingClientRect();
+      const hit = r.left < mRight && r.right > x && r.top < mBottom && r.bottom > y;
+      if (hit) {
+        if (!selected.has(id)) {
+          // size from data attr (0 for folders)
+          selectAdd(id, parseInt(el.dataset.size || '0', 10));
+        }
+        el.classList.add('selected');
+      } else if (!baseSelection.has(id)) {
+        selectDelete(id);
+        el.classList.remove('selected');
+      }
+    });
+    updateActionBar();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!active) return;
+    active = false;
+    marquee.classList.add('hidden');
+  });
+})();
+
+// ── Thumb size toggle ──────────────────────────────────────────────────────
+function applyThumbSize() {
+  document.body.dataset.thumbSize = thumbSize;
+  document.querySelectorAll('.thumb-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.size === thumbSize);
+  });
+}
+document.querySelectorAll('.thumb-btn').forEach((b) => {
+  b.addEventListener('click', () => {
+    thumbSize = b.dataset.size;
+    localStorage.setItem('admin-thumb-size', thumbSize);
+    applyThumbSize();
+  });
+});
+applyThumbSize();
+
+// ── Hover preview agrandi ──────────────────────────────────────────────────
+// Survol d'une card fichier > 600ms → tooltip avec une version plus grande de la photo.
+(function setupHoverPreview() {
+  const preview = $('hover-preview');
+  const img = $('hover-preview-img');
+  let timer = null;
+  let currentEl = null;
+
+  function hide() {
+    preview.classList.add('hidden');
+    img.src = '';
+    currentEl = null;
+  }
+
+  function position(e) {
+    const pad = 16;
+    const pw = preview.offsetWidth || 380;
+    const ph = preview.offsetHeight || 380;
+    let x = e.clientX + pad;
+    let y = e.clientY + pad;
+    if (x + pw > window.innerWidth) x = e.clientX - pw - pad;
+    if (y + ph > window.innerHeight) y = e.clientY - ph - pad;
+    preview.style.left = Math.max(8, x) + 'px';
+    preview.style.top = Math.max(8, y) + 'px';
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const card = e.target.closest('.grid-item[data-key]');
+    if (!card || card === currentEl) return;
+    currentEl = card;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const fullImg = card.querySelector('img');
+      if (!fullImg) return;
+      // Use a larger thumb (wsrv with w=600) instead of full original to stay snappy.
+      const fileKey = card.dataset.key;
+      const file = currentFiles.find((f) => f.key === fileKey);
+      img.src = file ? thumbUrl(file.url, 600) : fullImg.src;
+      preview.classList.remove('hidden');
+      position(e);
+    }, 600);
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!preview.classList.contains('hidden')) position(e);
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    const card = e.target.closest('.grid-item[data-key]');
+    if (!card) return;
+    if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+    clearTimeout(timer);
+    hide();
+  });
+
+  // Hide if user starts a drag, click, or scroll.
+  document.addEventListener('mousedown', hide, true);
+  window.addEventListener('scroll', hide, true);
+})();
 
 init();
