@@ -149,6 +149,12 @@ window.addEventListener('resize', () => { if (gridMode > 0) positionGridOverlay(
 // ══ MOODBOARD (in-app) ══
 let moodboardLoaded = false
 async function openMoodboard() {
+  // Désactivé sur phone : <webview> = Electron-only et un écran phone est trop
+  // petit pour servir de référence visuelle pendant qu'on dessine. Cf. CLAUDE.md.
+  if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+    showScreen('screen-config')
+    return
+  }
   const wv = document.getElementById('moodboard-webview')
   if (!moodboardLoaded) {
     try {
