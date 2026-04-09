@@ -16,6 +16,8 @@ import {
   requireAdmin,
   logAction,
   fetchAuditLog,
+  computeStats,
+  parallelMap,
 } from '../_shared/r2.ts';
 
 interface UploadFile { name: string; contentType?: string; path?: string }
@@ -83,7 +85,7 @@ Deno.serve(async (req) => {
         if (!prefix.endsWith('/')) return jsonError('prefix must end with /', 400);
         if (!isAllowedAdminKey(prefix)) return jsonError(`forbidden prefix: ${prefix}`, 400);
         const objects = await listAll(prefix);
-        keys = objects.map((o) => o.Key);
+        keys = objects.map((o) => o.Key).filter((k) => !k.endsWith('/.keep'));
       }
       if (keys.length === 0) return jsonError('keys or prefix is required', 400);
       // Hard guard: every key must live under an allowed admin root.
@@ -100,20 +102,14 @@ Deno.serve(async (req) => {
       // archive: move every key under <root>/archive/<ts>/<rest>. Single timestamp
       // for the whole batch so the group stays restorable as one unit.
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
-      const moved: { from: string; to: string }[] = [];
-      const failed: { key: string; reason: string }[] = [];
-      for (const k of keys) {
+      const result = await parallelMap(keys, 8, async (k) => {
         const dest = archiveKeyFor(k, ts);
-        if (!dest) { failed.push({ key: k, reason: 'not under <root>/current/' }); continue; }
-        try {
-          await moveObject(k, dest);
-          moved.push({ from: k, to: dest });
-        } catch (err) {
-          failed.push({ key: k, reason: (err as Error).message });
-        }
-      }
-      await logAction(adminEmail, 'archive', body.prefix || keys[0], moved.length, { timestamp: ts, failed: failed.length });
-      return jsonOk({ action: 'archive', timestamp: ts, moved: moved.length, failed });
+        if (!dest) throw new Error('not under <root>/current/');
+        await moveObject(k, dest);
+        return { from: k, to: dest };
+      });
+      await logAction(adminEmail, 'archive', body.prefix || keys[0], result.ok.length, { timestamp: ts, failed: result.failed.length });
+      return jsonOk({ action: 'archive', timestamp: ts, moved: result.ok.length, failed: result.failed.map((f) => ({ key: f.item, reason: f.reason })) });
     }
 
     if (action === 'unarchive') {
@@ -124,25 +120,19 @@ Deno.serve(async (req) => {
         if (!prefix.endsWith('/')) return jsonError('prefix must end with /', 400);
         if (!isAllowedAdminKey(prefix)) return jsonError(`forbidden prefix: ${prefix}`, 400);
         const objects = await listAll(prefix);
-        keys = objects.map((o) => o.Key);
+        keys = objects.map((o) => o.Key).filter((k) => !k.endsWith('/.keep'));
       }
       if (keys.length === 0) return jsonError('keys or prefix is required', 400);
 
-      const moved: { from: string; to: string }[] = [];
-      const failed: { key: string; reason: string }[] = [];
-      for (const k of keys) {
-        if (!isAllowedAdminKey(k)) { failed.push({ key: k, reason: 'forbidden' }); continue; }
+      const result = await parallelMap(keys, 8, async (k) => {
+        if (!isAllowedAdminKey(k)) throw new Error('forbidden');
         const dest = unarchiveKeyFor(k);
-        if (!dest) { failed.push({ key: k, reason: 'not under <root>/archive/<ts>/' }); continue; }
-        try {
-          await moveObject(k, dest);
-          moved.push({ from: k, to: dest });
-        } catch (err) {
-          failed.push({ key: k, reason: (err as Error).message });
-        }
-      }
-      await logAction(adminEmail, 'unarchive', body.prefix || keys[0], moved.length, { failed: failed.length });
-      return jsonOk({ action: 'unarchive', moved: moved.length, failed });
+        if (!dest) throw new Error('not under <root>/archive/<ts>/');
+        await moveObject(k, dest);
+        return { from: k, to: dest };
+      });
+      await logAction(adminEmail, 'unarchive', body.prefix || keys[0], result.ok.length, { failed: result.failed.length });
+      return jsonOk({ action: 'unarchive', moved: result.ok.length, failed: result.failed.map((f) => ({ key: f.item, reason: f.reason })) });
     }
 
     if (action === 'move') {
@@ -154,21 +144,15 @@ Deno.serve(async (req) => {
       for (const k of keys) {
         if (!isAllowedAdminKey(k)) return jsonError(`forbidden key: ${k}`, 400);
       }
-      const moved: { from: string; to: string }[] = [];
-      const failed: { key: string; reason: string }[] = [];
-      for (const k of keys) {
+      const result = await parallelMap(keys, 8, async (k) => {
         const fileName = k.split('/').pop() || '';
         const dest = destPrefix + fileName;
-        if (dest === k) { failed.push({ key: k, reason: 'source equals dest' }); continue; }
-        try {
-          await moveObject(k, dest);
-          moved.push({ from: k, to: dest });
-        } catch (err) {
-          failed.push({ key: k, reason: (err as Error).message });
-        }
-      }
-      await logAction(adminEmail, 'move', destPrefix, moved.length, { failed: failed.length });
-      return jsonOk({ action: 'move', moved: moved.length, failed });
+        if (dest === k) throw new Error('source equals dest');
+        await moveObject(k, dest);
+        return { from: k, to: dest };
+      });
+      await logAction(adminEmail, 'move', destPrefix, result.ok.length, { failed: result.failed.length });
+      return jsonOk({ action: 'move', moved: result.ok.length, failed: result.failed.map((f) => ({ key: f.item, reason: f.reason })) });
     }
 
     if (action === 'upload-urls') {
@@ -210,28 +194,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'stats') {
-      // Compte + taille totale par root admin (Sessions/, Animations/).
-      const out: Record<string, { count: number; bytes: number }> = {};
-      const client = (await import('../_shared/r2.ts')).r2Client();
-      const { ListObjectsV2Command } = await import('npm:@aws-sdk/client-s3@3');
-      const bucket = Deno.env.get('R2_BUCKET')!;
-      for (const root of ['Sessions/', 'Animations/']) {
-        let count = 0; let bytes = 0;
-        let token: string | undefined;
-        do {
-          const res = await client.send(new ListObjectsV2Command({
-            Bucket: bucket, Prefix: root, ContinuationToken: token,
-          }));
-          for (const o of res.Contents || []) {
-            if (!o.Key || o.Key.endsWith('/.keep')) continue;
-            count++;
-            bytes += o.Size || 0;
-          }
-          token = res.NextContinuationToken;
-        } while (token);
-        out[root] = { count, bytes };
-      }
-      return jsonOk({ action: 'stats', roots: out });
+      const roots = await computeStats(['Sessions/', 'Animations/']);
+      return jsonOk({ action: 'stats', roots });
     }
 
     if (action === 'mkdir') {
@@ -285,19 +249,13 @@ Deno.serve(async (req) => {
         if (newPrefix === prefix) return jsonOk({ action: 'rename', moved: 0 });
         if (!isAllowedAdminKey(newPrefix)) return jsonError('forbidden dest prefix', 400);
         const objects = await listAll(prefix);
-        const moved: { from: string; to: string }[] = [];
-        const failed: { key: string; reason: string }[] = [];
-        for (const o of objects) {
+        const result = await parallelMap(objects, 8, async (o) => {
           const dest = newPrefix + o.Key.slice(prefix.length);
-          try {
-            await moveObject(o.Key, dest);
-            moved.push({ from: o.Key, to: dest });
-          } catch (err) {
-            failed.push({ key: o.Key, reason: (err as Error).message });
-          }
-        }
-        await logAction(adminEmail, 'rename', prefix, moved.length, { to: newPrefix, failed: failed.length });
-        return jsonOk({ action: 'rename', moved: moved.length, failed, prefix: newPrefix });
+          await moveObject(o.Key, dest);
+          return { from: o.Key, to: dest };
+        });
+        await logAction(adminEmail, 'rename', prefix, result.ok.length, { to: newPrefix, failed: result.failed.length });
+        return jsonOk({ action: 'rename', moved: result.ok.length, failed: result.failed.map((f) => ({ key: f.item.Key, reason: f.reason })), prefix: newPrefix });
       }
 
       return jsonError('key or prefix is required', 400);

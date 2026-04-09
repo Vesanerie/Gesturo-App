@@ -245,6 +245,56 @@ export async function requireAdmin(req: Request): Promise<string> {
   }
 }
 
+// Run an async task on each item with bounded concurrency.
+// Returns { ok: T[], failed: { item, reason }[] }.
+export async function parallelMap<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<{ ok: R[]; failed: { item: T; reason: string }[] }> {
+  const ok: R[] = [];
+  const failed: { item: T; reason: string }[] = [];
+  let i = 0;
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      const item = items[idx];
+      try {
+        ok.push(await fn(item));
+      } catch (err) {
+        failed.push({ item, reason: (err as Error).message });
+      }
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, worker);
+  await Promise.all(workers);
+  return { ok, failed };
+}
+
+// Stats récursifs par root admin (count + total bytes).
+export async function computeStats(roots: string[]) {
+  const client = r2Client();
+  const bucket = Deno.env.get('R2_BUCKET')!;
+  const out: Record<string, { count: number; bytes: number }> = {};
+  for (const root of roots) {
+    let count = 0; let bytes = 0;
+    let token: string | undefined;
+    do {
+      const res = await client.send(new ListObjectsV2Command({
+        Bucket: bucket, Prefix: root, ContinuationToken: token,
+      }));
+      for (const o of res.Contents || []) {
+        if (!o.Key || o.Key.endsWith('/.keep')) continue;
+        count++;
+        bytes += o.Size || 0;
+      }
+      token = res.NextContinuationToken;
+    } while (token);
+    out[root] = { count, bytes };
+  }
+  return out;
+}
+
 // Insert a row into admin_audit_log via the service role REST endpoint.
 // Best-effort: a logging failure must NEVER block the underlying admin action.
 export async function logAction(

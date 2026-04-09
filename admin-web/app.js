@@ -58,7 +58,8 @@ function onLoggedIn(session) {
   $('user-email').textContent = session.user.email || '';
   show('admin');
   loadGrid();
-  loadGlobalStats();
+  // Stats globales = listing récursif coûteux. Affiché en idle, déclenché à la demande.
+  $('global-stats').textContent = '📊 Cliquer pour calculer';
 }
 
 async function loadGlobalStats() {
@@ -78,6 +79,7 @@ async function loadGlobalStats() {
     });
     if (!res.ok) { el.textContent = '📊 erreur'; return; }
     const data = await res.json();
+    if (!data || !data.roots) { el.textContent = '📊 erreur'; return; }
     const s = data.roots['Sessions/'] || { count: 0, bytes: 0 };
     const a = data.roots['Animations/'] || { count: 0, bytes: 0 };
     const total = s.bytes + a.bytes;
@@ -498,14 +500,57 @@ function splitSelection() {
 // Lance une action sur la sélection mixte (fichiers + dossiers).
 // Le backend admin-r2 accepte EITHER {keys} OR {prefix} par appel — donc on
 // fait 1 appel pour les fichiers + 1 appel par dossier, en parallèle.
+// Agrège les résultats en UN SEUL toast et fait UN SEUL loadGrid à la fin.
 async function callAdminOnSelection(action, busyMsg) {
   const { keys, prefixes } = splitSelection();
   if (keys.length === 0 && prefixes.length === 0) return;
   if (busyMsg) toast(busyMsg);
   const calls = [];
-  if (keys.length > 0) calls.push(callAdmin(action, { keys }, null));
-  for (const prefix of prefixes) calls.push(callAdmin(action, { prefix }, null));
-  await Promise.all(calls);
+  if (keys.length > 0) calls.push(rawCallAdmin(action, { keys }));
+  for (const prefix of prefixes) calls.push(rawCallAdmin(action, { prefix }));
+  const results = await Promise.all(calls);
+  let totalOk = 0, totalFail = 0, networkErrors = 0;
+  for (const r of results) {
+    if (r.networkError) { networkErrors++; continue; }
+    if (r.httpError) { totalFail++; continue; }
+    totalOk += r.ok || 0;
+    totalFail += r.failed || 0;
+  }
+  if (networkErrors > 0) {
+    toast(`Erreur réseau sur ${networkErrors} appel(s)`, 'err', 6000);
+  } else {
+    toast(
+      `✓ ${totalOk} ok${totalFail ? ` · ${totalFail} échec(s)` : ''}`,
+      totalFail ? 'err' : 'ok',
+    );
+  }
+  loadGrid();
+}
+
+// Variante "raw" de callAdmin : ne déclenche ni toast ni loadGrid, retourne
+// un résultat structuré utilisable par l'agrégateur callAdminOnSelection.
+async function rawCallAdmin(action, body) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return { networkError: true };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action, ...body }),
+    });
+    if (!res.ok) return { httpError: true, status: res.status };
+    const data = await res.json();
+    return {
+      ok: data.moved ?? data.count ?? 0,
+      failed: (data.failed && data.failed.length) || 0,
+    };
+  } catch {
+    return { networkError: true };
+  }
 }
 
 // ── Selection / action bar ──────────────────────────────────────────────────
