@@ -69,3 +69,158 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
 .btn-start:disabled { opacity: 0.3; cursor: not-allowed; }
 #start-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px 20px 24px; background: linear-gradient(transparent, #0f1923 40%); z-index: 100; display: flex; justify-content: center; }
 #start-bar .btn-start { width: 540px; max-width: calc(100% - 40px); }
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE — Config (≤768px)
+
+   Stratégie : container fluide, mode-tabs scrollables horizontalement,
+   cards en accordion (h3 cliquable, .collapsed cache le contenu),
+   tap zones ≥44px partout, start-bar avec safe-area-inset.
+
+   ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #screen-config { padding: 20px 14px; }
+  .config-inner {
+    width: 100%;
+    max-width: 100%;
+    padding-bottom: 120px;
+  }
+  .config-inner h1 { font-size: 38px; letter-spacing: -1px; }
+  .config-inner .subtitle { font-size: 12px; margin-bottom: 18px; }
+
+  /* Mode tabs : strip scrollable horizontalement, snap par onglet */
+  #screen-config .mode-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-radius: 12px;
+  }
+  #screen-config .mode-tabs::-webkit-scrollbar { display: none; }
+  #screen-config .mode-tab {
+    flex: none;
+    min-width: auto;
+    padding: 0 18px;
+    height: 48px;
+    font-size: 13px;
+    scroll-snap-align: start;
+  }
+
+  /* Cards : header h3 cliquable, chevron, collapsed via JS */
+  #screen-config .card {
+    padding: 0;
+    overflow: hidden;
+  }
+  #screen-config .card h3 {
+    margin: 0;
+    padding: 18px 18px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    color: #6a8aaa;
+    font-size: 11px;
+  }
+  #screen-config .card h3::after {
+    content: '▾';
+    font-size: 14px;
+    color: #3a5570;
+    transition: transform 0.2s ease;
+  }
+  #screen-config .card.collapsed h3::after {
+    transform: rotate(-90deg);
+  }
+  /* Le contenu de la card (tout sauf le h3) — wrappé par JS dans .card-body.
+     On gère la collapse via max-height pour avoir une transition douce. */
+  #screen-config .card .card-body {
+    padding: 0 18px 18px;
+    transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
+    overflow: hidden;
+  }
+  #screen-config .card.collapsed .card-body {
+    max-height: 0 !important;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  /* Tap zones ≥44px sur les contrôles Pose/Anim */
+  #screen-config .cat-chip {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  #screen-config #categories-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #screen-config .chip {
+    min-height: 44px;
+    padding: 11px 18px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 14px;
+  }
+  #screen-config .chips { gap: 8px; }
+
+  #screen-config .sub-mode-cards { gap: 10px; }
+  #screen-config .sub-mode-card {
+    padding: 16px 14px;
+    min-height: 72px;
+  }
+  #screen-config .sub-mode-card .t { font-size: 15px; }
+  #screen-config .sub-mode-card .d { font-size: 12px; }
+  /* Les anim sub-mode ont parfois 3 colonnes — trop serré sur phone */
+  #screen-config #anim-options .sub-mode-cards {
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 6px;
+  }
+  #screen-config #anim-options .sub-mode-card { padding: 12px 8px; min-height: 80px; }
+  #screen-config #anim-options .sub-mode-card .t { font-size: 13px; }
+  #screen-config #anim-options .sub-mode-card .d { font-size: 11px; line-height: 1.35; }
+
+  /* Inputs number/select : 44px hauteur, 16px font (évite zoom iOS) */
+  #screen-config input[type=number],
+  #screen-config select {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+  #screen-config .row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  #screen-config .row label {
+    min-width: 0;
+    flex: 1;
+    font-size: 13px;
+  }
+
+  /* Range slider plus épais */
+  #screen-config input[type=range] { height: 32px; }
+  #screen-config .fps-row { flex-wrap: wrap; }
+  #screen-config .fps-row label { min-width: 70px; }
+
+  /* Folder buttons / source admin */
+  #screen-config .folder-btn { min-height: 44px; padding: 12px 14px; font-size: 14px; }
+
+  /* Séquences animation : items plus hauts */
+  #screen-config .seq-item { min-height: 52px; padding: 12px 14px; }
+
+  /* Start bar : pleine largeur + safe-area-inset */
+  #screen-config + #start-bar,
+  #start-bar {
+    padding: 14px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  }
+  #start-bar .btn-start {
+    width: 100%;
+    max-width: 100%;
+    min-height: 52px;
+    font-size: 16px;
+  }
+}

@@ -17,6 +17,14 @@ body::before {
   z-index: 9998;
 }
 
+/* Mobile : le badge PRO global (#plan-badge, position fixed top:14 right:96)
+   chevauche le titre « Gesturo » sur l'écran Config et tous les écrans
+   étroits. C'est un badge de vanité, on le cache en mobile — l'utilisateur
+   sait son plan via la page profil. */
+@media (max-width: 768px) {
+  #plan-badge { display: none !important; }
+}
+
 body::after {
   content: '';
   position: fixed;

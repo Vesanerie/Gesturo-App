@@ -734,15 +734,28 @@ const IMG_CACHE_MAX = 5
 
 async function getImageSrc(entry) { if (entry.isR2) return entry.path; return 'file://' + entry.path }
 
+// Précharge les 2 prochaines poses pour éliminer le délai visible entre
+// chaque image. En mode R2, on instancie une Image() pour forcer le
+// navigateur à fetch + mettre en cache HTTP — sinon le fetch n'arrive
+// qu'au moment où le <img> visible demande l'URL, créant un blanc.
+// En mode local, on lit les bytes via Electron IPC.
 async function preloadNext(idx) {
-  const next = sessionEntries[idx + 1]; if (!next || next.type === 'pdf') return
-  const key = next.path
-  if (!imgCache.has(key)) {
-    let dataUrl
-    if (next.isR2) dataUrl = next.path
-    else dataUrl = await window.electronAPI.readFileAsBase64(next.path)
-    if (imgCache.size >= IMG_CACHE_MAX) imgCache.delete(imgCache.keys().next().value)
-    imgCache.set(key, dataUrl)
+  for (let k = 1; k <= 2; k++) {
+    const next = sessionEntries[idx + k]
+    if (!next || next.type === 'pdf') continue
+    const key = next.path
+    if (imgCache.has(key)) continue
+    if (next.isR2) {
+      const im = new Image()
+      im.src = next.path
+      imgCache.set(key, next.path)
+    } else {
+      try {
+        const dataUrl = await window.electronAPI.readFileAsBase64(next.path)
+        imgCache.set(key, dataUrl)
+      } catch (e) { continue }
+    }
+    if (imgCache.size > IMG_CACHE_MAX) imgCache.delete(imgCache.keys().next().value)
   }
 }
 
@@ -1619,5 +1632,56 @@ function toggleBadgesPanel() {
       if (cb) cb.style.display = 'none'
       return _origStartSession.apply(this, arguments)
     }
+  }
+})()
+
+// ─── MOBILE — Accordion sur les cards de l'écran Config ─────────────────
+// Sur mobile, on transforme chaque .card de #screen-config en accordéon :
+// le h3 devient un header cliquable, le reste du contenu est wrappé dans
+// un .card-body qu'on collapse/expand. Première card de chaque mode reste
+// ouverte par défaut. Desktop intouché car le CSS qui hide le body est
+// uniquement dans @media (max-width: 768px).
+;(function () {
+  function setupConfigAccordion() {
+    const screen = document.getElementById('screen-config')
+    if (!screen) return
+    const cards = screen.querySelectorAll('.card')
+    cards.forEach((card) => {
+      const h3 = card.querySelector(':scope > h3')
+      if (!h3) return
+      // Si déjà wrappé, ne pas refaire
+      if (card.querySelector(':scope > .card-body')) return
+      const body = document.createElement('div')
+      body.className = 'card-body'
+      // Déplacer tous les enfants après h3 dans body
+      let n = h3.nextSibling
+      while (n) {
+        const next = n.nextSibling
+        body.appendChild(n)
+        n = next
+      }
+      card.appendChild(body)
+      h3.addEventListener('click', () => {
+        // Accordion-only sur mobile (≤768px). Sur desktop, le clic est
+        // sans effet visible car le CSS desktop n'a pas de .collapsed.
+        if (window.innerWidth > 768) return
+        card.classList.toggle('collapsed')
+      })
+    })
+    // Première card de chaque conteneur reste ouverte, les autres collapsed
+    // (uniquement à l'init et seulement en mobile).
+    if (window.innerWidth <= 768) {
+      ['pose-options', 'anim-options'].forEach((id) => {
+        const wrap = document.getElementById(id)
+        if (!wrap) return
+        const cs = wrap.querySelectorAll('.card')
+        cs.forEach((c, i) => { if (i > 0) c.classList.add('collapsed') })
+      })
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupConfigAccordion)
+  } else {
+    setupConfigAccordion()
   }
 })()
