@@ -168,11 +168,13 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   `profiles.is_admin` aussi déjà ajoutée. Voir migration dans l'historique
   de chat / SQL editor — pas de dossier `supabase/migrations/` géré.
 
-## Refonte UI mobile (en cours, avant 1er run Android)
+## Refonte UI mobile (TERMINÉE — prête pour 1er run Android)
 
-Le user veut une UI vraiment mobile-friendly **avant** de lancer le premier
-run Android sur device. Tester sur device une UI desktop telle quelle
-n'apporte aucune info utile.
+La refonte mobile Option B est **livrée sur la branch `mobile-refonte`**.
+Les 7 écrans prévus sont tous refondus, testés en desktop (non régressé)
+et prêts pour un run Android réel. Priorité #1 suivante = lancer Android
+Studio sur device. Cette section reste en mémoire documentaire — les
+conventions établies doivent être respectées pour tout futur travail mobile.
 
 ### Décision visuelle
 
@@ -199,34 +201,19 @@ jetables) — **Option B** retenue : **mobile-first repensé**.
 - **2 systèmes de nav qui coexistent** dans le code (mode-tabs en haut sur
   desktop, bottom tab bar sur mobile), assumé.
 
-### Ordre de refonte des écrans
+### Écrans refondus (tous livrés sur `mobile-refonte`)
 
-1. ✅ **Session pose** — photo plein écran, controls flottants avec
-   backdrop-filter blur, tap-to-toggle. Voir « Conventions mobile établies »
-   ci-dessous. Pas encore committée à l'heure où ce paragraphe est écrit
-   (en attente de validation user).
-2. ⏳ **Démarrer / Config** (en cours suivant) — segmented control +
-   sections accordion
-3. **Recap** (post-session) — grille 2 colonnes phone
-4. **Animation** — structurellement comme Session, photo plein écran +
-   timeline scrollable au pouce
-5. **Cinéma** — idem
-6. **Favoris / Historique / Communauté** — grilles responsive simples,
-   accédées via bottom tab bar
-7. **Moodboard** — **désactivé sur phone, point**. Le moodboard sert de
-   référence visuelle pendant qu'on dessine — inutile sur un écran phone
-   trop petit pour être consulté à côté d'un carnet. Donc :
-   - Cacher l'accès au moodboard sous `@media (max-width: 768px)` (le
-     bottom tab bar ne l'inclut déjà pas — 4 onglets : Démarrer / Favoris
-     / Historique / Profil).
-   - Guard JS dans `src/app.js` : si `matchMedia('(max-width: 768px)')`
-     match et qu'on tente d'activer l'écran moodboard, redirect vers
-     Démarrer (au cas où un état sauvegardé / deep link y mène).
-   - Tablette (≥768px) et desktop : intouchés, `<webview>` Electron
-     continue de marcher en desktop, et la tablette aura sa propre passe
-     plus tard si besoin.
-   - **Plus besoin de fallback Capacitor InAppBrowser** — n'est plus
-     bloquant pour le 1er run Android.
+1. ✅ **Session pose** (`55d63a1`) — photo plein écran, controls flottants
+   blur, tap-to-toggle via `.controls-hidden`
+2. ✅ **Démarrer / Config** (`4bc68fd`) — segmented control + sections
+   accordion, perf preload R2
+3. ✅ **Animation** (`356bdd2`) — photo plein écran + timeline scrollable
+4. ✅ **Cinéma** (`356bdd2`) — même structure que Animation
+5. ✅ **Recap** (`9d0bf2d`) — grille 2 colonnes phone, orientation libre
+6. ✅ **Favoris / Historique / Communauté** (`579ce1f`, `f77ead3`) —
+   grilles responsive + bottom tab bar (Communauté promue en onglet)
+7. ✅ **Moodboard désactivé sur phone** (`0a19346`) — CSS hide + guard JS
+   redirect vers Démarrer. Plus besoin de fallback Capacitor InAppBrowser.
 
 ### Conventions mobile établies (à réutiliser pour les autres écrans)
 
@@ -267,16 +254,6 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   Ça marche en Chromium ≥105 (Electron 30 OK, Android WebView récent OK).
   Évite les collisions sans avoir besoin de toucher au JS global.
 
-### Fichiers déjà touchés par la refonte mobile
-
-- `main.js` — `minWidth` baissé à 360 (commit en attente)
-- `styles/screens/session.css` — bloc `@media (max-width: 768px)` ~210 lignes
-  ajouté en bas (commit en attente)
-- `src/app.js` — IIFE tap-to-toggle ajouté en bas du fichier (commit en
-  attente)
-- Aucune autre modification jusqu'ici. Les autres `styles/screens/*.css`
-  et `index.html` n'ont pas encore été touchés.
-
 ### Workflow de test pendant la refonte
 
 - **Pendant le dev** : `npm start` puis l'user **redimensionne la fenêtre
@@ -295,24 +272,11 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   après la refonte avant de bouger sur d'autres chantiers, pour valider
   les vrais gestes tactiles + safe-area-inset sur device réel.
 
-### État du chantier au début (avant refonte Session)
-
-- **Aucune `@media` query** dans `styles/` — tout à créer (Session a ouvert
-  le bal, voir « Conventions mobile établies » ci-dessous).
-- **Tailles fixes en pixels** partout (ex : `.config-inner { width: 580px }`).
-- **7 mode-tabs** en flexbox horizontal qui débordent sur phone.
-- **Tap zones à 32px** (norme tactile = 44px min).
-- **Pas de `safe-area-inset-*`** pour les notch / gesture bars.
-- **Inline styles** dans `index.html` (~30 occurrences) qui rendent les
-  media queries plus chiantes à appliquer.
-- Architecture CSS déjà bien éclatée (`styles/screens/` + `styles/components/`)
-  → on peut bosser écran par écran.
-
 ### Gotchas spécifiques mobile
 
-- **`<webview id="moodboard-webview">`** dans `index.html` : balise
-  Electron-only, n'existe pas en Android. Faut un fallback dans
-  `mobile-shim.js` avant le 1er run Android, sinon l'écran moodboard crash.
+- ✅ **`<webview id="moodboard-webview">`** : balise Electron-only.
+  Résolu en désactivant l'écran moodboard sur phone (commit `0a19346`),
+  pas besoin de fallback shim.
 - **Onclicks inline préservés** : on ne peut pas refondre vers une vraie
   architecture event delegation tant que les 74 `onclick=` de `index.html`
   ne sont pas migrés. Pour la refonte mobile on **garde** les onclicks
@@ -344,8 +308,10 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - **Table admin_audit_log** + logging dans toutes les actions admin —
   pas urgent pour usage solo mais utile en cas de doute (qui a archivé
   quoi quand).
-- **1er run Android sur device** — l'app est prête (Manifest OK, Edge
-  Functions OK, shim mobile OK). Reste à lancer Android Studio.
+- **1er run Android sur device** — ⭐ PRIORITÉ #1 ⭐ — refonte UI mobile
+  terminée, Manifest OK, Edge Functions OK, shim mobile OK. Reste juste
+  à lancer Android Studio pour valider gestes tactiles + safe-area-inset
+  + deep link auth sur device réel.
 - **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
   P1 audit, pas urgent. main.js fait ~720 lignes, encore lisible.
 - **Vrai découpage modulaire de `src/app.js`** — actuellement c'est un
