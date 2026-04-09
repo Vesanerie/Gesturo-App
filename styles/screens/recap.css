@@ -1,0 +1,34 @@
+/* ── RÉCAP ── */
+#screen-end { background: #0f1923; overflow-y: auto; }
+.end-header { flex-shrink: 0; padding: 32px 40px 20px; border-bottom: 0.5px solid #1e2d40; display: flex; align-items: center; justify-content: space-between; }
+.end-header h2 { font-size: 20px; font-weight: 600; color: #fff; }
+.end-stats-row { display: flex; gap: 24px; margin-top: 8px; }
+.end-stat { font-size: 13px; color: #4a6280; }
+.end-stat strong { color: #fff; }
+.end-btns { display: flex; gap: 8px; }
+.end-btn { border: 0.5px solid #1e2d40; border-radius: 8px; background: transparent; color: #6a8aaa; padding: 8px 18px; font-size: 13px; cursor: pointer; }
+.end-btn:hover { background: #162030; }
+.end-btn-primary:hover { background: #1a6fd4; }
+#recap-grid { padding: 24px 40px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.recap-item { position: relative; border-radius: 8px; overflow: hidden; background: #131f2e; aspect-ratio: 3/4; cursor: zoom-in; }
+.recap-item:hover { opacity: 0.85; }
+.recap-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.recap-item .recap-duration { position: absolute; bottom: 6px; right: 6px; background: rgba(10,21,32,0.8); border-radius: 4px; padding: 2px 6px; font-size: 11px; color: #6a8aaa; }
+.recap-item .recap-num { position: absolute; top: 6px; left: 6px; background: rgba(10,21,32,0.8); border-radius: 4px; padding: 2px 6px; font-size: 11px; color: #4a6280; }
+.recap-star { position: absolute; top: 6px; right: 6px; background: rgba(10,21,32,0.7); border: none; border-radius: 5px; font-size: 15px; color: #3a5570; cursor: pointer; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s, color 0.15s, transform 0.15s; line-height: 1; padding: 0; }
+.recap-item:hover .recap-star { opacity: 1; }
+.recap-star:hover { color: #f0c040; transform: scale(1.2); }
+.recap-star.faved { opacity: 1 !important; color: #f0c040; }
+.recap-star.bump { animation: star-bump 0.22s ease; }
+@keyframes star-bump { 0%{transform:scale(1)} 50%{transform:scale(1.55)} 100%{transform:scale(1)} }
+
+/* ── LIGHTBOX ── */
+#lightbox { display: none; position: fixed; inset: 0; background: rgba(5,10,18,0.95); z-index: 1000; align-items: center; justify-content: center; cursor: zoom-out; }
+#lightbox.open { display: flex; }
+#lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
+#lightbox-close { position: fixed; top: 20px; right: 24px; font-size: 28px; color: #3a5570; cursor: pointer; }
+#lightbox-close:hover { color: #fff; }
+#lightbox-info { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #4a6280; background: rgba(10,21,32,0.8); padding: 6px 14px; border-radius: 6px; }
+
+/* Récap cinéma : aspect ratio 16/9 */
+.recap-item.cinema-frame { aspect-ratio: 16/9; }

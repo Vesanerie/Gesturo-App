@@ -1,0 +1,28 @@
+/* ── FAVORIS ── */
+.fav-star-btn {
+  position: absolute; top: 14px; right: 14px;
+  background: rgba(10,21,32,0.7); border: 0.5px solid #1e2d40; border-radius: 6px;
+  color: #3a5570; width: 36px; height: 36px; cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s; z-index: 10;
+}
+.fav-star-btn:hover { background: rgba(41,131,235,0.15); color: #f0c040; }
+.fav-star-btn.active { color: #f0c040; border-color: #f0c040; }
+.fav-star-btn.bump { animation: fav-bump 0.25s ease; }
+@keyframes fav-bump { 0%{transform:scale(1)} 50%{transform:scale(1.4)} 100%{transform:scale(1)} }
+
+#screen-favs { background: #0f1923; align-items: center; overflow-y: auto; padding: 40px 20px; }
+#favs-inner { width: 580px; padding-bottom: 40px; }
+#favs-inner h2 { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+#favs-subtitle { font-size: 13px; color: #4a6280; margin-bottom: 24px; }
+#favs-empty { font-size: 14px; color: #4a6280; text-align: center; padding: 60px 0; line-height: 1.7; }
+#favs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.fav-item { position: relative; border-radius: 8px; overflow: hidden; background: #131f2e; aspect-ratio: 3/4; cursor: zoom-in; }
+.fav-item:hover .fav-remove { opacity: 1; }
+.fav-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fav-item .fav-label { position: absolute; bottom: 6px; left: 6px; background: rgba(10,21,32,0.8); border-radius: 4px; padding: 2px 6px; font-size: 11px; color: #f0c040; }
+.fav-remove { position: absolute; top: 6px; right: 6px; background: rgba(10,21,32,0.8); border: none; border-radius: 4px; color: #4a6280; font-size: 13px; cursor: pointer; padding: 3px 6px; opacity: 0; transition: opacity 0.15s, color 0.15s; }
+.fav-remove:hover { color: #E24B4A; }
+
+#lb-fav-remove { position: fixed; bottom: 24px; right: 24px; background: rgba(80,20,20,0.85); border: 0.5px solid #5a1f1f; border-radius: 8px; color: #E24B4A; font-size: 13px; padding: 7px 14px; cursor: pointer; display: none; }
+#lb-fav-remove:hover { background: rgba(226,75,74,0.2); }

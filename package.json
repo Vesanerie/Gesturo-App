@@ -34,6 +34,7 @@
       "preload.js",
       "moodboard-preload.js",
       "moodboard/**/*",
+      "styles/**/*",
       "supabase.js",
       "config.js",
       "whitelist.json",

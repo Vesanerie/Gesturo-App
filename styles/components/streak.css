@@ -1,0 +1,10 @@
+/* ── BARRE 7 JOURS ── */
+#week-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+#week-days { display: flex; gap: 5px; flex: 1; }
+.week-day { flex: 1; height: 6px; border-radius: 99px; background: #131f2e; transition: background 0.2s; position: relative; }
+.week-day.done { background: #f0c040; }
+.week-day.today { background: #f0c040; box-shadow: 0 0 6px rgba(240,192,64,0.5); }
+.week-day.today.done { background: #f0c040; }
+.week-day.future { background: #0d1720; }
+#week-streak { font-size: 12px; color: #f0c040; font-weight: 500; white-space: nowrap; min-width: 60px; text-align: right; }
+#week-streak.zero { color: #3a5570; }

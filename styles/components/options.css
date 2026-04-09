@@ -1,0 +1,25 @@
+/* ── BOUTON OPTIONS ── */
+#options-btn { position: fixed; top: 14px; right: 14px; background: #131f2e; border: 0.5px solid #1e2d40; border-radius: 8px; color: #3a5570; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: none; align-items: center; justify-content: center; z-index: 200; line-height: 1; }
+#options-btn:hover { background: #162030; color: #6a8aaa; }
+#options-dropdown { display: none; position: fixed; top: 52px; right: 14px; background: #131f2e; border: 0.5px solid #1e2d40; border-radius: 10px; padding: 6px; z-index: 201; min-width: 210px; box-shadow: 0 8px 24px rgba(5,10,18,0.7); }
+#options-dropdown.open { display: block; }
+.opt-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #8aaccc; user-select: none; }
+.opt-item:hover { background: #162030; }
+.opt-item.danger { color: #E24B4A; }
+.opt-item.danger:hover { background: #1a0a0a; }
+
+/* About modal */
+#about-modal { display:none; position:fixed; inset:0; background:rgba(5,10,18,0.85); z-index:9999; align-items:center; justify-content:center; }
+#about-modal.open { display:flex; }
+.about-box { background:#131f2e; border:0.5px solid #1e2d40; border-radius:16px; padding:28px; width:320px; }
+.about-box h3 { font-size:16px; font-weight:600; color:#fff; margin-bottom:16px; }
+.about-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:0.5px solid #1e2d40; font-size:13px; }
+.about-row:last-of-type { border-bottom:none; }
+.about-row .label { color:#4a6280; }
+.about-row .value { color:#fff; font-weight:500; }
+.about-row .value.pro { color:#f0c040; }
+.about-row .value.free { color:#3a5570; }
+.about-close { width:100%; margin-top:16px; padding:10px; background:#162030; border:0.5px solid #1e2d40; border-radius:8px; color:#6a8aaa; font-size:13px; cursor:pointer; }
+.about-close:hover { background:#1a2840; }
+.about-upgrade { width:100%; margin-top:8px; padding:10px; background:#2983eb; border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+.about-upgrade:hover { background:#1a6fd4; }
