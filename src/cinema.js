@@ -18,7 +18,7 @@ const FILMS = {
 }
 
 let cinemaState = {
-  film: null, frameCount: 10, frames: [], index: 0,
+  film: null, frameCount: 10, frames: [], index: 0, maxIndex: 0,
   gridVisible: false, bwMode: false, flipH: false,
 }
 
@@ -69,7 +69,7 @@ function startCinemaSession() {
     [allNums[i], allNums[j]] = [allNums[j], allNums[i]]
   }
   cinemaState.frames = allNums.slice(0, count)
-  cinemaState.index = 0; cinemaState.gridVisible = false; cinemaState.bwMode = false; cinemaState.flipH = false
+  cinemaState.index = 0; cinemaState.maxIndex = 0; cinemaState.gridVisible = false; cinemaState.bwMode = false; cinemaState.flipH = false
   showScreen('screen-cinema')
   document.getElementById('cinema-film-badge').textContent = film.title
   document.getElementById('cinema-film-name').textContent = film.title
@@ -79,6 +79,7 @@ function startCinemaSession() {
 }
 
 function cinemaLoadFrame() {
+  if (cinemaState.index > cinemaState.maxIndex) cinemaState.maxIndex = cinemaState.index
   const film = FILMS[cinemaState.film]
   const num = cinemaState.frames[cinemaState.index]
   const url = `${film.base}${film.prefix}${num}${film.suffix}`
@@ -118,17 +119,18 @@ function cinemaPrev() {
 // PATCH 3 : endCinemaSession avec récap
 function endCinemaSession() {
   const film = FILMS[cinemaState.film]
+  const viewedFrames = cinemaState.frames.slice(0, cinemaState.maxIndex + 1)
   // Header récap
   document.getElementById('recap-title').textContent = '🎬 ' + film.title
-  document.getElementById('stat-poses').textContent = cinemaState.frames.length
+  document.getElementById('stat-poses').textContent = viewedFrames.length
   document.getElementById('stat-poses-label').textContent = 'frames'
   document.getElementById('stat-time').textContent = film.title
   document.getElementById('stat-time-label').textContent = ''
   // Log session cinéma
-  logSession({ type: 'cinema', poses: cinemaState.frames.length, minutes: 0, film: film.title })
+  logSession({ type: 'cinema', poses: viewedFrames.length, minutes: 0, film: film.title })
   // Grille récap
   const grid = document.getElementById('recap-grid'); grid.innerHTML = ''
-  cinemaState.frames.forEach((num, i) => {
+  viewedFrames.forEach((num, i) => {
     const url = `${film.base}${film.prefix}${num}${film.suffix}`
     const item = document.createElement('div')
     item.className = 'recap-item cinema-frame' // aspect-ratio 16/9
