@@ -68,6 +68,7 @@
     "@capacitor/core": "^8.3.0",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/ios": "^8.3.0",
+    "@capacitor/screen-orientation": "^8.0.1",
     "@supabase/supabase-js": "^2.101.1",
     "dotenv": "^17.4.0",
     "electron-updater": "^6.8.3"

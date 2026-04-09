@@ -15,6 +15,18 @@
   const noop = () => {};
   const reject = (msg) => () => Promise.reject(new Error(msg + ' (not available on mobile)'));
 
+  // Screen orientation helpers — exposés sur window pour que src/app.js
+  // les appelle depuis showScreen() sans connaître Capacitor.
+  // Sur desktop Electron (où ce shim ne tourne pas), les helpers sont
+  // déjà installés en no-op via preload — voir fallback ci-dessous.
+  const SO = plugins.ScreenOrientation;
+  window.__lockPortrait = async () => {
+    try { if (SO && SO.lock) await SO.lock({ orientation: 'portrait' }); } catch (e) {}
+  };
+  window.__unlockOrientation = async () => {
+    try { if (SO && SO.unlock) await SO.unlock(); } catch (e) {}
+  };
+
   const openExternal = async (url) => {
     try {
       if (plugins.Browser && plugins.Browser.open) {

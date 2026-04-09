@@ -110,6 +110,10 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
   /* Moodboard utilise une <webview> Electron qui n'existe pas en Android
      WebView. On cache l'onglet sur mobile pour éviter un crash si tap. */
   #screen-config #tab-moodboard { display: none; }
+  /* Historique : sémantiquement c'est de la consultation, pas un mode de
+     session. Sur mobile on le sort du segmented et on l'expose via le
+     menu options (⋯). Permet aussi au segmented de tenir sans déborder. */
+  #screen-config #tab-hist { display: none; }
 
   /* Cards : header h3 cliquable, chevron, collapsed via JS */
   #screen-config .card {

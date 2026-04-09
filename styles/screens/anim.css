@@ -72,38 +72,94 @@
   #screen-anim #timeline-inner { gap: 4px; padding-bottom: 6px; }
   #screen-anim .thumb-item { width: 44px; height: 60px; }
 
-  /* Controls bar : wrap, gap réduit, tap zones ≥44px */
+  /* Controls bar : une seule rangée propre, nom de séquence au-dessus */
   #screen-anim #anim-controls-bar {
     flex-wrap: wrap;
     gap: 6px;
-    padding: 6px 10px 10px;
+    padding: 4px 10px 10px;
     justify-content: center;
+    align-items: center;
   }
   #screen-anim #anim-seq-name {
     flex: 1 1 100%;
     text-align: center;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 11px;
-    margin-bottom: 2px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 2px 0 4px;
+    padding: 0 8px;
   }
   #screen-anim #anim-controls-bar .s-btn {
     min-height: 44px;
+    min-width: 44px;
     padding: 10px 14px;
     background: rgba(255, 255, 255, 0.06);
     border: 0.5px solid rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.85);
     font-size: 13px;
+    font-weight: 500;
     border-radius: 12px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
   }
+  /* Terminer reste inline dans la rangée, à la suite de Pause / ← / →,
+     même look transparent que les autres (la couleur rouge suffit). */
   #screen-anim #anim-controls-bar .s-btn-danger {
+    background: transparent;
+    border: none;
     color: #E24B4A;
-    border-color: rgba(226, 75, 74, 0.3);
   }
 
-  /* Study timer compact */
-  #screen-anim #study-timer-wrap { gap: 8px; }
-  #screen-anim #study-timer { font-size: 22px; min-width: 56px; }
-  #screen-anim #study-prog-wrap { width: 60px; }
+  /* Confirm bar "Terminer ?" → modale plein écran centrée
+     (même pattern que session pose) */
+  #screen-anim #anim-confirm-bar {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 12, 22, 0.88);
+    -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 30px;
+    z-index: 600;
+  }
+  #screen-anim #anim-confirm-bar span {
+    font-size: 18px;
+    color: #fff;
+    font-weight: 500;
+  }
+  #screen-anim #anim-confirm-bar .s-btn {
+    width: 220px;
+    min-height: 48px;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+  }
+  #screen-anim #anim-confirm-bar .s-btn-danger-solid {
+    background: #E24B4A;
+    color: #fff;
+    border-color: #E24B4A;
+  }
+
+  /* Study timer wrap : prend toute la largeur, centré, au-dessus des boutons */
+  #screen-anim #study-timer-wrap {
+    flex: 1 1 100%;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  #screen-anim #study-timer { font-size: 26px; min-width: auto; }
+  #screen-anim #study-prog-wrap { width: 100px; }
 
   /* Mode badge → pill flottante en haut centre */
   #screen-anim #anim-mode-badge {
@@ -158,4 +214,18 @@
   body:has(#screen-anim.active) #discord-btn {
     display: none !important;
   }
+}
+
+/* Paysage court : compacter la bar flottante anim */
+@media (max-width: 932px) and (orientation: landscape) and (max-height: 500px) {
+  #screen-anim #anim-bar {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+    left: 6px;
+    right: 6px;
+  }
+  #screen-anim .thumb-item { width: 38px; height: 50px; }
+  #screen-anim #timeline-wrap { padding: 6px 10px 0; }
+  #screen-anim #anim-controls-bar { padding: 4px 10px 6px; }
+  #screen-anim #anim-seq-name { display: none; }
+  #screen-anim #study-timer { font-size: 20px; }
 }

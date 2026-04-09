@@ -162,3 +162,16 @@
     display: none !important;
   }
 }
+
+/* Paysage court : compacter la bar flottante cinéma */
+@media (max-width: 932px) and (orientation: landscape) and (max-height: 500px) {
+  #screen-cinema #cinema-bar {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+    padding: 6px 10px;
+  }
+  #screen-cinema #cinema-bar .s-btn {
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}

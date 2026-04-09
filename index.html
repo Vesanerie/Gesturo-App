@@ -33,6 +33,7 @@
 </a>
 <button id="options-btn" onclick="toggleOptions()">⋯</button>
 <div id="options-dropdown">
+  <div class="opt-item" onclick="toggleOptions(); switchMainMode('hist')">📈 Historique</div>
   <div class="opt-item" onclick="handleLogout()">🚪 Se déconnecter</div>
   <div class="opt-item danger" onclick="confirmResetHistory()">🗑 Réinitialiser l'historique</div>
   <div class="opt-item" onclick="showAbout()">ℹ️ À propos</div>
@@ -373,8 +374,13 @@
       <button class="s-btn" id="btn-anim-pause" onclick="toggleAnimLoop()" style="display:none">Pause</button>
       <button class="s-btn" id="btn-anim-prev" onclick="animPrevFrame()" style="display:none" disabled>←</button>
       <button class="s-btn" id="btn-anim-next" onclick="animNextFrame()" style="display:none" disabled>→</button>
-      <button class="s-btn s-btn-danger" onclick="askEndAnim()">Terminer</button>
+      <button class="s-btn s-btn-danger" onclick="document.getElementById('anim-confirm-bar').style.display='flex'">Terminer</button>
     </div>
+  </div>
+  <div id="anim-confirm-bar" style="display:none">
+    <span>Terminer la session ?</span>
+    <button class="s-btn s-btn-danger-solid" onclick="document.getElementById('anim-confirm-bar').style.display='none'; askEndAnim()">Oui, terminer</button>
+    <button class="s-btn" onclick="document.getElementById('anim-confirm-bar').style.display='none'">Annuler</button>
   </div>
 </div>
 

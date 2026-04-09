@@ -171,6 +171,15 @@ function showScreen(id) {
   const badge = document.getElementById('plan-badge')
   if (badge) badge.style.display = (visible && badge.textContent.trim()) ? 'flex' : 'none'
   document.getElementById('options-dropdown').classList.remove('open')
+  // Orientation : libre sur les écrans où la photo est plein écran
+  // (pose / animation / cinéma), lock portrait ailleurs. Sur desktop
+  // Electron les helpers sont absents = no-op silencieux.
+  const FREE_ORIENTATION = ['screen-session', 'screen-anim', 'screen-cinema']
+  if (FREE_ORIENTATION.includes(id)) {
+    if (window.__unlockOrientation) window.__unlockOrientation()
+  } else {
+    if (window.__lockPortrait) window.__lockPortrait()
+  }
 }
 
 function applyTransform() {

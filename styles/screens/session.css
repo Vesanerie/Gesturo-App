@@ -140,6 +140,11 @@
     font-size: 13px;
     font-weight: 500;
     border-radius: 16px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
   }
   #screen-session #controls .s-btn:hover { background: rgba(255, 255, 255, 0.05); }
   #screen-session #controls .s-btn-danger { color: #E24B4A; }
@@ -246,8 +251,9 @@
   #screen-session #photo-area #phase-badge {
     transition: opacity 0.22s ease, transform 0.22s ease;
   }
+  /* Le timer reste TOUJOURS visible — c'est l'info la plus critique
+     pendant une session, on ne la cache jamais avec le tap-to-hide. */
   #screen-session.controls-hidden #info-block,
-  #screen-session.controls-hidden #timer-block,
   #screen-session.controls-hidden #controls,
   #screen-session.controls-hidden #photo-area .fav-star-btn,
   #screen-session.controls-hidden #photo-area #transform-controls,
@@ -277,4 +283,23 @@
     70% { opacity: 1; }
     100% { opacity: 0; }
   }
+}
+
+/* Paysage court (téléphone tourné) : compacter timer / dock pour ne pas
+   bouffer la photo. Cible Session uniquement. */
+@media (max-width: 932px) and (orientation: landscape) and (max-height: 500px) {
+  #screen-session #timer-block {
+    top: calc(env(safe-area-inset-top, 0px) + 6px);
+    padding: 6px 14px;
+    min-width: 90px;
+  }
+  #screen-session #timer-display { font-size: 22px; }
+  #screen-session #controls {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  }
+  #screen-session #info-block {
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    padding: 5px 11px;
+  }
+  #screen-session.controls-hidden.show-hint #photo-area::after { display: none; }
 }
