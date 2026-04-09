@@ -151,7 +151,7 @@ let moodboardLoaded = false
 async function openMoodboard() {
   // Désactivé sur phone : <webview> = Electron-only et un écran phone est trop
   // petit pour servir de référence visuelle pendant qu'on dessine. Cf. CLAUDE.md.
-  if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+  if (window.matchMedia && window.matchMedia('(max-width: 1199px)').matches) {
     showScreen('screen-config')
     return
   }
@@ -315,7 +315,18 @@ async function loadR2(isPro) {
     document.getElementById('btn-start').disabled = allEntries.length === 0
   } catch(e) {
     console.error('loadR2 error:', e)
-    document.getElementById('file-count').textContent = '❌ Erreur de chargement R2'
+    const msg = (e && e.message) || String(e)
+    // Si l'Edge Function renvoie 401, c'est généralement une session expirée
+    // ou un compte sans entrée profiles. On le dit clairement au user au lieu
+    // de l'ancien faux "0 photos chargées ✓".
+    const is401 = /\b401\b/.test(msg)
+    const hint = is401
+      ? '❌ Session expirée — déconnecte-toi puis reconnecte-toi'
+      : '❌ Erreur de chargement R2 : ' + msg
+    document.getElementById('file-count').textContent = hint
+    const r2Status = document.getElementById('r2-status')
+    if (r2Status) r2Status.textContent = hint
+    document.getElementById('btn-start').disabled = true
   }
 }
 
@@ -1618,8 +1629,8 @@ function toggleBadgesPanel() {
   }
 }
 
-// ─── MOBILE — tap-to-toggle des controls flottants sur écran Session ────
-// Sur mobile (≤768px), tap sur la photo pour cacher / révéler les flottants
+// ─── MOBILE + TABLET — tap-to-toggle des controls flottants sur Session ─
+// Sur mobile (≤767px) ET tablet (768-1199px), tap sur la photo pour
 // (timer, dock, transform, fav). Comportement standard apps photo natives.
 // Le clic est ignoré si on a tapé un vrai bouton (pour ne pas interférer).
 ;(function () {
