@@ -303,3 +303,182 @@
   }
   #screen-session.controls-hidden.show-hint #photo-area::after { display: none; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   TABLET — Session pose (768-1199px)
+
+   Même principe qu'en mobile (photo plein écran, controls flottants),
+   mais avec des contrôles plus gros adaptés à la surface tactile de
+   l'iPad et pas de sidebar (immersion totale pendant le dessin).
+   Le tap-to-toggle de .controls-hidden fonctionne sans modif JS — la
+   classe CSS existe déjà, il suffit de la styler à cette taille.
+
+   ⚠ Aucune règle ici ne doit fuiter sur le desktop ni sur le mobile.
+   ───────────────────────────────────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1199px) {
+  #screen-session { position: relative; }
+
+  /* Le calque container : couvre tout, ne capte pas les clics par défaut. */
+  #screen-session #session-bar {
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    border-top: none;
+    padding: 0;
+    display: block;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* Cercle countdown caché (on a le timer-block plus gros en tablet) */
+  #screen-session #countdown-circle { display: none; }
+
+  /* Info block (counter / mode) → pill flottante top-left, plus gros
+     qu'en mobile */
+  #screen-session #info-block {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    left: 24px;
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+    padding: 10px 20px;
+    pointer-events: auto;
+    flex: none;
+  }
+  #screen-session #session-info { font-size: 14px; color: #fff; font-weight: 500; }
+  #screen-session #mode-label { font-size: 12px; color: rgba(255, 255, 255, 0.55); margin-top: 2px; }
+
+  /* Timer → carte flottante top-center, plus imposante qu'en mobile */
+  #screen-session #timer-block {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 21, 32, 0.58);
+    -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 14px 28px;
+    min-width: 160px;
+    pointer-events: auto;
+  }
+  #screen-session #timer-display { font-size: 42px; }
+  #screen-session #prog-wrap { margin-top: 8px; }
+
+  /* Controls → dock flottante bottom-center, boutons plus grands */
+  #screen-session #controls {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 21, 32, 0.65);
+    -webkit-backdrop-filter: blur(22px);
+            backdrop-filter: blur(22px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 26px;
+    padding: 8px 12px;
+    gap: 4px;
+    pointer-events: auto;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+  #screen-session #controls .s-btn {
+    min-height: 52px;
+    min-width: 56px;
+    padding: 14px 20px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 18px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  #screen-session #controls .s-btn:hover { background: rgba(255, 255, 255, 0.06); }
+  #screen-session #controls .s-btn-danger { color: #E24B4A; }
+  #screen-session #controls .s-btn:disabled { opacity: 0.35; }
+
+  /* Confirm "Terminer ?" → modale plein écran centrée */
+  #screen-session #confirm-bar {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 12, 22, 0.88);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    flex-direction: column;
+    justify-content: center;
+    gap: 28px;
+    padding: 40px;
+    z-index: 600;
+    pointer-events: auto;
+  }
+  #screen-session #confirm-bar span {
+    font-size: 22px;
+    color: #fff;
+    font-weight: 500;
+  }
+  #screen-session #confirm-bar .s-btn {
+    width: 280px;
+    padding: 18px;
+    font-size: 16px;
+    border-radius: 14px;
+  }
+
+  /* Transform controls (grille / N&B / miroir / rotation) → colonne
+     verticale au milieu droit, boutons plus grands qu'en mobile */
+  #screen-session #photo-area #transform-controls {
+    bottom: auto;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: 10px;
+  }
+  #screen-session #photo-area .transform-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+    background: rgba(10, 21, 32, 0.6);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Phase badge (préparation / dessin) */
+  #screen-session #phase-badge {
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    left: 24px;
+    font-size: 13px;
+    padding: 7px 14px;
+    background: rgba(10, 21, 32, 0.6);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+  }
+
+  /* Tap-to-toggle : quand .controls-hidden est actif, fade out tous les
+     overlays. Même logique qu'en mobile. */
+  #screen-session.controls-hidden #info-block,
+  #screen-session.controls-hidden #timer-block,
+  #screen-session.controls-hidden #controls,
+  #screen-session.controls-hidden #transform-controls,
+  #screen-session.controls-hidden #phase-badge {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  #screen-session:not(.controls-hidden) #info-block,
+  #screen-session:not(.controls-hidden) #timer-block,
+  #screen-session:not(.controls-hidden) #controls,
+  #screen-session:not(.controls-hidden) #transform-controls,
+  #screen-session:not(.controls-hidden) #phase-badge {
+    transition: opacity 0.3s ease;
+  }
+}
+
