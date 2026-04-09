@@ -1,6 +1,21 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 ::-webkit-scrollbar { display: none; }
 
+/* Mobile polish : supprimer le flash gris/bleu des taps sur Android WebView
+   + iOS Safari. Zéro impact desktop (la propriété est -webkit- only). */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Mobile polish : empêcher la sélection de texte au long-press sur les
+   boutons (évite le popup "Copier" intempestif). Inputs/textarea non
+   concernés. */
+@media (max-width: 768px) {
+  button, .bottom-tab, .s-btn, .transform-btn {
+    -webkit-user-select: none;
+            user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1923; color: #e0e0e0; height: 100vh; overflow: hidden; }
 .screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
 .screen.active { display: flex; }
