@@ -71,8 +71,12 @@
     let isPro = false;
     try {
       const sb = await getSupabase();
-      const { data } = await sb.from('profiles').select('is_pro').eq('email', email).maybeSingle();
-      isPro = !!(data && data.is_pro);
+      // Mirror desktop semantics (cf. resolveIsPro in supabase/functions/_shared/r2.ts):
+      // plan === 'pro' et pro_expires_at non dépassé.
+      const { data } = await sb.from('profiles').select('plan,pro_expires_at').eq('email', email).maybeSingle();
+      if (data && data.plan === 'pro') {
+        isPro = !data.pro_expires_at || new Date(data.pro_expires_at) > new Date();
+      }
     } catch (e) {}
     return {
       authenticated: true,
