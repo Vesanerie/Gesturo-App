@@ -220,6 +220,133 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+   TABLET — Animation (768-1199px)
+
+   Même philosophie que mobile (photo plein écran, bar flottante avec
+   timeline + controls), mais avec des thumbs plus grands et des
+   controls XL adaptés à la surface tactile tablet.
+   ───────────────────────────────────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1199px) {
+  #screen-anim { position: relative; }
+
+  /* Bar flottante en bas avec backdrop blur, plus large */
+  #screen-anim #anim-bar {
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 22px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    z-index: 20;
+  }
+
+  /* Timeline scrollable, thumbs plus grands (64×86) */
+  #screen-anim #timeline-wrap { padding: 14px 18px 0; }
+  #screen-anim #timeline-inner { gap: 6px; padding-bottom: 8px; }
+  #screen-anim .thumb-item { width: 64px; height: 86px; border-radius: 6px; }
+  #screen-anim .thumb-num { font-size: 10px; bottom: 3px; }
+
+  /* Controls bar : une rangée, plus aérée */
+  #screen-anim #anim-controls-bar {
+    gap: 10px;
+    padding: 10px 18px 14px;
+    justify-content: center;
+    align-items: center;
+  }
+  #screen-anim #anim-seq-name {
+    flex: 0 1 auto;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
+  #screen-anim #anim-controls-bar .s-btn {
+    min-height: 48px;
+    min-width: 52px;
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 14px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  #screen-anim #anim-controls-bar .s-btn-danger {
+    background: transparent;
+    border: none;
+    color: #E24B4A;
+  }
+
+  /* Study timer plus grand */
+  #screen-anim #study-timer-wrap { gap: 14px; }
+  #screen-anim #study-timer { font-size: 32px; min-width: 80px; }
+  #screen-anim #study-prog-wrap { width: 120px; }
+
+  /* Mode badge → pill flottante en haut centre, plus visible */
+  #screen-anim #anim-mode-badge {
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+    padding: 9px 20px;
+    font-size: 13px;
+  }
+
+  /* Frame info → top-left pill */
+  #screen-anim #anim-frame-info {
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    left: 24px;
+    right: auto;
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 99px;
+    padding: 8px 16px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 12px;
+  }
+
+  /* Fav top-right plus gros */
+  #screen-anim #anim-photo-area .fav-star-btn {
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    right: 24px;
+    bottom: auto;
+    left: auto;
+    width: 52px;
+    height: 52px;
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    font-size: 22px;
+  }
+
+  /* Big play button plus imposant */
+  #screen-anim .anim-big-btn { width: 104px; height: 104px; font-size: 40px; }
+
+  /* Cacher les boutons globaux sur Anim */
+  body:has(#screen-anim.active) #options-btn,
+  body:has(#screen-anim.active) #discord-btn {
+    display: none !important;
+  }
+}
+
 /* Paysage court : compacter la bar flottante anim */
 @media (max-width: 932px) and (orientation: landscape) and (max-height: 500px) {
   #screen-anim #anim-bar {
