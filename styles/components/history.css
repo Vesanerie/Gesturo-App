@@ -16,3 +16,43 @@
 .hist-session-meta { font-size: 11px; color: #3a5570; margin-top: 2px; }
 .hist-session-time { font-size: 11px; color: #3a5570; white-space: nowrap; }
 #hist-empty { font-size: 13px; color: #3a5570; text-align: center; padding: 30px 0; display: none; }
+
+/* ══════════════════════════════════════════════════════════════
+   MOBILE — Historique (≤768px)
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  #hist-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .hist-stat-card {
+    padding: 14px 14px;
+    border-radius: 12px;
+  }
+  .hist-stat-card .hsc-val { font-size: 24px; }
+  .hist-stat-card .hsc-label { font-size: 10px; }
+
+  .hist-period-tabs { gap: 6px; margin-bottom: 12px; }
+  .hist-period-tab {
+    flex: 1;
+    min-height: 40px;
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  .hist-session-row {
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+  }
+  .hist-session-info { font-size: 14px; }
+  .hist-session-meta { font-size: 12px; margin-top: 3px; }
+  .hist-session-time { font-size: 12px; }
+
+  #badges-panel {
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+}
