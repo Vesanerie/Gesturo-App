@@ -38,3 +38,124 @@
 #study-timer.warning { color: #E24B4A; }
 #study-prog-wrap { width: 80px; height: 2px; background: #1e2d40; border-radius: 99px; }
 #study-prog-bar { height: 2px; background: #2983eb; border-radius: 99px; width: 100%; transition: width 0.5s linear; }
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE — Animation (≤768px)
+
+   Stratégie : photo plein écran. Le bar bas (#anim-bar) devient un
+   overlay flottant compact qui contient la timeline scrollable + les
+   controls. Mode badge en pill top-left, fav top-right.
+
+   ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #screen-anim { position: relative; }
+
+  /* Bar flottante en bas avec backdrop blur */
+  #screen-anim #anim-bar {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(18px);
+            backdrop-filter: blur(18px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 20;
+  }
+
+  /* Timeline scrollable, plus compacte */
+  #screen-anim #timeline-wrap { padding: 10px 12px 0; }
+  #screen-anim #timeline-inner { gap: 4px; padding-bottom: 6px; }
+  #screen-anim .thumb-item { width: 44px; height: 60px; }
+
+  /* Controls bar : wrap, gap réduit, tap zones ≥44px */
+  #screen-anim #anim-controls-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 10px 10px;
+    justify-content: center;
+  }
+  #screen-anim #anim-seq-name {
+    flex: 1 1 100%;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+  #screen-anim #anim-controls-bar .s-btn {
+    min-height: 44px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    border-radius: 12px;
+  }
+  #screen-anim #anim-controls-bar .s-btn-danger {
+    color: #E24B4A;
+    border-color: rgba(226, 75, 74, 0.3);
+  }
+
+  /* Study timer compact */
+  #screen-anim #study-timer-wrap { gap: 8px; }
+  #screen-anim #study-timer { font-size: 22px; min-width: 56px; }
+  #screen-anim #study-prog-wrap { width: 60px; }
+
+  /* Mode badge → pill flottante en haut centre */
+  #screen-anim #anim-mode-badge {
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 21, 32, 0.6);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+    padding: 7px 14px;
+    font-size: 11px;
+  }
+
+  /* Frame info → top-left pill (le top-right est pris par fav) */
+  #screen-anim #anim-frame-info {
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: 14px;
+    right: auto;
+    background: rgba(10, 21, 32, 0.6);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 99px;
+    padding: 6px 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+  }
+
+  /* Fav top-right (même traitement que Session) */
+  #screen-anim #anim-photo-area .fav-star-btn {
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    right: 14px;
+    bottom: auto;
+    left: auto;
+    width: 44px;
+    height: 44px;
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    font-size: 18px;
+  }
+
+  /* Big play button reste centré, juste un poil plus petit */
+  #screen-anim .anim-big-btn { width: 72px; height: 72px; font-size: 28px; }
+
+  /* Cacher les boutons globaux sur Anim (chevauchent la mode badge centre) */
+  body:has(#screen-anim.active) #options-btn,
+  body:has(#screen-anim.active) #discord-btn {
+    display: none !important;
+  }
+}

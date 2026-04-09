@@ -29,3 +29,136 @@
 .cinema-spinner { width: 32px; height: 32px; border: 2px solid #1e2d40; border-top-color: #2983eb; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 #cinema-film-badge { position: absolute; top: 14px; left: 14px; background: rgba(10,21,32,0.8); border: 0.5px solid #1e2d40; border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #4a6280; }
+
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE — Cinéma (≤768px)
+
+   Stratégie : photo plein écran. Le tap sur la photo conserve son rôle
+   d'avancer la frame (cinemaNext()), donc PAS de tap-to-toggle ici.
+   La bar bas devient un overlay flottant compact, le film badge en pill
+   top-left, fav top-right, transform-controls colonne droite.
+
+   ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #screen-cinema { position: relative; }
+
+  /* Désactiver le hint hover desktop sur mobile (pas de hover utile) */
+  #cinema-photo-area:hover::after { content: none; }
+
+  /* Bar flottante en bas */
+  #screen-cinema #cinema-bar {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(18px);
+            backdrop-filter: blur(18px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+    z-index: 20;
+  }
+
+  #screen-cinema #cinema-frame-counter {
+    flex: 0 0 auto;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 56px;
+  }
+  #screen-cinema #cinema-film-name {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    text-align: right;
+  }
+  #screen-cinema #cinema-progress-wrap {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  #screen-cinema #cinema-bar .s-btn {
+    flex: 1;
+    min-height: 44px;
+    padding: 11px 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    border-radius: 12px;
+    order: 4;
+  }
+  #screen-cinema #cinema-bar .s-btn-blue {
+    background: rgba(41, 131, 235, 0.18);
+    border-color: rgba(41, 131, 235, 0.4);
+    color: #5b9bd5;
+  }
+  #screen-cinema #cinema-bar .s-btn-danger {
+    color: #E24B4A;
+    border-color: rgba(226, 75, 74, 0.3);
+    flex: 0 0 auto;
+    padding: 11px 14px;
+  }
+
+  /* Film badge → pill top-left */
+  #screen-cinema #cinema-film-badge {
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: 14px;
+    background: rgba(10, 21, 32, 0.6);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 99px;
+    padding: 7px 14px;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  /* Transform controls → colonne verticale milieu droit */
+  #screen-cinema #cinema-transform-controls {
+    bottom: auto;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: 8px;
+  }
+  #screen-cinema #cinema-photo-area .transform-btn {
+    width: 44px;
+    height: 44px;
+    background: rgba(10, 21, 32, 0.55);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 16px;
+    border-radius: 12px;
+  }
+
+  /* Fav top-right (même traitement que Session/Anim) */
+  #screen-cinema #cinema-photo-area .fav-star-btn {
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    right: 14px;
+    bottom: auto;
+    left: auto;
+    width: 44px;
+    height: 44px;
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    font-size: 18px;
+  }
+
+  /* Cacher les boutons globaux sur Cinéma */
+  body:has(#screen-cinema.active) #options-btn,
+  body:has(#screen-cinema.active) #discord-btn {
+    display: none !important;
+  }
+}
