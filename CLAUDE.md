@@ -11,6 +11,11 @@ et les commits incrémentaux.
 - **Backend** : Supabase (Auth + Postgres + Edge Functions Deno) + Cloudflare R2
 - **Build** : electron-builder (DMG arm64, notarize signé sur tags `v*`),
   GitHub Actions Android (debug APK artifact, JDK 21 + android-34 SDK)
+- **Admin web** : app séparée vanilla HTML/JS dans `admin-web/`, déployée
+  sur Cloudflare Pages (`gesturo-admin.pages.dev`). **JAMAIS embarquée
+  dans le DMG public** — séparation physique via la whitelist `files` de
+  package.json. Auth = magic link Supabase, gating server-side via
+  `requireAdmin()` qui lit `profiles.is_admin`.
 - Pas de TS, pas de bundler, pas de lint. Vanilla JS dans le renderer.
 
 ## Layout
@@ -59,13 +64,42 @@ capacitor.config.json
 
 supabase/functions/
   _shared/r2.ts              S3 client R2 + requireUser(JWT) + resolveIsPro
-                             (lit profiles.plan server-side).
+                             (lit profiles.plan server-side) + requireAdmin
+                             (lit profiles.is_admin) + helpers admin
+                             (browseLevel, moveObject, deleteKeys, presignPut,
+                             archiveKeyFor, unarchiveKeyFor, sanitizeFilename,
+                             ADMIN_ALLOWED_ROOTS = Sessions/, Animations/).
+                             r2Client a requestChecksumCalculation='WHEN_REQUIRED'
+                             pour que les presigned PUT URLs marchent depuis
+                             le navigateur (sinon SDK v3 bake un CRC32).
   list-r2-photos/            Auth-gated, isPro résolu côté serveur.
   list-r2-animations/        Idem. Free user → free/ uniquement.
   list-instagram-posts/      Public (cache 1h). Token IG dans secrets.
   user-data/                 favoris/sessions/streak/refreshProStatus.
                              Auth via JWT, écriture via service role.
   stripe-webhook/            (existant, pas touché récemment)
+  admin-r2/                  Admin-only (requireAdmin). Multi-action via
+                             body.action: 'browse' (1 niveau), 'list' (récursif),
+                             'upload-urls' (presigned PUT batch), 'delete'/
+                             'archive'/'unarchive' (acceptent {keys} OU
+                             {prefix} pour expand récursif), 'move' vers
+                             destPrefix arbitraire. Déployé avec
+                             --no-verify-jwt car requireAdmin fait sa propre
+                             vérif (le gateway JWT verify pose problème
+                             avec les nouvelles clés sb_publishable_).
+
+admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
+  index.html                 Login magic link + écran admin file manager.
+  app.js                     Auth Supabase (PKCE), navigation Finder
+                             (back/forward/up + breadcrumb), grille mixte
+                             dossiers/fichiers, sélection multi-Shift,
+                             drag-drop OS upload (avec recursion via
+                             webkitGetAsEntry), drag-drop interne pour
+                             move (MIME application/x-gesturo-keys),
+                             clic droit context menu, lightbox, modale
+                             confirm avec require-type "SUPPRIMER".
+                             Thumbnails via wsrv.nl proxy CDN.
+  styles.css                 Thème dark cohérent avec l'app principale.
 
 .github/workflows/
   build.yml                  electron-builder Mac DMG sur tag v*
@@ -82,9 +116,15 @@ supabase/functions/
   client ne peut plus s'auto-grant Pro en passant `{isPro: true}`.
 - ✅ `.env` retiré de `package.json "files"` (n'est plus shippé dans le DMG)
 - ✅ `.env` et `oauth_credentials.json` gitignored
-- 🟡 Admin = marker file `~/.gesturo-admin` (mode 0o600), set via
-  `auth-admin` + password de `whitelist.json`. Local-only, acceptable
-  pour usage perso.
+- ✅ Admin web séparée du DMG : `admin-web/` jamais dans la liste `files`
+  d'electron-builder. Rien d'admin reverse-engineerable depuis le DMG public.
+- ✅ Admin gating : colonne `profiles.is_admin` (manuellement set en SQL),
+  vérifiée par `requireAdmin()` côté Edge Function via service role. Le
+  client ne peut jamais bypasser. Hard guard : toute key admin doit
+  commencer par `Sessions/` ou `Animations/` (constante ADMIN_ALLOWED_ROOTS).
+- 🟡 Admin desktop legacy = marker file `~/.gesturo-admin` (mode 0o600),
+  set via `auth-admin` + password de `whitelist.json`. Plus utilisé depuis
+  l'arrivée de l'admin web — à supprimer un jour.
 - 🟡 CORS `*` sur les Edge Functions — acceptable car auth via JWT (pas
   cookies). C'est le pattern Supabase recommandé.
 - ⚠ Anciens DMG ≤ 0.1.7 distribués contiennent les anciennes clés. **Rotation
@@ -107,6 +147,26 @@ supabase/functions/
 - **Mobile shim** : si tu ajoutes une méthode à `window.electronAPI` côté
   desktop (preload.js), pense à la stub ou l'implémenter dans
   `mobile/mobile-shim.js`, sinon elle sera `undefined` sur Android.
+- **Admin web ≠ app principale** : ne JAMAIS ajouter `admin-web/` à
+  package.json `files`. Si tu touches `admin-web/`, redéployer avec :
+  `npx wrangler pages deploy admin-web --project-name=gesturo-admin --branch=main`
+- **R2 catalog layout** : `gesturo-photos/Sessions/current/<cat>/<sub>/file`
+  pour les poses (pas de split free/pro, gating nudité only),
+  `gesturo-photos/Animations/current/{free|pro}/<gender>/<cat>/<sub>/file`
+  pour les animations. L'admin manipule aussi `Sessions/archive/<ts>/...`
+  et `Animations/archive/<ts>/...`. Le `current/` était déjà là par chance,
+  ce qui rend la rotation de catalogue (Phase D, pas encore implémentée)
+  naturelle.
+- **Cloudflare R2 CORS policy** sur `gesturo-photos` autorise PUT depuis
+  `localhost:5500` et `*.pages.dev` (pour l'upload admin direct). Si tu
+  changes le domaine de l'admin, mettre à jour la policy R2.
+- **Supabase auth redirect URLs** doivent inclure
+  `https://gesturo-admin.pages.dev/*` (et `http://localhost:5500/*` pour
+  le dev local) sinon le magic link de l'admin ne marche pas.
+- **Tables Postgres pour la rotation** (Phase D) : `rotations` et
+  `rotation_files` déjà créées avec RLS strict (service role only).
+  `profiles.is_admin` aussi déjà ajoutée. Voir migration dans l'historique
+  de chat / SQL editor — pas de dossier `supabase/migrations/` géré.
 
 ## Workflow préféré
 
@@ -122,6 +182,16 @@ supabase/functions/
 
 ## TODO connus / pas encore faits
 
+- **Phase D — Rotations planifiées** (admin web). Prêt côté DB (tables
+  rotations + rotation_files créées). Reste à implémenter :
+  Edge Functions `rotations-create` (presigned PUT vers staging),
+  `rotations-schedule` (draft → scheduled), `rotations-execute`
+  (déclenché par pg_cron Supabase, archive l'ancien + promote staging),
+  et UI admin pour créer/voir/annuler les rotations. Workflow validé :
+  one-shot (date précise par rotation), pas de récurrent automatique.
+- **Table admin_audit_log** + logging dans toutes les actions admin —
+  pas urgent pour usage solo mais utile en cas de doute (qui a archivé
+  quoi quand).
 - **1er run Android sur device** — l'app est prête (Manifest OK, Edge
   Functions OK, shim mobile OK). Reste à lancer Android Studio.
 - **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
@@ -140,6 +210,13 @@ supabase/functions/
 
 ## Commits récents importants
 
+- `2606aed` feat(admin): upload + unarchive + in-app move + context menu (Phase C)
+- `5efffdf` feat(admin): selection + delete/archive + Finder-like nav (Phase B)
+- `81abbb4` feat(admin-web): scaffold + file browser navigation (Phase A)
+- `1d86171` feat(admin): add admin-r2 Edge Function with list action
+- `1d54a64` feat(admin): add requireAdmin() helper for admin-only Edge Functions
+- `c531f23` fix(cinema): le récap n'affiche que les frames réellement vues
+- `0c5f458` fix(poses): ne plus auto-sélectionner les catégories
 - `803e53f` refactor(js): extract bubbles + cinema into src/
 - `7803bd8` refactor(css): extract inline styles into styles/ modules
 - `ced1c12` ci: add Android debug APK build workflow
