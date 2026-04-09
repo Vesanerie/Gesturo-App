@@ -40,7 +40,7 @@
 
    ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
    ───────────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   #screen-cinema { position: relative; }
 
   /* Désactiver le hint hover desktop sur mobile (pas de hover utile) */

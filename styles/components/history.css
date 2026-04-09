@@ -20,7 +20,7 @@
 /* ══════════════════════════════════════════════════════════════
    MOBILE — Historique (≤768px)
    ══════════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   #hist-summary {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;

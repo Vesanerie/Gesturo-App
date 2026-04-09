@@ -134,7 +134,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
 
    ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
    ───────────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   #screen-config { padding: 20px 14px; }
   .config-inner {
     width: 100%;

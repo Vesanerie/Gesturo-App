@@ -32,7 +32,7 @@
    La grille vit dans #favs-grid-config (injecté par JS dans Démarrer).
    Le JS pose des inline styles → !important pour override.
    ══════════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   #favs-grid-config {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;

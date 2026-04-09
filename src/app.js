@@ -151,7 +151,7 @@ let moodboardLoaded = false
 async function openMoodboard() {
   // Désactivé sur phone : <webview> = Electron-only et un écran phone est trop
   // petit pour servir de référence visuelle pendant qu'on dessine. Cf. CLAUDE.md.
-  if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+  if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
     showScreen('screen-config')
     return
   }
@@ -1662,7 +1662,7 @@ function toggleBadgesPanel() {
 // le h3 devient un header cliquable, le reste du contenu est wrappé dans
 // un .card-body qu'on collapse/expand. Première card de chaque mode reste
 // ouverte par défaut. Desktop intouché car le CSS qui hide le body est
-// uniquement dans @media (max-width: 768px).
+// uniquement dans @media (max-width: 767px).
 ;(function () {
   function setupConfigAccordion() {
     const screen = document.getElementById('screen-config')

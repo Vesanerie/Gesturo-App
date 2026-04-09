@@ -88,7 +88,7 @@
 
    ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
    ───────────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   #screen-anim { position: relative; }
 
   /* Bar flottante en bas avec backdrop blur */

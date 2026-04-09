@@ -58,7 +58,7 @@
 
    ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
    ───────────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   /* Ancre les enfants absolute (session-bar et photo-area) au screen
      plutôt qu'au viewport. Sans ça, ça marche par coïncidence. */
   #screen-session { position: relative; }

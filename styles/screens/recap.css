@@ -36,7 +36,7 @@
 /* ══════════════════════════════════════════════════════════════
    MOBILE (≤768px) — refonte Option B mobile-first
    ══════════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   #screen-end {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
   }
