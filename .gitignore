@@ -4,3 +4,4 @@ dist/
 oauth_credentials.json
 www/
 tag-results.json
+*.code-workspace
