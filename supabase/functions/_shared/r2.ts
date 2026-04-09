@@ -60,6 +60,31 @@ export async function requireUser(req: Request): Promise<string> {
   return data.email as string;
 }
 
+// Server-side admin check. NEVER trust a client-supplied is_admin flag.
+// Returns the email if the caller is admin, or throws a 403 Response.
+// Used by every admin-* Edge Function (catalog rotation, etc.).
+export async function requireAdmin(req: Request): Promise<string> {
+  const email = await requireUser(req);
+  try {
+    const url = Deno.env.get('SUPABASE_URL')!;
+    const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const res = await fetch(
+      `${url}/rest/v1/profiles?select=is_admin&email=eq.${encodeURIComponent(email.toLowerCase())}`,
+      { headers: { apikey: service, Authorization: `Bearer ${service}` } },
+    );
+    if (!res.ok) throw new Response('Forbidden', { status: 403, headers: CORS_HEADERS });
+    const rows = await res.json();
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (!row || row.is_admin !== true) {
+      throw new Response('Forbidden', { status: 403, headers: CORS_HEADERS });
+    }
+    return email;
+  } catch (e) {
+    if (e instanceof Response) throw e;
+    throw new Response('Forbidden', { status: 403, headers: CORS_HEADERS });
+  }
+}
+
 // Server-side Pro resolution. NEVER trust a client-supplied isPro flag.
 // Mirrors checkProFromSupabase() in main.js: plan === 'pro' and not expired.
 export async function resolveIsPro(email: string): Promise<boolean> {
