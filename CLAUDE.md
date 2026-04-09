@@ -10,7 +10,7 @@ et les commits incrémentaux.
 - **Mobile** : Capacitor 8 (Android scaffold présent, iOS pas encore lancé)
 - **Backend** : Supabase (Auth + Postgres + Edge Functions Deno) + Cloudflare R2
 - **Build** : electron-builder (DMG arm64, notarize signé sur tags `v*`),
-  GitHub Actions Android (debug APK artifact)
+  GitHub Actions Android (debug APK artifact, JDK 21 + android-34 SDK)
 - Pas de TS, pas de bundler, pas de lint. Vanilla JS dans le renderer.
 
 ## Layout
