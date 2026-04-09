@@ -8,9 +8,12 @@ const ROOT = path.resolve(__dirname, '..');
 const OUT = path.join(ROOT, 'www');
 
 // Files/folders to ship to mobile (web assets only — no Node, no Electron).
+// NOTE: supabase.js (Node module) is NOT shipped — mobile uses the
+// supabase-js bundle loaded by auth-mobile.js instead.
 const ASSETS = [
   'index.html',
-  'supabase.js',
+  'styles',
+  'src',
   'whitelist.json',
   'moodboard',
 ];
