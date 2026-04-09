@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Gesturo Admin</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <section id="screen-login" class="screen">
+    <div class="login-card">
+      <h1>Gesturo <span class="dim">Admin</span></h1>
+      <p class="muted">Reçois un lien magique par email pour te connecter.</p>
+      <form id="login-form">
+        <input id="login-email" type="email" placeholder="ton@email.com" required autocomplete="email">
+        <button type="submit" id="login-btn">Envoyer le lien</button>
+      </form>
+      <div id="login-msg" class="msg"></div>
+    </div>
+  </section>
+
+  <!-- ADMIN MAIN -->
+  <section id="screen-admin" class="screen hidden">
+    <header class="topbar">
+      <div class="brand">Gesturo <span class="dim">Admin</span></div>
+      <div class="user">
+        <span id="user-email"></span>
+        <button id="logout-btn">Déconnexion</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="roots">
+        <button class="root-btn" data-root="Sessions/current/">Photos</button>
+        <button class="root-btn" data-root="Animations/current/">Animations</button>
+      </div>
+      <span id="result-count" class="muted"></span>
+    </div>
+
+    <nav id="breadcrumb" class="breadcrumb"></nav>
+
+    <div id="grid" class="grid"></div>
+    <div id="grid-msg" class="msg"></div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>

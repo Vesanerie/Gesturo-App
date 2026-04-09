@@ -33,6 +33,35 @@ export async function listAll(prefix: string) {
   return out;
 }
 
+// Like listAll but with delimiter='/' to return one level only:
+// - "folders" = sub-prefixes immediately under `prefix` (the "directories")
+// - "files"   = objects whose key has no further '/' after `prefix`
+// Used by the admin file-browser UI for folder navigation.
+export async function browseLevel(prefix: string) {
+  const client = r2Client();
+  const bucket = Deno.env.get('R2_BUCKET')!;
+  const folders: string[] = [];
+  const files: { Key: string; Size?: number }[] = [];
+  let token: string | undefined;
+  do {
+    const res = await client.send(new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+      Delimiter: '/',
+      ContinuationToken: token,
+    }));
+    for (const cp of res.CommonPrefixes || []) if (cp.Prefix) folders.push(cp.Prefix);
+    for (const o of res.Contents || []) {
+      if (!o.Key) continue;
+      // Skip "directory marker" objects (some S3 clients create empty keys ending in '/')
+      if (o.Key === prefix || o.Key.endsWith('/')) continue;
+      files.push({ Key: o.Key, Size: o.Size });
+    }
+    token = res.NextContinuationToken;
+  } while (token);
+  return { folders, files };
+}
+
 export function extOf(name: string) {
   const i = name.lastIndexOf('.');
   return i === -1 ? '' : name.slice(i).toLowerCase();
