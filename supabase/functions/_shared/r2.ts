@@ -7,6 +7,7 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   PutObjectCommand,
+  HeadObjectCommand,
 } from 'npm:@aws-sdk/client-s3@3';
 import { getSignedUrl } from 'npm:@aws-sdk/s3-request-presigner@3';
 
@@ -84,9 +85,26 @@ export function isAllowedAdminKey(key: string): boolean {
 }
 
 // Copy + Delete (S3/R2 has no atomic move). Used by archive and move actions.
-export async function moveObject(srcKey: string, destKey: string) {
+// By default refuses to overwrite an existing destination — silent overwrite
+// would be data loss (e.g. moving foo.jpg into a folder that already has one).
+// Pass { overwrite: true } to bypass (currently nobody does).
+export async function moveObject(srcKey: string, destKey: string, opts: { overwrite?: boolean } = {}) {
   const client = r2Client();
   const bucket = Deno.env.get('R2_BUCKET')!;
+  if (!opts.overwrite) {
+    try {
+      await client.send(new HeadObjectCommand({ Bucket: bucket, Key: destKey }));
+      // HeadObject succeeded → destination already exists, refuse.
+      throw new Error('destination already exists');
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (msg === 'destination already exists') throw e;
+      const status = (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+      const name = (e as { name?: string }).name;
+      // 404 / NotFound = good, the destination is free. Anything else = real error, rethrow.
+      if (status !== 404 && name !== 'NotFound' && name !== 'NoSuchKey') throw e;
+    }
+  }
   // CopySource must be URL-encoded (spaces, accents, etc.)
   const copySource = `${bucket}/${srcKey.split('/').map(encodeURIComponent).join('/')}`;
   await client.send(new CopyObjectCommand({
