@@ -7,16 +7,23 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --mac",
+    "build:win": "electron-builder --win",
     "mobile:sync": "node scripts/sync-web.js && cap sync",
     "mobile:ios": "npm run mobile:sync && cap open ios",
     "mobile:android": "npm run mobile:sync && cap open android",
     "deploy:functions": "npx supabase functions deploy list-r2-photos --no-verify-jwt && npx supabase functions deploy list-r2-animations --no-verify-jwt && npx supabase functions deploy admin-r2 --no-verify-jwt"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.1023.0",
-    "@aws-sdk/lib-storage": "^3.1023.0",
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
     "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/screen-orientation": "^8.0.1",
     "@electron/notarize": "^3.1.1",
+    "dotenv": "^17.4.0",
     "electron": "^30.0.0",
     "electron-builder": "^26.8.1"
   },
@@ -39,8 +46,7 @@
       "src/**/*",
       "supabase.js",
       "config.js",
-      "package.json",
-      "node_modules/**/*"
+      "package.json"
     ],
     "mac": {
       "category": "public.app-category.graphics-design",
@@ -57,20 +63,28 @@
         ]
       }
     },
+    "win": {
+      "icon": "icon.png",
+      "target": {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "installerIcon": "icon.png",
+      "uninstallerIcon": "icon.png"
+    },
     "dmg": {
       "title": "Gesturo"
     }
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.0",
-    "@capacitor/app": "^8.1.0",
-    "@capacitor/browser": "^8.0.3",
-    "@capacitor/core": "^8.3.0",
-    "@capacitor/filesystem": "^8.1.2",
-    "@capacitor/ios": "^8.3.0",
-    "@capacitor/screen-orientation": "^8.0.1",
     "@supabase/supabase-js": "^2.101.1",
-    "dotenv": "^17.4.0",
     "electron-updater": "^6.8.3"
   }
 }
