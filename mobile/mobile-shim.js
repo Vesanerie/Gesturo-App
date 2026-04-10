@@ -220,6 +220,29 @@
       } catch (e) { return { toggled: 'error' }; }
     },
 
+    // ── Challenges ──
+    getChallenges: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getChallenges' } });
+        return data || { challenges: [] };
+      } catch (e) { return { challenges: [] }; }
+    },
+    tagPostToChallenge: async (postId, challengeId) => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'tagPostToChallenge', payload: { postId, challengeId } } });
+        return data || { error: 'failed' };
+      } catch (e) { return { error: e.message }; }
+    },
+    triggerDailyChallenge: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('daily-challenge');
+        return data || { ok: false };
+      } catch (e) { return { ok: false }; }
+    },
+
     // ── Moodboard webview path — N/A on mobile ──
     getMoodboardPreloadPath: async () => null,
   };

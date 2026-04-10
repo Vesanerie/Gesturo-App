@@ -47,6 +47,7 @@ getFavorites: () => ipcRenderer.invoke('get-favorites'),
   getCommunityLeaderboard: () => ipcRenderer.invoke('get-community-leaderboard'),
   getChallenges: () => ipcRenderer.invoke('get-challenges'),
   tagPostToChallenge: (postId, challengeId) => ipcRenderer.invoke('tag-post-to-challenge', postId, challengeId),
+  triggerDailyChallenge: () => ipcRenderer.invoke('trigger-daily-challenge'),
 
   // ── Gesturo Moodboard (in-app via webview) ──
   getMoodboardPreloadPath: () => ipcRenderer.invoke('mb:get-preload-path'),

@@ -762,6 +762,20 @@ ipcMain.handle('tag-post-to-challenge', async (_e, postId, challengeId) => {
   }
 })
 
+ipcMain.handle('trigger-daily-challenge', async () => {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/daily-challenge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) return { ok: false }
+    return await res.json()
+  } catch (e) {
+    console.warn('[daily-challenge] trigger error:', e.message)
+    return { ok: false }
+  }
+})
+
 app.on('window-all-closed', () => {
   if (oauthServer) { try { oauthServer.close() } catch(e) {} oauthServer = null }
   if (process.platform !== 'darwin') app.quit()
