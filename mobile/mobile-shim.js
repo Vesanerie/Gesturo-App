@@ -80,26 +80,16 @@
 
     // ── R2 (delegated to Supabase Edge Functions, see auth-mobile.js) ──
     listR2Photos: async ({ isPro } = {}) => {
-      try {
-        const sb = await window.__gesturoAuth.getSupabase();
-        const { data, error } = await sb.functions.invoke('list-r2-photos', { body: { isPro: !!isPro } });
-        if (error) throw error;
-        return data || [];
-      } catch (e) {
-        console.warn('[shim] listR2Photos error', e);
-        return [];
-      }
+      const sb = await window.__gesturoAuth.getSupabase();
+      const { data, error } = await sb.functions.invoke('list-r2-photos', { body: { isPro: !!isPro } });
+      if (error) throw error;
+      return data || [];
     },
     listR2Animations: async ({ isPro } = {}) => {
-      try {
-        const sb = await window.__gesturoAuth.getSupabase();
-        const { data, error } = await sb.functions.invoke('list-r2-animations', { body: { isPro: !!isPro } });
-        if (error) throw error;
-        return data || [];
-      } catch (e) {
-        console.warn('[shim] listR2Animations error', e);
-        return [];
-      }
+      const sb = await window.__gesturoAuth.getSupabase();
+      const { data, error } = await sb.functions.invoke('list-r2-animations', { body: { isPro: !!isPro } });
+      if (error) throw error;
+      return data || [];
     },
     onUseR2Mode: on('useR2Mode'),
     adminSwitchSource: reject('adminSwitchSource'),
@@ -178,9 +168,13 @@
     getInstagramPosts: async () => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();
-        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getInstagramPosts' } });
+        const { data, error } = await sb.functions.invoke('list-instagram-posts');
+        if (error) throw error;
         return Array.isArray(data) ? data : [];
-      } catch (e) { return []; }
+      } catch (e) {
+        console.warn('[shim] getInstagramPosts error', e);
+        return [];
+      }
     },
 
     // ── Moodboard webview path — N/A on mobile ──

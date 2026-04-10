@@ -36,8 +36,9 @@
     if (!email) return false;
     try {
       const sb = await getSupabase();
-      const { data } = await sb.from('waitlist').select('email,approved').eq('email', email).maybeSingle();
-      if (data && data.approved) return true;
+      // Mirror desktop: presence in waitlist = allowed (no approved check)
+      const { data } = await sb.from('waitlist').select('email').eq('email', email.toLowerCase()).maybeSingle();
+      if (data) return true;
       // Fallback: user already has a profile
       const { data: profile } = await sb.from('profiles').select('email').eq('email', email.toLowerCase()).maybeSingle();
       return !!profile;

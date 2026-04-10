@@ -2,8 +2,8 @@ node_modules/
 dist/
 .env
 oauth_credentials.json
+whitelist.json
 www/
-tag-results.json
 *.code-workspace
 
 # Throwaway visual mockups for mobile UI direction choice

@@ -234,13 +234,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     font-size: 15px;
   }
 
-  /* Communauté : grille Instagram 2 colonnes au lieu de 3 sur mobile
-     (sinon les posts sont trop petits). L'inline style JS force 3 cols
-     → !important pour override. */
-  #community-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 6px !important;
-  }
+  /* Communauté : colonne unique sur mobile (géré par community.css) */
   /* Boutons IG + Discord : stack vertical, tap zones ≥44px */
   #community-options > div[style*="justify-content:center"] {
     flex-direction: column;
@@ -588,11 +582,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     font-size: 15px;
   }
 
-  /* Communauté grille : 3 colonnes confortables */
-  #community-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 10px !important;
-  }
+  /* Communauté : 3 colonnes tablet (géré par community.css) */
 
   /* Sub-mode cards : 2 colonnes, plus aérées */
   #screen-config .sub-mode-cards {

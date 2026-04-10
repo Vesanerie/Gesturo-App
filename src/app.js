@@ -627,10 +627,46 @@ function switchMainMode(mode) {
 
 const preloadCache = {}
 
+const COMMUNITY_EMOJIS = ['🔥', '💪', '🎨', '😍', '👏', '✨']
+const communityReactions = JSON.parse(localStorage.getItem('gd4_community_reactions') || '{}')
+
+function saveCommunityReactions() {
+  localStorage.setItem('gd4_community_reactions', JSON.stringify(communityReactions))
+}
+
+function toggleReaction(postId, emoji) {
+  if (!communityReactions[postId]) communityReactions[postId] = []
+  const idx = communityReactions[postId].indexOf(emoji)
+  if (idx >= 0) communityReactions[postId].splice(idx, 1)
+  else communityReactions[postId].push(emoji)
+  saveCommunityReactions()
+  renderReactionButtons(postId)
+}
+
+function renderReactionButtons(postId) {
+  const container = document.querySelector(`.community-reactions[data-post="${postId}"]`)
+  if (!container) return
+  const mine = communityReactions[postId] || []
+  container.querySelectorAll('.community-reaction-btn').forEach(btn => {
+    const em = btn.dataset.emoji
+    btn.classList.toggle('active', mine.includes(em))
+  })
+}
+
+function formatPostDate(ts) {
+  const d = new Date(ts)
+  const now = new Date()
+  const diff = Math.floor((now - d) / 1000)
+  if (diff < 3600) return Math.floor(diff / 60) + ' min'
+  if (diff < 86400) return Math.floor(diff / 3600) + ' h'
+  if (diff < 604800) return Math.floor(diff / 86400) + ' j'
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+}
+
 async function renderCommunity() {
-  const grid = document.getElementById('community-grid')
+  const feed = document.getElementById('community-feed')
   const empty = document.getElementById('community-empty')
-  grid.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
+  feed.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
   try {
     const posts = await window.electronAPI.getInstagramPosts()
     empty.style.display = 'none'
@@ -639,19 +675,65 @@ async function renderCommunity() {
     posts.forEach(post => {
       if (post.media_type !== 'IMAGE' && post.media_type !== 'CAROUSEL_ALBUM') return
       if (seen.has(post.id)) return; seen.add(post.id)
-      const item = document.createElement('div')
-      item.style.cssText = 'aspect-ratio:1;overflow:hidden;border-radius:4px;cursor:pointer;background:#242424;position:relative;'
-      const img = document.createElement('img'); img.src = post.media_url
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;transition:filter 0.2s;'
-      const overlay = document.createElement('div')
-      overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;font-size:14px;font-weight:600;color:#fff;gap:6px;'
-      overlay.innerHTML = '❤️ ' + (post.like_count || 0)
-      item.addEventListener('mouseenter', () => { overlay.style.opacity = '1'; img.style.filter = 'brightness(0.7)' })
-      item.addEventListener('mouseleave', () => { overlay.style.opacity = '0'; img.style.filter = '' })
-      item.onclick = () => window.electronAPI.openExternal(post.permalink)
-      item.appendChild(img); item.appendChild(overlay); grid.appendChild(item)
+
+      const card = document.createElement('div')
+      card.className = 'community-post'
+
+      // Image
+      const img = document.createElement('img')
+      img.className = 'community-post-img'
+      img.src = post.media_url
+      img.alt = post.username || 'Post'
+      img.loading = 'lazy'
+      img.onclick = () => window.electronAPI.openExternal(post.permalink)
+      card.appendChild(img)
+
+      // Info bar
+      const info = document.createElement('div')
+      info.className = 'community-post-info'
+
+      const header = document.createElement('div')
+      header.className = 'community-post-header'
+
+      const user = document.createElement('span')
+      user.className = 'community-post-user'
+      user.textContent = '@' + (post.username || 'gesturo.art')
+      user.onclick = () => window.electronAPI.openExternal('https://www.instagram.com/' + (post.username || 'gesturo.art'))
+
+      const date = document.createElement('span')
+      date.className = 'community-post-date'
+      date.textContent = formatPostDate(post.timestamp)
+
+      header.appendChild(user)
+      header.appendChild(date)
+      info.appendChild(header)
+
+      // Likes
+      const likes = document.createElement('div')
+      likes.className = 'community-post-likes'
+      likes.textContent = '❤️ ' + (post.like_count || 0)
+      info.appendChild(likes)
+
+      card.appendChild(info)
+
+      // Emoji reactions
+      const reactions = document.createElement('div')
+      reactions.className = 'community-reactions'
+      reactions.dataset.post = post.id
+      const mine = communityReactions[post.id] || []
+      COMMUNITY_EMOJIS.forEach(em => {
+        const btn = document.createElement('button')
+        btn.className = 'community-reaction-btn' + (mine.includes(em) ? ' active' : '')
+        btn.dataset.emoji = em
+        btn.innerHTML = em
+        btn.onclick = () => toggleReaction(post.id, em)
+        reactions.appendChild(btn)
+      })
+      card.appendChild(reactions)
+
+      feed.appendChild(card)
     })
-  } catch(e) { empty.style.display = 'block'; empty.textContent = '❌ Erreur de chargement.' }
+  } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
 }
 
 let communityInterval = null
@@ -879,7 +961,6 @@ function cancelEnd() { document.getElementById('confirm-bar').style.display = 'n
 
 // ══ ANIMATION SESSION ══
 let animLoopCount = 0
-const ANIM_LOOP_TARGET = 5
 let currentAnimMode = 'mix'
 
 function selectAnimMode(mode) {
@@ -974,7 +1055,7 @@ function startLoop() {
       if (animLoopCount >= getLoopTarget() && currentAnimMode === 'mix') {
         clearInterval(animInterval); animLooping = false; soundNext()
         setTimeout(() => enterStudyMode(), 500); return
-      } else if (animLoopCount >= ANIM_LOOP_TARGET) animLoopCount = 0
+      } else if (animLoopCount >= getLoopTarget()) animLoopCount = 0
       document.getElementById('anim-mode-badge').textContent = 'Boucle ' + (animLoopCount + 1) + ' / ' + getLoopTarget()
       showFrame(0)
     } else showFrame(next)
@@ -1161,7 +1242,7 @@ function finishSession() {
       const existing = document.getElementById('discord-popup'); if (existing) return
       const popup = document.createElement('div'); popup.id = 'discord-popup'
       popup.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e1e1e;border:0.5px solid #333;border-radius:12px;padding:16px 20px;max-width:280px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.5);'
-      popup.innerHTML = `<div style="font-size:13px;color:#888;margin-bottom:6px">🐛 Un bug ? Une idée ?</div><div style="font-size:14px;color:#fff;font-weight:500;margin-bottom:12px">Rejoins la communauté Gesturo</div><div style="display:flex;gap:8px"><a href="#" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/HgnBN85xjj')" style="flex:1;background:#5865F2;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;text-align:center">💬 Discord</a><button onclick="document.getElementById('discord-popup').remove()" style="background:#2e2e2e;color:#888;border:none;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer">✕</button></div>`
+      popup.innerHTML = `<div style="font-size:13px;color:#888;margin-bottom:6px">🐛 Un bug ? Une idée ?</div><div style="font-size:14px;color:#fff;font-weight:500;margin-bottom:12px">Rejoins la communauté Gesturo</div><div style="display:flex;gap:8px"><a href="#" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')" style="flex:1;background:#5865F2;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;text-align:center">💬 Discord</a><button onclick="document.getElementById('discord-popup').remove()" style="background:#2e2e2e;color:#888;border:none;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer">✕</button></div>`
       document.body.appendChild(popup)
       setTimeout(() => { const p = document.getElementById('discord-popup'); if(p) p.remove() }, 8000)
     }, 1500)
