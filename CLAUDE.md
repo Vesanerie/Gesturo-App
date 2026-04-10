@@ -6,7 +6,7 @@ et les commits incrémentaux.
 
 ## Stack
 
-- **Desktop** : Electron 30, AWS S3 SDK retiré côté client
+- **Desktop** : Electron (actuellement v30, upgrade prévu ≥ v35), AWS S3 SDK retiré côté client
 - **Mobile** : Capacitor 8 (Android scaffold présent, iOS pas encore lancé)
 - **Backend** : Supabase (Auth + Postgres + Edge Functions Deno) + Cloudflare R2
 - **Build** : electron-builder (DMG arm64, notarize signé sur tags `v*`),
@@ -22,7 +22,7 @@ et les commits incrémentaux.
 
 ```
 main.js                      Process Electron principal — IPC, OAuth loopback,
-                             window mgmt. ~720 lignes.
+                             window mgmt. ~768 lignes.
 preload.js                   Bridge contextIsolation → window.electronAPI
 moodboard-preload.js         Bridge spécifique au webview moodboard
 supabase.js                  Client Supabase (PKCE + storage adapter sur disque)
@@ -33,18 +33,19 @@ whitelist.json               Emails autorisés en bêta + admin_password local
                              "files"). Gitignored. Si secrets compromis,
                              ROTATER côté Supabase function secrets.
 
-index.html                   Squelette HTML (~470 lignes) — markup uniquement
+index.html                   Squelette HTML (~544 lignes) — markup uniquement
 styles/
   base.css                   reset, body, .screen toggle, noise overlays
   screens/{config,session,anim,recap,cinema}.css
-  components/{favs,options,streak,history,badges}.css
+  components/{favs,options,streak,history,badges,community}.css
 src/
-  app.js                     Le gros monolithe renderer (~1600 lignes).
+  app.js                     Le gros monolithe renderer (~2130 lignes).
                              State, auth init, folder loading, categories,
                              sequences, mode switching, session pose+anim,
                              recap, lightbox, favs, history, streak, grid,
-                             options, badges. Tout sur le scope global.
-                             Chargé avant bubbles/cinema (qui en dépendent).
+                             options, badges, community feed. Tout sur le
+                             scope global. Chargé avant bubbles/cinema
+                             (qui en dépendent).
   bubbles.js                 IIFE animation canvas d'accueil (~30L)
   cinema.js                  Module Cinéma — FILMS catalog + playback (~200L)
                              Dépend de logSession() exporté par app.js.
@@ -75,7 +76,8 @@ supabase/functions/
   list-r2-photos/            Auth-gated, isPro résolu côté serveur.
   list-r2-animations/        Idem. Free user → free/ uniquement.
   list-instagram-posts/      Public (cache 1h). Token IG dans secrets.
-  user-data/                 favoris/sessions/streak/refreshProStatus.
+  user-data/                 favoris/sessions/streak/refreshProStatus +
+                             community posts (CRUD, reactions, feed).
                              Auth via JWT, écriture via service role.
   stripe-webhook/            (existant, pas touché récemment)
   admin-r2/                  Admin-only (requireAdmin). Multi-action via
@@ -132,7 +134,7 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   Supabase secrets ne casse rien côté client (les Edge Functions lisent
   `Deno.env.get`).
 
-## Audit code (2026-04-10) — mis à jour 2026-04-10
+## Audit code (2026-04-10) — mis à jour 2026-04-10 (auto-audit)
 
 ### P0 — Critique
 
@@ -198,6 +200,12 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
 - **Supabase auth redirect URLs** doivent inclure
   `https://gesturo-admin.pages.dev/*` (et `http://localhost:5500/*` pour
   le dev local) sinon le magic link de l'admin ne marche pas.
+- **Community** : table `community_posts` (user_id, image_key, caption,
+  challenge_id) + réactions stockées dans la même table ou table liée.
+  Les posts sont gérés via l'Edge Function `user-data` (actions
+  `community-post`, `community-feed`, `community-delete`, `community-react`).
+  Le feed est affiché dans l'onglet Communauté (desktop + mobile bottom tab).
+  La capture caméra utilise `navigator.mediaDevices` sur mobile/tablet.
 - **Tables Postgres pour la rotation** (Phase D) : `rotations` et
   `rotation_files` déjà créées avec RLS strict (service role only).
   `profiles.is_admin` aussi déjà ajoutée. Voir migration dans l'historique
@@ -339,6 +347,14 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - ✅ ~~Retirer `@aws-sdk`~~ — scripts morts supprimés
 
 ### En cours
+- **Community tab** (branch `feat/community-tab`) — onglet communauté
+  dans l'app : feed partagé, posts depuis Recap, réactions emoji,
+  onglet "Mes dessins" + suppression, capture caméra mobile/tablet.
+  Tables Supabase `community_posts` + réactions. Edge Function `user-data`
+  étendue (actions: community-post, community-feed, community-delete,
+  community-react, etc.). **5 fichiers modifiés non commités** (index.html,
+  main.js, preload.js, src/app.js, user-data/index.ts) — dernière étape
+  en cours.
 - **Refonte tablet** (branch `tablet-version`) — breakpoints phone ≤767px,
   tablet 768-1199px, desktop ≥1200px. Config sidebar + Session controls XL.
 - **1er run Android sur device** — refonte UI mobile terminée, Manifest OK,
@@ -360,22 +376,23 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   test avec `npm start` pour vérifier que les images R2 se chargent.
 - **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
   pas urgent. main.js fait ~720 lignes, encore lisible.
-- **Vrai découpage modulaire de `src/app.js`** — monolithe global ~1720L.
+- **Vrai découpage modulaire de `src/app.js`** — monolithe global ~2130L.
   Nécessite import/export, virer globals, event delegation. Gros chantier.
 - **CI iOS** — Capacitor iOS scaffold pas encore généré.
 - **Tests** — il n'y en a pas. Pas une priorité pour un solo dev.
 
 ## Commits récents importants
 
+- `3f261d6` feat(mobile): add community & reactions methods to mobile shim
+- `633303a` feat(community): "Mes dessins" tab + delete own posts
+- `842a4e7` feat(community): camera capture on mobile/tablet
+- `3607991` feat(community): share drawing from Recap + merged feed
+- `c363420` fix(build-win): use icon.ico for NSIS installer/uninstaller icons
+- `56404f0` feat(community): shared emoji reactions via Supabase + visual polish
+- `eeb187f` chore: bump v0.2.1
 - `707c8df` feat(tablet): refonte Session pose — controls flottants XL (768-1199)
 - `deecc9a` feat(tablet): refonte Config — sidebar permanente + layout repensé
 - `752f240` refactor(breakpoints): phone ≤767px pour libérer 768-1199 au tablet
-- `4ee0f66` docs: plan de refonte UI mobile (Option B mobile-first)
-- `51afaac` fix(admin-r2): bump presigned PUT TTL from 5min to 1h
-- `f85200b` fix(admin-r2): refuse to overwrite existing destination on move
-- `2606aed` feat(admin): upload + unarchive + in-app move + context menu (Phase C)
-- `5efffdf` feat(admin): selection + delete/archive + Finder-like nav (Phase B)
-- `81abbb4` feat(admin-web): scaffold + file browser navigation (Phase A)
 - `396a71d` fix(security): enforce server-side Pro check on R2 functions
 - `3915352` feat: add Capacitor Android scaffold + mobile web shim
 - `96ee74c` refactor: move R2/Instagram/OAuth secrets server-side

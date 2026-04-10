@@ -759,6 +759,13 @@ function openShareDrawing() {
   document.getElementById('share-status').style.display = 'none'
   document.getElementById('share-upload-label').style.display = 'inline-flex'
   document.getElementById('share-file-input').value = ''
+  // Update message if challenge is active
+  const desc = document.querySelector('.share-drawing-box p')
+  if (desc && _activeChallenges.length) {
+    desc.textContent = 'Challenge en cours : ' + _activeChallenges[0].title + ' — ton dessin sera automatiquement inscrit !'
+  } else if (desc) {
+    desc.textContent = 'Prends en photo ton croquis pour le montrer a la communaute !'
+  }
 }
 
 function closeShareDrawing() {
@@ -813,6 +820,10 @@ async function confirmShareDrawing() {
       headers: { 'Content-Type': 'image/jpeg' },
       body: _shareBlob,
     })
+    // Auto-tag to active challenge if there is one
+    if (_activeChallenges.length && res.postId) {
+      try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) { /* silent */ }
+    }
     status.textContent = 'Publie ! Ton dessin est visible dans la Communaute.'
     status.style.color = '#2ecc71'
     setTimeout(closeShareDrawing, 2000)
@@ -902,11 +913,14 @@ async function renderCommunity() {
   const empty = document.getElementById('community-empty')
   feed.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
   try {
-    // Fetch IG posts + community posts in parallel
+    // Fetch IG posts + community posts + challenges in parallel
     const [igPosts, communityRes] = await Promise.all([
       window.electronAPI.getInstagramPosts().catch(() => []),
       window.electronAPI.getCommunityPosts().catch(() => ({ posts: [] })),
     ])
+
+    // Load challenges (once, cached in _activeChallenges)
+    if (!_activeChallenges.length) await loadChallenges()
 
     empty.style.display = 'none'
 
@@ -927,20 +941,27 @@ async function renderCommunity() {
         username: post.username,
         created_at: post.created_at,
         ref_image_url: post.ref_image_url,
+        challenge_id: post.challenge_id || null,
         source: 'community',
         _sort: new Date(post.created_at).getTime(),
       })
     })
 
-    if (allPosts.length === 0) { empty.style.display = 'block'; empty.textContent = 'Aucune photo pour le moment.'; return }
+    // Filter by challenge if selected
+    let filtered = allPosts
+    if (_selectedChallengeFilter) {
+      filtered = allPosts.filter(p => p.challenge_id === _selectedChallengeFilter)
+    }
+
+    if (filtered.length === 0) { empty.style.display = 'block'; empty.textContent = _selectedChallengeFilter ? 'Aucun dessin pour ce challenge.' : 'Aucune photo pour le moment.'; return }
 
     // Sort by date descending
-    allPosts.sort((a, b) => b._sort - a._sort)
+    filtered.sort((a, b) => b._sort - a._sort)
 
     // Load reactions
-    await loadReactions(allPosts.map(p => p.id))
+    await loadReactions(filtered.map(p => p.id))
 
-    allPosts.forEach((post, i) => feed.appendChild(buildPostCard(post, i)))
+    filtered.forEach((post, i) => feed.appendChild(buildPostCard(post, i)))
   } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
 }
 
