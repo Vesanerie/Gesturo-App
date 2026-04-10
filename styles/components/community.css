@@ -274,6 +274,43 @@
   -webkit-backdrop-filter: blur(8px);
 }
 
+/* Ref row (community posts with reference image) */
+.community-post-ref {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #0d1825;
+  border-top: 0.5px solid #1e2d40;
+}
+.community-ref-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.community-ref-label {
+  font-size: 11px;
+  color: #4a6280;
+  flex: 1;
+}
+.community-ref-btn {
+  background: #2983eb22;
+  border: 0.5px solid #2983eb44;
+  border-radius: 6px;
+  color: #2983eb;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.community-ref-btn:hover {
+  background: #2983eb33;
+}
+
 /* Post info bar */
 .community-post-info {
   padding: 8px 10px;

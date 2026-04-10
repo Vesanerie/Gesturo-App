@@ -928,6 +928,27 @@ function buildPostCard(post, i) {
 
   card.appendChild(info)
 
+  // Ref image + "Dessiner cette ref" (community posts only)
+  if (post.source === 'community' && post.ref_image_url) {
+    const refRow = document.createElement('div')
+    refRow.className = 'community-post-ref'
+    const refThumb = document.createElement('img')
+    refThumb.src = post.ref_image_url
+    refThumb.alt = 'Ref'
+    refThumb.className = 'community-ref-thumb'
+    refRow.appendChild(refThumb)
+    const refLabel = document.createElement('span')
+    refLabel.className = 'community-ref-label'
+    refLabel.textContent = 'Ref utilisee'
+    refRow.appendChild(refLabel)
+    const refBtn = document.createElement('button')
+    refBtn.className = 'community-ref-btn'
+    refBtn.textContent = 'Dessiner cette ref'
+    refBtn.onclick = (e) => { e.stopPropagation(); switchMainMode('pose') }
+    refRow.appendChild(refBtn)
+    card.appendChild(refRow)
+  }
+
   // Emoji reactions
   const reactions = document.createElement('div')
   reactions.className = 'community-reactions'
