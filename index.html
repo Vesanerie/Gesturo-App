@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="styles/components/badges.css">
   <link rel="stylesheet" href="styles/components/community.css">
   <link rel="stylesheet" href="styles/components/moodboard-pin.css">
+  <link rel="stylesheet" href="styles/components/auth.css">
 </head>
 <body>
 
@@ -524,17 +525,39 @@
   <div class="mb-topbar">
     <button class="s-btn" onclick="closeMoodboard()">← Retour</button>
     <span class="mb-title">🖼 Moodboard</span>
+    <div class="mb-mode-tabs">
+      <button class="mb-mode-tab active" id="mb-mode-browse" onclick="switchMbMode('browse')">🌐 Naviguer</button>
+      <button class="mb-mode-tab" id="mb-mode-boards" onclick="switchMbMode('boards')">📋 Mes boards</button>
+    </div>
   </div>
-  <div class="mb-tabs" id="mb-tabs"></div>
-  <div class="mb-actions">
-    <button class="s-btn" onclick="mbPromptAddURL()">+ Ajouter une image</button>
-    <button class="mb-delete-board" id="mb-delete-btn" onclick="mbDeleteCurrentBoard()" style="display:none;">Supprimer ce board</button>
+
+  <!-- Section: Web browser (webview) -->
+  <div class="mb-section" id="mb-section-browse">
+    <div class="mb-urlbar">
+      <button class="mb-nav-btn" id="mb-wv-back" onclick="mbWebviewBack()" title="Page precedente">←</button>
+      <button class="mb-nav-btn" id="mb-wv-fwd" onclick="mbWebviewForward()" title="Page suivante">→</button>
+      <input type="url" id="mb-url-bar" placeholder="Coller une URL (Pinterest, ArtStation…)" autocomplete="off">
+      <button class="mb-go-btn" onclick="mbWebviewGo()">Aller</button>
+    </div>
+    <div class="mb-webview-wrap">
+      <webview id="moodboard-webview" style="flex:1;width:100%;"></webview>
+      <button class="mb-pin-page" id="mb-pin-page" onclick="mbPinCurrentPage()" title="Epingler cette page dans le board actif">📌 Epingler cette page</button>
+    </div>
   </div>
-  <div class="mb-grid" id="mb-grid"></div>
-  <div class="mb-empty" id="mb-empty" style="display:none;">
-    <div class="mb-empty-icon">🖼</div>
-    <div>Aucune image dans ce board</div>
-    <div style="font-size:11px;">Clique sur « + Ajouter une image » ou glisse-dépose un fichier</div>
+
+  <!-- Section: Native boards -->
+  <div class="mb-section hidden" id="mb-section-boards">
+    <div class="mb-tabs" id="mb-tabs"></div>
+    <div class="mb-actions">
+      <button class="s-btn" onclick="mbPromptAddURL()">+ Ajouter une image</button>
+      <button class="mb-delete-board" id="mb-delete-btn" onclick="mbDeleteCurrentBoard()" style="display:none;">Supprimer ce board</button>
+    </div>
+    <div class="mb-grid" id="mb-grid"></div>
+    <div class="mb-empty" id="mb-empty" style="display:none;">
+      <div class="mb-empty-icon">🖼</div>
+      <div>Aucune image dans ce board</div>
+      <div style="font-size:11px;">Clique sur « + Ajouter une image » ou glisse-depose un fichier</div>
+    </div>
   </div>
 </div>
 

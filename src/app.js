@@ -204,25 +204,94 @@ window.addEventListener('resize', () => { if (gridMode > 0) positionGridOverlay(
 // ══ MOODBOARD (in-app) ══
 const MB_KEY = 'gd4_moodboards'
 let mbCurrentBoard = 0
+let mbMode = 'browse'
+let moodboardLoaded = false
 
 function loadMoodboards() {
   try {
     const d = JSON.parse(localStorage.getItem(MB_KEY))
     if (d && Array.isArray(d.boards) && d.boards.length) return d
   } catch {}
-  return { boards: [{ name: 'G\u00e9n\u00e9ral', images: [] }] }
+  return { boards: [{ name: 'Général', images: [] }] }
 }
 function saveMoodboards(d) { localStorage.setItem(MB_KEY, JSON.stringify(d)) }
 
 function openMoodboard() {
-  // D\u00e9sactiv\u00e9 sur phone \u2014 trop petit pour servir de ref visuelle
-  if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+  if (window.matchMedia && window.matchMedia('(max-width: 1199px)').matches) {
     showScreen('screen-config'); return
   }
-  renderMoodboard()
+  if (mbMode === 'boards') renderMoodboard()
+  if (mbMode === 'browse') initMoodboardWebview()
   showScreen('screen-moodboard')
 }
 function closeMoodboard() { showScreen('screen-config') }
+
+function switchMbMode(mode) {
+  mbMode = mode
+  document.getElementById('mb-mode-browse').classList.toggle('active', mode === 'browse')
+  document.getElementById('mb-mode-boards').classList.toggle('active', mode === 'boards')
+  document.getElementById('mb-section-browse').classList.toggle('hidden', mode !== 'browse')
+  document.getElementById('mb-section-boards').classList.toggle('hidden', mode !== 'boards')
+  if (mode === 'boards') renderMoodboard()
+  if (mode === 'browse') initMoodboardWebview()
+}
+
+async function initMoodboardWebview() {
+  if (moodboardLoaded) return
+  const wv = document.getElementById('moodboard-webview')
+  if (!wv) return
+  try {
+    const p = await window.electronAPI.getMoodboardPreloadPath()
+    if (p) wv.setAttribute('preload', 'file://' + p)
+  } catch (e) { console.warn('moodboard preload path failed', e) }
+  wv.setAttribute('src', 'https://www.pinterest.com')
+  moodboardLoaded = true
+  // URL bar sync
+  wv.addEventListener('did-navigate', () => {
+    const bar = document.getElementById('mb-url-bar')
+    if (bar) bar.value = wv.getURL()
+  })
+  wv.addEventListener('did-navigate-in-page', () => {
+    const bar = document.getElementById('mb-url-bar')
+    if (bar) bar.value = wv.getURL()
+  })
+}
+
+function mbWebviewGo() {
+  const wv = document.getElementById('moodboard-webview')
+  let url = document.getElementById('mb-url-bar').value.trim()
+  if (!url) return
+  if (!url.startsWith('http')) url = 'https://' + url
+  wv.setAttribute('src', url)
+  if (!moodboardLoaded) moodboardLoaded = true
+}
+function mbWebviewBack() {
+  const wv = document.getElementById('moodboard-webview')
+  if (wv && wv.canGoBack()) wv.goBack()
+}
+function mbWebviewForward() {
+  const wv = document.getElementById('moodboard-webview')
+  if (wv && wv.canGoForward()) wv.goForward()
+}
+function mbPinCurrentPage() {
+  const wv = document.getElementById('moodboard-webview')
+  if (!wv) return
+  const url = wv.getURL()
+  if (!url || url === 'about:blank') return
+  const data = loadMoodboards()
+  const board = data.boards[mbCurrentBoard]
+  if (board) {
+    addToBoard(board.name, url)
+    const btn = document.getElementById('mb-pin-page')
+    if (btn) { btn.textContent = '✓ Epingle !'; setTimeout(() => { btn.textContent = '📌 Epingler cette page' }, 1500) }
+  }
+}
+
+// URL bar: Enter key triggers navigation
+document.addEventListener('DOMContentLoaded', () => {
+  const bar = document.getElementById('mb-url-bar')
+  if (bar) bar.addEventListener('keydown', (e) => { if (e.key === 'Enter') mbWebviewGo() })
+})
 
 function renderMoodboard() {
   const data = loadMoodboards()

@@ -1,4 +1,4 @@
-/* ══ MOODBOARD — Native boards ══ */
+/* ══ MOODBOARD — Hybrid (webview + native boards) ══ */
 
 #screen-moodboard { background: #0a1520; flex-direction: column; }
 
@@ -10,6 +10,55 @@
 }
 .mb-topbar button, .mb-topbar input { -webkit-app-region: no-drag; }
 .mb-topbar .mb-title { font-size: 13px; color: #4a6280; flex-shrink: 0; }
+
+/* Mode tabs (Naviguer / Mes boards) */
+.mb-mode-tabs { display: flex; gap: 0; margin-left: auto; border-radius: 6px; overflow: hidden; border: 0.5px solid #1e2d40; }
+.mb-mode-tab {
+  background: transparent; border: none; color: #3a5570; font-size: 12px;
+  padding: 5px 14px; cursor: pointer; transition: background 0.15s, color 0.15s;
+  -webkit-app-region: no-drag;
+}
+.mb-mode-tab:hover { background: #131f2e; }
+.mb-mode-tab.active { background: #162030; color: #8aaccc; }
+
+/* ── Sections ── */
+.mb-section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+/* ── URL bar (webview section) ── */
+.mb-urlbar {
+  flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; background: #0c1824; border-bottom: 0.5px solid #1e2d40;
+}
+.mb-nav-btn {
+  background: transparent; border: 0.5px solid #1e2d40; border-radius: 6px;
+  color: #4a6280; font-size: 14px; padding: 4px 10px; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mb-nav-btn:hover { background: #131f2e; color: #8aaccc; }
+.mb-urlbar input[type="url"] {
+  flex: 1; background: #0a1520; border: 0.5px solid #1e2d40; border-radius: 6px;
+  color: #c8d6e5; padding: 6px 12px; font-size: 12px; outline: none;
+}
+.mb-urlbar input[type="url"]:focus { border-color: #2983eb; }
+.mb-go-btn {
+  background: #2983eb; border: none; border-radius: 6px; color: #fff;
+  font-size: 12px; font-weight: 600; padding: 6px 14px; cursor: pointer;
+  transition: background 0.15s;
+}
+.mb-go-btn:hover { background: #4499f5; }
+
+/* ── Webview wrapper ── */
+.mb-webview-wrap { flex: 1; position: relative; display: flex; flex-direction: column; }
+.mb-webview-wrap webview { flex: 1; width: 100%; }
+.mb-pin-page {
+  position: absolute; bottom: 16px; right: 16px; z-index: 5;
+  background: rgba(15,25,35,0.9); border: 0.5px solid #2983eb; border-radius: 8px;
+  color: #c8d6e5; font-size: 12px; font-weight: 600; padding: 8px 16px;
+  cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: background 0.15s, transform 0.1s;
+}
+.mb-pin-page:hover { background: rgba(41,131,235,0.25); }
+.mb-pin-page:active { transform: scale(0.95); }
 
 /* ── Board tabs ── */
 .mb-tabs {
