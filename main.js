@@ -248,23 +248,17 @@ async function callEdgeFunction(name, body) {
 }
 
 async function listR2Photos(isPro) {
-  try {
-    const data = await callEdgeFunction('list-r2-photos', { isPro: !!isPro })
-    return Array.isArray(data) ? data : []
-  } catch (e) {
-    console.warn('listR2Photos error:', e.message)
-    return []
-  }
+  // Ne PAS swallow les erreurs ici : si l'Edge Function renvoie 401 ou
+  // timeout, on veut que le renderer le sache pour afficher un vrai message
+  // d'erreur. Avant ce fix, on retournait [] silencieusement et l'UI disait
+  // "0 photos chargées ✓", ce qui était trompeur.
+  const data = await callEdgeFunction('list-r2-photos', { isPro: !!isPro })
+  return Array.isArray(data) ? data : []
 }
 
 async function listR2Animations(isPro) {
-  try {
-    const data = await callEdgeFunction('list-r2-animations', { isPro: !!isPro })
-    return Array.isArray(data) ? data : []
-  } catch (e) {
-    console.warn('listR2Animations error:', e.message)
-    return []
-  }
+  const data = await callEdgeFunction('list-r2-animations', { isPro: !!isPro })
+  return Array.isArray(data) ? data : []
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
@@ -554,23 +548,24 @@ ipcMain.handle('save-favorites', async (event, favs) => {
   } catch (e) { console.warn('save-favorites error:', e.message) }
 })
 
-// Liste les animations R2
+// Liste les animations R2 — laisse remonter l'erreur au renderer pour que
+// loadR2() puisse afficher un vrai message (et pas "0 chargées ✓").
 ipcMain.handle('list-r2-animations', async (event, { isPro }) => {
   try {
     return await listR2Animations(isPro)
   } catch(e) {
     console.warn('list-r2-animations error:', e.message)
-    return []
+    throw e
   }
 })
 
-// Liste les photos R2
+// Liste les photos R2 — idem, on propage l'erreur.
 ipcMain.handle('list-r2-photos', async (event, { isPro }) => {
   try {
     return await listR2Photos(isPro)
   } catch(e) {
     console.warn('list-r2-photos error:', e.message)
-    return []
+    throw e
   }
 })
 
