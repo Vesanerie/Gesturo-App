@@ -1,5 +1,5 @@
 // Public Instagram feed for the Community tab.
-// Fetches @gesturo.art's own posts + posts where @gesturo.art is tagged.
+// Fetches @gesturo.art's own posts + photo tags + @mentions in captions/comments.
 // In-memory cache (1h TTL) to spare the Instagram API quota.
 
 const CORS = {
@@ -38,10 +38,11 @@ Deno.serve(async (req) => {
 
     const base = `https://graph.instagram.com/v21.0/${IG_USER_ID}`;
 
-    // Fetch own posts + tagged posts in parallel
-    const [ownPosts, taggedPosts] = await Promise.all([
+    // Fetch own posts + photo tags + @mentions in parallel
+    const [ownPosts, taggedPosts, mentionedPosts] = await Promise.all([
       fetchIG(`${base}/media?fields=${FIELDS}&limit=20&access_token=${igToken}`),
       fetchIG(`${base}/tags?fields=${FIELDS}&limit=20&access_token=${igToken}`),
+      fetchIG(`${base}/mentioned_media?fields=${FIELDS}&limit=20&access_token=${igToken}`),
     ]);
 
     // Merge + deduplicate by id, mark source
@@ -58,6 +59,12 @@ Deno.serve(async (req) => {
       if (!seen.has(post.id)) {
         seen.add(post.id);
         merged.push({ ...post, source: 'tagged' });
+      }
+    }
+    for (const post of mentionedPosts as any[]) {
+      if (!seen.has(post.id)) {
+        seen.add(post.id);
+        merged.push({ ...post, source: 'mentioned' });
       }
     }
 
