@@ -120,6 +120,15 @@
         return { success: true, authenticated: true, email, username };
       } catch (e) { return { success: false, message: e.message }; }
     },
+    authResetPassword: async (email) => {
+      if (!window.__gesturoAuth) return { success: false, message: 'auth not loaded' };
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { error } = await sb.auth.resetPasswordForEmail(email);
+        if (error) return { success: false, message: error.message };
+        return { success: true };
+      } catch (e) { return { success: false, message: e.message }; }
+    },
     authLogout: async () => {
       if (!window.__gesturoAuth) return true;
       return window.__gesturoAuth.signOut();
@@ -134,6 +143,13 @@
     onAuthRequired: on('authRequired'),
 
     // ── Supabase user data (delegated to user-data Edge Function) ──
+    updateUsername: async (username) => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'updateUsername', payload: { username } } });
+        return data || { error: 'failed' };
+      } catch (e) { return { error: e.message }; }
+    },
     saveSession: async (sessionData) => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();
