@@ -1462,6 +1462,126 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
+// ── Ref image picker (R2 browser for challenge ref) ──────────────────────
+let _refPickerPrefix = 'Sessions/current/';
+
+function setRefImage(url) {
+  $('ch-ref-url').value = url;
+  const preview = $('ch-ref-preview');
+  const img = $('ch-ref-preview-img');
+  img.src = thumbUrl(url, 200);
+  preview.classList.remove('hidden');
+}
+
+function clearRefImage() {
+  $('ch-ref-url').value = '';
+  $('ch-ref-preview').classList.add('hidden');
+  $('ch-ref-preview-img').src = '';
+}
+
+async function openRefPicker() {
+  _refPickerPrefix = 'Sessions/current/';
+  $('ref-picker-modal').classList.remove('hidden');
+  await loadRefPickerGrid();
+}
+
+function closeRefPicker() {
+  $('ref-picker-modal').classList.add('hidden');
+}
+
+async function loadRefPickerGrid() {
+  const grid = $('ref-picker-grid');
+  grid.innerHTML = '<div class="grid-loader"><div class="grid-spinner"></div></div>';
+  renderRefPickerBreadcrumb();
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { grid.textContent = 'Pas de session.'; return; }
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'browse', prefix: _refPickerPrefix }),
+    });
+    if (!res.ok) { grid.textContent = 'Erreur ' + res.status; return; }
+    const data = await res.json();
+    grid.innerHTML = '';
+    // Folders
+    (data.folders || []).forEach(f => {
+      const card = document.createElement('div');
+      card.className = 'grid-item folder';
+      card.innerHTML = '<div class="icon">📁</div><div class="name">' + escapeHtml(f.name) + '</div>';
+      card.addEventListener('click', () => {
+        _refPickerPrefix = f.prefix;
+        loadRefPickerGrid();
+      });
+      grid.appendChild(card);
+    });
+    // Files (images only)
+    (data.files || []).forEach(f => {
+      if (!/\.(jpg|jpeg|png|gif|webp)$/i.test(f.name)) return;
+      const card = document.createElement('div');
+      card.className = 'grid-item ref-pickable';
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.src = thumbUrl(f.url, 200);
+      img.alt = f.name;
+      card.appendChild(img);
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = f.name;
+      card.appendChild(label);
+      card.addEventListener('click', () => {
+        setRefImage(f.url);
+        closeRefPicker();
+        toast('Image sélectionnée', 'ok');
+      });
+      grid.appendChild(card);
+    });
+    if (grid.children.length === 0) grid.textContent = 'Aucun fichier ici.';
+  } catch (e) { grid.textContent = 'Erreur : ' + e.message; }
+}
+
+function renderRefPickerBreadcrumb() {
+  const bc = $('ref-picker-breadcrumb');
+  bc.innerHTML = '';
+  const parts = _refPickerPrefix.split('/').filter(Boolean);
+  let acc = '';
+  parts.forEach((part, i) => {
+    acc += part + '/';
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'sep'; sep.textContent = '›';
+      bc.appendChild(sep);
+    }
+    const btn = document.createElement('button');
+    btn.className = 'crumb' + (i === parts.length - 1 ? ' current' : '');
+    btn.textContent = part;
+    const target = acc;
+    if (i < parts.length - 1) {
+      btn.addEventListener('click', () => {
+        _refPickerPrefix = target;
+        loadRefPickerGrid();
+      });
+    }
+    bc.appendChild(btn);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('ch-ref-browse').addEventListener('click', openRefPicker);
+  $('ref-picker-close').addEventListener('click', closeRefPicker);
+  $('ch-ref-clear').addEventListener('click', clearRefImage);
+  // URL manual input → preview on blur
+  $('ch-ref-url').addEventListener('change', () => {
+    const url = $('ch-ref-url').value.trim();
+    if (url) setRefImage(url);
+    else clearRefImage();
+  });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   $('ch-create-btn').addEventListener('click', async () => {
     const title = $('ch-title').value.trim();

@@ -116,9 +116,18 @@
             <input id="ch-title" type="text" placeholder="Ex : Dessine un chat en 5 min" autocomplete="off">
           </div>
           <div class="form-group">
-            <label for="ch-ref-url">Image de référence (URL)</label>
-            <input id="ch-ref-url" type="url" placeholder="https://…" autocomplete="off">
-            <div class="form-hint">Copie l'URL d'une image depuis le file manager (📋 Copier la key), ou colle un lien externe.</div>
+            <label>Image de référence</label>
+            <div class="ref-picker">
+              <div id="ch-ref-preview" class="ref-preview hidden">
+                <img id="ch-ref-preview-img" alt="Ref preview">
+                <button id="ch-ref-clear" class="ref-clear" title="Retirer">&times;</button>
+              </div>
+              <div class="ref-picker-actions">
+                <button id="ch-ref-browse" type="button" class="btn-secondary">📂 Choisir depuis R2</button>
+                <span class="ref-picker-or">ou</span>
+                <input id="ch-ref-url" type="url" placeholder="Coller une URL…" autocomplete="off">
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label for="ch-deadline">Deadline</label>
@@ -137,6 +146,18 @@
     </div><!-- /panel-challenges -->
 
   </section>
+
+  <!-- R2 image picker modal (for challenge ref image) -->
+  <div id="ref-picker-modal" class="modal-backdrop hidden">
+    <div class="modal ref-picker-modal">
+      <div class="ref-picker-header">
+        <h2>Choisir une image de référence</h2>
+        <button id="ref-picker-close" class="btn-ghost">Fermer</button>
+      </div>
+      <nav id="ref-picker-breadcrumb" class="breadcrumb"></nav>
+      <div id="ref-picker-grid" class="grid ref-picker-grid"></div>
+    </div>
+  </div>
 
   <!-- Context menu sur l'espace vide (clic droit dans le vide) -->
   <div id="ctx-empty" class="ctx-menu hidden">
