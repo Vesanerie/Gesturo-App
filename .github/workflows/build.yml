@@ -109,5 +109,6 @@ jobs:
           git config user.email "bot@gesturo.fr"
           git config user.name "Gesturo Bot"
           git add download.html
+          git diff --cached --quiet && echo "download.html already up to date" && exit 0
           git commit -m "chore: update download link to v${VERSION}"
           git push
