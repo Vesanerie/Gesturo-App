@@ -19,3 +19,5 @@ android/capacitor.settings.gradle
 
 .claude/sessions/
 !.claude/sessions/.gitkeep
+.DS_Store
+.venv/
