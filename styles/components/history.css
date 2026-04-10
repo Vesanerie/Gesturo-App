@@ -4,6 +4,8 @@
 .hist-stat-card .hsc-val { font-size: 26px; font-weight: 300; color: #fff; letter-spacing: -0.5px; line-height: 1.1; }
 .hist-stat-card .hsc-label { font-size: 11px; color: #3a5570; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.6px; }
 .hist-stat-card.streak .hsc-val { color: #f0c040; }
+.hist-stat-clickable { cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
+.hist-stat-clickable:hover { transform: scale(1.05); border-color: #2983eb44; }
 .hist-period-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
 .hist-period-tab { border: 0.5px solid #1e2d40; border-radius: 6px; background: transparent; color: #3a5570; font-size: 12px; padding: 5px 12px; cursor: pointer; }
 .hist-period-tab:hover { background: #131f2e; }
