@@ -213,10 +213,17 @@ async function buildProfile(user) {
       if (supabasePro) isPro = true
     }
   } catch (e) {}
+  // Try to get username from profiles table, fallback to user_metadata
+  let username = user.user_metadata?.username || null
+  try {
+    const { data: prof } = await supabase.from('profiles').select('username').eq('email', email).maybeSingle()
+    if (prof?.username) username = prof.username
+  } catch (e) {}
   return {
     authenticated: true,
     email,
     name: user.user_metadata?.full_name || user.user_metadata?.name || email,
+    username: username || email.split('@')[0],
     picture: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
     isAdmin: false,
     isPro,
@@ -335,6 +342,47 @@ ipcMain.handle('auth-google', async () => {
   } catch (e) {
     console.error('❌ auth-google error:', e)
     return { success: false, reason: 'error', message: e.message }
+  }
+})
+
+ipcMain.handle('auth-signup', async (_e, { email, password, username }) => {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username } },
+    })
+    if (error) return { success: false, message: error.message }
+    const user = data?.user
+    if (!user) return { success: false, message: 'Inscription échouée' }
+    // If email confirmation required, session may be null
+    if (!data.session) return { success: true, needsConfirmation: true }
+    const profile = await buildProfile(user)
+    try {
+      await supabase.from('profiles').upsert(
+        { email: user.email, username: username || user.email.split('@')[0] },
+        { onConflict: 'email' }
+      )
+    } catch (e) {}
+    return { success: true, ...profile }
+  } catch (e) {
+    return { success: false, message: e.message }
+  }
+})
+
+ipcMain.handle('auth-email', async (_e, { email, password }) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) return { success: false, message: error.message }
+    const user = data?.user
+    if (!user) return { success: false, message: 'Session vide' }
+    const profile = await buildProfile(user)
+    try {
+      await supabase.from('profiles').upsert({ email: user.email }, { onConflict: 'email', ignoreDuplicates: true })
+    } catch (e) {}
+    return { success: true, ...profile }
+  } catch (e) {
+    return { success: false, message: e.message }
   }
 })
 

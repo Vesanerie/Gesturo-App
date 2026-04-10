@@ -99,6 +99,27 @@
       if (!window.__gesturoAuth) return { success: false, reason: 'error', message: 'auth-mobile not loaded' };
       return window.__gesturoAuth.signIn();
     },
+    authSignup: async ({ email, password, username }) => {
+      if (!window.__gesturoAuth) return { success: false, message: 'auth not loaded' };
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { username } } });
+        if (error) return { success: false, message: error.message };
+        if (!data.session) return { success: true, needsConfirmation: true };
+        return { success: true, authenticated: true, email, username: username || email.split('@')[0] };
+      } catch (e) { return { success: false, message: e.message }; }
+    },
+    authEmail: async ({ email, password }) => {
+      if (!window.__gesturoAuth) return { success: false, message: 'auth not loaded' };
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) return { success: false, message: error.message };
+        const user = data?.user;
+        const username = user?.user_metadata?.username || email.split('@')[0];
+        return { success: true, authenticated: true, email, username };
+      } catch (e) { return { success: false, message: e.message }; }
+    },
     authLogout: async () => {
       if (!window.__gesturoAuth) return true;
       return window.__gesturoAuth.signOut();

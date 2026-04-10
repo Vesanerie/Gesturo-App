@@ -73,20 +73,84 @@ window.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.onAuthRequired(() => {
       document.getElementById('options-btn').style.display = 'none'
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+      const existing = document.getElementById('screen-login')
+      if (existing) existing.remove()
       const div = document.createElement('div')
       div.id = 'screen-login'
-      div.style.cssText = 'position:fixed;inset:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;'
+      div.className = 'auth-screen'
       div.innerHTML = `
-        <h2 style="color:#fff;font-size:20px;">Gesturo</h2>
-        <p style="color:#555;font-size:14px;">Vous avez été déconnecté</p>
-        <button id="btn-google-login" style="background:#fff;color:#111;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:600;cursor:pointer;">Se connecter avec Google</button>
+        <div class="auth-card">
+          <h2 class="auth-title">Gesturo</h2>
+          <div id="auth-login-form" class="auth-form">
+            <input id="auth-email" type="email" placeholder="Email" autocomplete="email">
+            <input id="auth-password" type="password" placeholder="Mot de passe" autocomplete="current-password">
+            <button id="btn-email-login" class="auth-btn auth-btn-primary">Se connecter</button>
+            <div id="auth-msg" class="auth-msg"></div>
+            <div class="auth-separator"><span>ou</span></div>
+            <button id="btn-google-login" class="auth-btn auth-btn-google">
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.01 24.01 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Continuer avec Google
+            </button>
+            <p class="auth-switch">Pas de compte ? <a href="#" id="auth-goto-signup">Creer un compte</a></p>
+          </div>
+          <div id="auth-signup-form" class="auth-form" style="display:none;">
+            <input id="auth-signup-username" type="text" placeholder="Pseudo (visible dans la communaute)" autocomplete="username">
+            <input id="auth-signup-email" type="email" placeholder="Email" autocomplete="email">
+            <input id="auth-signup-password" type="password" placeholder="Mot de passe (6 car. min)" autocomplete="new-password">
+            <button id="btn-email-signup" class="auth-btn auth-btn-primary">Creer mon compte</button>
+            <div id="auth-signup-msg" class="auth-msg"></div>
+            <p class="auth-switch">Deja un compte ? <a href="#" id="auth-goto-login">Se connecter</a></p>
+          </div>
+        </div>
       `
       document.body.appendChild(div)
+      document.getElementById('auth-goto-signup').addEventListener('click', (e) => {
+        e.preventDefault()
+        document.getElementById('auth-login-form').style.display = 'none'
+        document.getElementById('auth-signup-form').style.display = ''
+      })
+      document.getElementById('auth-goto-login').addEventListener('click', (e) => {
+        e.preventDefault()
+        document.getElementById('auth-signup-form').style.display = 'none'
+        document.getElementById('auth-login-form').style.display = ''
+      })
       document.getElementById('btn-google-login').addEventListener('click', () => {
         window.electronAPI.authGoogle().then(result => {
           if (result?.success) location.reload()
-          else alert('Connexion échouée : ' + (result?.message || result?.reason || 'inconnu'))
-        }).catch(e => alert('Erreur : ' + e.message))
+          else document.getElementById('auth-msg').textContent = result?.message || result?.reason || 'Connexion echouee'
+        }).catch(e => document.getElementById('auth-msg').textContent = e.message)
+      })
+      document.getElementById('btn-email-login').addEventListener('click', () => {
+        const email = document.getElementById('auth-email').value.trim()
+        const password = document.getElementById('auth-password').value
+        const msg = document.getElementById('auth-msg')
+        if (!email || !password) { msg.textContent = 'Email et mot de passe requis'; return }
+        msg.textContent = 'Connexion...'
+        window.electronAPI.authEmail({ email, password }).then(result => {
+          if (result?.success) location.reload()
+          else msg.textContent = result?.message || 'Connexion echouee'
+        }).catch(e => msg.textContent = e.message)
+      })
+      document.getElementById('btn-email-signup').addEventListener('click', () => {
+        const username = document.getElementById('auth-signup-username').value.trim()
+        const email = document.getElementById('auth-signup-email').value.trim()
+        const password = document.getElementById('auth-signup-password').value
+        const msg = document.getElementById('auth-signup-msg')
+        if (!username) { msg.textContent = 'Choisis un pseudo'; return }
+        if (!email || !password) { msg.textContent = 'Email et mot de passe requis'; return }
+        if (password.length < 6) { msg.textContent = 'Mot de passe trop court (6 car. min)'; return }
+        msg.textContent = 'Inscription...'
+        window.electronAPI.authSignup({ email, password, username }).then(result => {
+          if (result?.needsConfirmation) { msg.textContent = 'Verifie tes emails pour confirmer ton compte !'; msg.style.color = '#2ecc71'; return }
+          if (result?.success) location.reload()
+          else msg.textContent = result?.message || 'Inscription echouee'
+        }).catch(e => msg.textContent = e.message)
+      })
+      document.getElementById('auth-password').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('btn-email-login').click()
+      })
+      document.getElementById('auth-signup-password').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('btn-email-signup').click()
       })
     })
   }
@@ -1033,7 +1097,7 @@ async function confirmCommunityUpload() {
   try {
     const res = await window.electronAPI.submitCommunityPost({
       refImageUrl: null,
-      username: _communityEmail ? _communityEmail.split('@')[0] : 'anonyme',
+      username: _communityUsername || (_communityEmail ? _communityEmail.split('@')[0] : 'anonyme'),
     })
     if (res.error) throw new Error(res.error)
     await fetch(res.uploadUrl, {
@@ -1118,7 +1182,7 @@ async function confirmShareDrawing() {
   try {
     const res = await window.electronAPI.submitCommunityPost({
       refImageUrl: _lastRefUrl || null,
-      username: _communityEmail ? _communityEmail.split('@')[0] : 'anonyme',
+      username: _communityUsername || (_communityEmail ? _communityEmail.split('@')[0] : 'anonyme'),
     })
     if (res.error) throw new Error(res.error)
     // Upload to R2 via presigned URL

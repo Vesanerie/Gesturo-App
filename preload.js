@@ -17,8 +17,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ── Admin : switcher source locale ↔ R2 ──
   adminSwitchSource: (opts) => ipcRenderer.invoke('admin-switch-source', opts),
 
-  // ── Auth Google ──
+  // ── Auth ──
   authGoogle: () => ipcRenderer.invoke('auth-google'),
+  authSignup: (data) => ipcRenderer.invoke('auth-signup', data),
+  authEmail: (data) => ipcRenderer.invoke('auth-email', data),
   authLogout: () => ipcRenderer.invoke('auth-logout'),
   authCheck: () => ipcRenderer.invoke('auth-check'),
   // authAdmin removed — admin access via admin-web only
