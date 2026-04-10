@@ -26,6 +26,10 @@
   <section id="screen-admin" class="screen hidden">
     <header class="topbar">
       <div class="brand">Gesturo <span class="dim">Admin</span></div>
+      <div class="admin-nav">
+        <button class="admin-nav-btn active" data-panel="files">📂 Fichiers</button>
+        <button class="admin-nav-btn" data-panel="challenges">🏆 Challenges</button>
+      </div>
       <div id="global-stats" class="global-stats muted" title="Cliquer pour rafraîchir">📊 Calcul…</div>
       <div class="user">
         <span id="user-email"></span>
@@ -34,6 +38,8 @@
       </div>
     </header>
 
+    <!-- ═ FILES PANEL ═ -->
+    <div id="panel-files" class="admin-panel">
     <div class="toolbar">
       <div class="nav-arrows">
         <button id="nav-back" class="nav-btn" title="Précédent (Cmd+[)">←</button>
@@ -97,6 +103,39 @@
         <button id="action-clear" class="btn-ghost">Annuler</button>
       </div>
     </div>
+    </div><!-- /panel-files -->
+
+    <!-- ═ CHALLENGES PANEL ═ -->
+    <div id="panel-challenges" class="admin-panel hidden">
+      <div class="challenges-layout">
+        <!-- Create form -->
+        <div class="challenge-form-card">
+          <h2>Nouveau challenge</h2>
+          <div class="form-group">
+            <label for="ch-title">Titre</label>
+            <input id="ch-title" type="text" placeholder="Ex : Dessine un chat en 5 min" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="ch-ref-url">Image de référence (URL)</label>
+            <input id="ch-ref-url" type="url" placeholder="https://…" autocomplete="off">
+            <div class="form-hint">Copie l'URL d'une image depuis le file manager (📋 Copier la key), ou colle un lien externe.</div>
+          </div>
+          <div class="form-group">
+            <label for="ch-deadline">Deadline</label>
+            <input id="ch-deadline" type="datetime-local">
+          </div>
+          <button id="ch-create-btn" class="add-btn">Créer le challenge</button>
+          <div id="ch-form-msg" class="msg"></div>
+        </div>
+
+        <!-- List -->
+        <div class="challenge-list-card">
+          <h2>Challenges existants</h2>
+          <div id="ch-list" class="ch-list">Chargement…</div>
+        </div>
+      </div>
+    </div><!-- /panel-challenges -->
+
   </section>
 
   <!-- Context menu sur l'espace vide (clic droit dans le vide) -->

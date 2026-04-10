@@ -176,6 +176,42 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    // ── Admin: challenge management ──
+    if (action === 'adminListChallenges') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { data } = await admin
+        .from('challenges').select('*')
+        .order('deadline', { ascending: false });
+      return json({ challenges: data || [] });
+    }
+
+    if (action === 'adminCreateChallenge') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { title, ref_image_url, deadline } = payload || {};
+      if (!title || !deadline) return json({ error: 'missing title or deadline' }, 400);
+      const { data: ch, error } = await admin.from('challenges').insert({
+        title,
+        ref_image_url: ref_image_url || null,
+        deadline,
+      }).select('id').single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, id: ch.id });
+    }
+
+    if (action === 'adminDeleteChallenge') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { challengeId } = payload || {};
+      if (!challengeId) return json({ error: 'missing challengeId' }, 400);
+      // Untag posts first
+      await admin.from('community_posts').update({ challenge_id: null }).eq('challenge_id', challengeId);
+      const { error } = await admin.from('challenges').delete().eq('id', challengeId);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
     // ── Community reactions (no profile needed, just email) ──
     if (action === 'getReactions') {
       // Returns all reactions for given post IDs

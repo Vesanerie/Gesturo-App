@@ -1383,4 +1383,109 @@ applyThumbSize();
   window.addEventListener('scroll', hide, true);
 })();
 
+// ── Admin nav (Files / Challenges) ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const panel = btn.dataset.panel;
+      document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.admin-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-' + panel));
+      if (panel === 'challenges') loadChallengeList();
+    });
+  });
+});
+
+// ── Challenges CRUD ────────────────────────────────────────────────────────
+async function callUserData(action, payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error('not logged in');
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/user-data`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ action, payload }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'request failed');
+  }
+  return res.json();
+}
+
+async function loadChallengeList() {
+  const list = $('ch-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('adminListChallenges');
+    const challenges = data.challenges || [];
+    if (challenges.length === 0) { list.textContent = 'Aucun challenge.'; return; }
+    list.innerHTML = '';
+    challenges.forEach(ch => {
+      const row = document.createElement('div');
+      row.className = 'ch-row';
+      const now = new Date();
+      const dl = new Date(ch.deadline);
+      const isActive = dl >= now;
+      row.innerHTML =
+        (ch.ref_image_url ? '<img class="ch-row-img" src="' + ch.ref_image_url + '" alt="">' : '<div class="ch-row-img ch-row-no-img">?</div>')
+        + '<div class="ch-row-info">'
+        + '<div class="ch-row-title">' + escapeHtml(ch.title) + '</div>'
+        + '<div class="ch-row-meta">'
+        + '<span class="ch-status ' + (isActive ? 'ch-active' : 'ch-past') + '">' + (isActive ? 'Actif' : 'Terminé') + '</span>'
+        + ' · Deadline : ' + dl.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        + '</div>'
+        + '</div>';
+      const del = document.createElement('button');
+      del.className = 'btn-danger ch-row-delete';
+      del.textContent = '🗑';
+      del.title = 'Supprimer';
+      del.onclick = async () => {
+        if (!confirm('Supprimer le challenge « ' + ch.title + ' » ?\nLes posts tagués seront dé-tagués.')) return;
+        try {
+          await callUserData('adminDeleteChallenge', { challengeId: ch.id });
+          toast('Challenge supprimé', 'ok');
+          loadChallengeList();
+        } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      };
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = 'Erreur : ' + e.message; }
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('ch-create-btn').addEventListener('click', async () => {
+    const title = $('ch-title').value.trim();
+    const refUrl = $('ch-ref-url').value.trim();
+    const deadline = $('ch-deadline').value;
+    const msg = $('ch-form-msg');
+    if (!title) { setMsg(msg, 'Le titre est requis.', 'err'); return; }
+    if (!deadline) { setMsg(msg, 'La deadline est requise.', 'err'); return; }
+    setMsg(msg, 'Création…');
+    try {
+      await callUserData('adminCreateChallenge', {
+        title,
+        ref_image_url: refUrl || null,
+        deadline: new Date(deadline).toISOString(),
+      });
+      setMsg(msg, '✓ Challenge créé !', 'ok');
+      $('ch-title').value = '';
+      $('ch-ref-url').value = '';
+      $('ch-deadline').value = '';
+      loadChallengeList();
+    } catch (e) {
+      setMsg(msg, 'Erreur : ' + e.message, 'err');
+    }
+  });
+});
+
 init();
