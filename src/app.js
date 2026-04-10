@@ -2029,7 +2029,36 @@ function renderHist() {
   document.getElementById('hist-total-mins').textContent = all.reduce((a, s) => a + (s.minutes || 0), 0)
   const unlockedCount = Object.keys(loadBadges()).length
   document.getElementById('hist-badges-count').textContent = unlockedCount + ' / ' + BADGES_DEF.length
+  renderWeekActivity(all)
   renderHistList()
+}
+
+function renderWeekActivity(all) {
+  let container = document.getElementById('week-activity')
+  if (!container) {
+    container = document.createElement('div')
+    container.id = 'week-activity'
+    container.className = 'week-activity'
+    const summary = document.getElementById('hist-summary')
+    if (summary) summary.parentNode.insertBefore(container, summary.nextSibling)
+  }
+  const dayLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const counts = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i)
+    const dayStart = d.getTime(); const dayEnd = dayStart + 86400000
+    const count = all.filter(s => s.ts >= dayStart && s.ts < dayEnd).reduce((a, s) => a + (s.poses || 0), 0)
+    counts.push({ label: dayLabels[d.getDay()], count })
+  }
+  const max = Math.max(...counts.map(c => c.count), 1)
+  container.innerHTML = counts.map(c =>
+    '<div class="wa-row">' +
+      '<span class="wa-label">' + c.label + '</span>' +
+      '<div class="wa-track"><div class="wa-bar" style="width:' + Math.round(c.count / max * 100) + '%"></div></div>' +
+      '<span class="wa-count">' + c.count + '</span>' +
+    '</div>'
+  ).join('')
 }
 
 function renderHistList() {
@@ -2283,14 +2312,33 @@ function renderBadges() {
   BADGES_DEF.forEach(def => {
     const isUnlocked = !!unlocked[def.id]
     const card = document.createElement('div')
-    card.style.cssText = isUnlocked
-      ? 'background:#1c1a08;border:0.5px solid #f0c040;border-radius:12px;padding:14px;text-align:center;'
-      : 'background:#131f2e;border:0.5px solid #1e2d40;border-radius:12px;padding:14px;text-align:center;opacity:0.3;filter:grayscale(1);'
+    card.className = 'badge-card' + (isUnlocked ? ' unlocked' : '')
+    card.addEventListener('click', () => showBadgeDetail(def, unlocked[def.id]))
     const date = isUnlocked ? new Date(unlocked[def.id]).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : def.desc
     const dateColor = isUnlocked ? '#f0c040' : '#4a6280'
     card.innerHTML = `<div style="font-size:28px;margin-bottom:6px;">${def.emoji}</div><div style="font-size:12px;font-weight:600;color:#fff;margin-bottom:3px;">${def.name}</div><div style="font-size:10px;color:${dateColor};line-height:1.4;">${isUnlocked ? '✓ ' + date : date}</div>`
     grid.appendChild(card)
   })
+}
+
+function showBadgeDetail(def, unlockedTs) {
+  let overlay = document.getElementById('badge-detail-overlay')
+  if (overlay) overlay.remove()
+  overlay = document.createElement('div')
+  overlay.id = 'badge-detail-overlay'
+  const dateStr = unlockedTs
+    ? new Date(unlockedTs).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null
+  overlay.innerHTML = `
+    <div class="badge-detail-card">
+      <div class="badge-detail-emoji">${def.emoji}</div>
+      <div class="badge-detail-name">${def.name}</div>
+      <div class="badge-detail-desc">${def.desc}</div>
+      ${dateStr ? '<div class="badge-detail-date">Débloqué le ' + dateStr + '</div>' : '<div class="badge-detail-locked">Pas encore débloqué</div>'}
+    </div>
+  `
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
+  document.body.appendChild(overlay)
 }
 function toggleBadgesPanel() {
   const panel = document.getElementById('badges-panel')

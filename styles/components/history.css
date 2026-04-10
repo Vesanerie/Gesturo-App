@@ -17,6 +17,14 @@
 .hist-session-time { font-size: 11px; color: #3a5570; white-space: nowrap; }
 #hist-empty { font-size: 13px; color: #3a5570; text-align: center; padding: 30px 0; display: none; }
 
+/* ── WEEK ACTIVITY CHART ── */
+.week-activity { background: #131f2e; border: 0.5px solid #1e2d40; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 2px; }
+.wa-row { display: flex; align-items: center; gap: 8px; }
+.wa-label { font-size: 9px; color: #3a5570; width: 10px; text-align: center; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.3px; }
+.wa-track { flex: 1; height: 4px; background: rgba(255,255,255,0.04); border-radius: 2px; overflow: hidden; }
+.wa-bar { height: 4px; background: #2983eb; border-radius: 2px; min-width: 0; transition: width 0.3s ease; }
+.wa-count { font-size: 9px; color: #3a5570; width: 24px; text-align: right; flex-shrink: 0; }
+
 /* ══════════════════════════════════════════════════════════════
    MOBILE — Historique (≤768px)
    ══════════════════════════════════════════════════════════════ */
@@ -55,6 +63,7 @@
     padding: 14px !important;
     border-radius: 12px !important;
   }
+  .week-activity { padding: 10px 12px; border-radius: 12px; margin-bottom: 12px; }
 }
 
 /* ══════════════════════════════════════════════════════════════

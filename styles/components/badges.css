@@ -31,3 +31,32 @@
 #badge-popup .bp-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #badge-popup .bp-progress { height: 2px; background: rgba(255,255,255,0.1); border-radius: 99px; margin-top: 6px; overflow: hidden; }
 #badge-popup .bp-progress-bar { height: 100%; background: #f0c040; border-radius: 99px; width: 100%; transition: width linear; }
+
+/* ── BADGE CARDS (grille dans #badges-panel) ── */
+.badge-card {
+  background: #131f2e; border: 0.5px solid #1e2d40; border-radius: 12px;
+  padding: 14px; text-align: center; cursor: pointer;
+  opacity: 0.3; filter: grayscale(1);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.badge-card.unlocked { background: #1c1a08; border-color: #f0c040; opacity: 1; filter: none; }
+.badge-card:hover { transform: scale(1.05); border-color: #5ba0f0; }
+.badge-card.unlocked:hover { border-color: #f5d060; }
+
+/* ── BADGE DETAIL OVERLAY ── */
+#badge-detail-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+}
+.badge-detail-card {
+  background: rgba(15,25,35,0.95); border: 0.5px solid #1e2d40; border-radius: 16px;
+  padding: 32px 40px; text-align: center; min-width: 240px; max-width: 320px;
+  animation: badge-detail-in 0.2s ease;
+}
+@keyframes badge-detail-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+.badge-detail-emoji { font-size: 48px; margin-bottom: 12px; }
+.badge-detail-name { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+.badge-detail-desc { font-size: 13px; color: #8aaccc; margin-bottom: 10px; }
+.badge-detail-date { font-size: 12px; color: #f0c040; }
+.badge-detail-locked { font-size: 12px; color: #3a5570; font-style: italic; }
