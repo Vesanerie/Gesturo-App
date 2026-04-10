@@ -232,6 +232,17 @@
 .community-cta strong {
   color: #c8d6e5;
 }
+.community-cta .s-btn-blue {
+  background: #2983eb;
+  color: #fff;
+  border-color: #2983eb;
+  font-weight: 600;
+  padding: 10px 24px;
+  font-size: 14px;
+}
+.community-cta .s-btn-blue:hover {
+  background: #1a6fd4;
+}
 
 /* Feed grid */
 #community-feed {
@@ -335,7 +346,7 @@
   position: fixed;
   inset: 0;
   background: rgba(5,10,18,0.9);
-  z-index: 1100;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
