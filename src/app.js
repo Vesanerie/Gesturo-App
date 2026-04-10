@@ -80,11 +80,19 @@ window.addEventListener('DOMContentLoaded', () => {
       div.className = 'auth-screen'
       div.innerHTML = `
         <div class="auth-card">
-          <h2 class="auth-title">Gesturo</h2>
+          <div class="auth-logo"><span class="auth-logo-text">Gesturo<span class="auth-logo-dot">.</span></span></div>
+          <div class="auth-subtitle">Entrainement au dessin de poses</div>
           <div id="auth-login-form" class="auth-form">
-            <input id="auth-email" type="email" placeholder="Email" autocomplete="email">
-            <input id="auth-password" type="password" placeholder="Mot de passe" autocomplete="current-password">
+            <div class="auth-input-wrap">
+              <input id="auth-email" type="email" placeholder="Email" autocomplete="email">
+              <span class="auth-input-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg></span>
+            </div>
+            <div class="auth-input-wrap">
+              <input id="auth-password" type="password" placeholder="Mot de passe" autocomplete="current-password">
+              <span class="auth-input-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            </div>
             <button id="btn-email-login" class="auth-btn auth-btn-primary">Se connecter</button>
+            <button type="button" id="auth-forgot-btn" class="auth-forgot">Mot de passe oublie ?</button>
             <div id="auth-msg" class="auth-msg"></div>
             <div class="auth-separator"><span>ou</span></div>
             <button id="btn-google-login" class="auth-btn auth-btn-google">
@@ -94,9 +102,18 @@ window.addEventListener('DOMContentLoaded', () => {
             <p class="auth-switch">Pas de compte ? <a href="#" id="auth-goto-signup">Creer un compte</a></p>
           </div>
           <div id="auth-signup-form" class="auth-form" style="display:none;">
-            <input id="auth-signup-username" type="text" placeholder="Pseudo (visible dans la communaute)" autocomplete="username">
-            <input id="auth-signup-email" type="email" placeholder="Email" autocomplete="email">
-            <input id="auth-signup-password" type="password" placeholder="Mot de passe (6 car. min)" autocomplete="new-password">
+            <div class="auth-input-wrap">
+              <input id="auth-signup-username" type="text" placeholder="Pseudo (visible dans la communaute)" autocomplete="username">
+              <span class="auth-input-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></span>
+            </div>
+            <div class="auth-input-wrap">
+              <input id="auth-signup-email" type="email" placeholder="Email" autocomplete="email">
+              <span class="auth-input-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg></span>
+            </div>
+            <div class="auth-input-wrap">
+              <input id="auth-signup-password" type="password" placeholder="Mot de passe (6 car. min)" autocomplete="new-password">
+              <span class="auth-input-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            </div>
             <button id="btn-email-signup" class="auth-btn auth-btn-primary">Creer mon compte</button>
             <div id="auth-signup-msg" class="auth-msg"></div>
             <p class="auth-switch">Deja un compte ? <a href="#" id="auth-goto-login">Se connecter</a></p>
@@ -151,6 +168,16 @@ window.addEventListener('DOMContentLoaded', () => {
       })
       document.getElementById('auth-signup-password').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') document.getElementById('btn-email-signup').click()
+      })
+      document.getElementById('auth-forgot-btn').addEventListener('click', () => {
+        const email = document.getElementById('auth-email').value.trim()
+        const msg = document.getElementById('auth-msg')
+        if (!email) { msg.textContent = 'Entre ton email ci-dessus d\'abord'; msg.style.color = '#e24b4a'; return }
+        msg.textContent = 'Envoi du lien...'; msg.style.color = '#4a6280'
+        window.electronAPI.authResetPassword(email).then(result => {
+          if (result?.success) { msg.textContent = 'Lien envoye ! Verifie tes emails.'; msg.style.color = '#2ecc71' }
+          else { msg.textContent = result?.message || 'Erreur'; msg.style.color = '#e24b4a' }
+        }).catch(e => { msg.textContent = e.message; msg.style.color = '#e24b4a' })
       })
     })
   }

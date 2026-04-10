@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   authGoogle: () => ipcRenderer.invoke('auth-google'),
   authSignup: (data) => ipcRenderer.invoke('auth-signup', data),
   authEmail: (data) => ipcRenderer.invoke('auth-email', data),
+  authResetPassword: (email) => ipcRenderer.invoke('auth-reset-password', email),
   authLogout: () => ipcRenderer.invoke('auth-logout'),
   authCheck: () => ipcRenderer.invoke('auth-check'),
   // authAdmin removed — admin access via admin-web only
@@ -34,6 +35,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getStreak: () => ipcRenderer.invoke('get-streak'),
   saveFavorites: (favs) => ipcRenderer.invoke('save-favorites', favs),
 getFavorites: () => ipcRenderer.invoke('get-favorites'),
+
+  updateUsername: (username) => ipcRenderer.invoke('update-username', username),
 
   // ── Utilitaires ──
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
