@@ -306,10 +306,16 @@ function renderMoodboard() {
 
 function createBoard(name) {
   const data = loadMoodboards()
-  if (data.boards.some(b => b.name === name)) return
+  if (data.boards.some(b => b.name === name)) return false
+  // Free limit: max 1 board
+  if (!currentUserIsPro && data.boards.length >= 1) {
+    alert('Passe Pro pour plus de tableaux et d\u2019images \u2b50')
+    return false
+  }
   data.boards.push({ name, images: [] })
   mbCurrentBoard = data.boards.length - 1
   saveMoodboards(data)
+  return true
 }
 
 function deleteBoard(name) {
@@ -334,10 +340,16 @@ function mbDeleteCurrentBoard() {
 function addToBoard(boardName, src) {
   const data = loadMoodboards()
   const board = data.boards.find(b => b.name === boardName)
-  if (!board) return
-  if (board.images.some(i => i.src === src)) return
+  if (!board) return false
+  if (board.images.some(i => i.src === src)) return false
+  // Free limit: max 15 images per board
+  if (!currentUserIsPro && board.images.length >= 15) {
+    alert('Passe Pro pour plus de tableaux et d\u2019images \u2b50')
+    return false
+  }
   board.images.push({ src, addedAt: new Date().toISOString() })
   saveMoodboards(data)
+  return true
 }
 
 function removeFromBoard(boardName, src) {
@@ -2203,34 +2215,7 @@ function openLightboxFav(src, index) {
 function removeFavFromLightbox() { if (!lbFavSrc) return; removeFav(lbFavSrc); lbFavSrc = null; closeLightbox(); renderFavsConfig() }
 
 // ══ MOODBOARD PIN ══
-function getMoodboards() {
-  try { return JSON.parse(localStorage.getItem('gesturo-moodboards') || '[]') } catch { return [] }
-}
-function saveMoodboards(boards) { localStorage.setItem('gesturo-moodboards', JSON.stringify(boards)) }
-function createMoodboard(name) {
-  const boards = getMoodboards()
-  if (boards.some(b => b.name === name)) return false
-  boards.push({ name, images: [] })
-  saveMoodboards(boards)
-  return true
-}
-function pinToMoodboard(boardName, imageUrl) {
-  const boards = getMoodboards()
-  const board = boards.find(b => b.name === boardName)
-  if (!board) return false
-  if (board.images.includes(imageUrl)) return false
-  board.images.push(imageUrl)
-  saveMoodboards(boards)
-  return true
-}
-function unpinFromMoodboard(boardName, imageUrl) {
-  const boards = getMoodboards()
-  const board = boards.find(b => b.name === boardName)
-  if (!board) return false
-  board.images = board.images.filter(u => u !== imageUrl)
-  saveMoodboards(boards)
-  return true
-}
+// Uses the same storage as the main moodboard (MB_KEY / loadMoodboards / saveMoodboards)
 
 let _pinModalEl = null
 function openPinModal(imageUrl) {
@@ -2242,21 +2227,21 @@ function openPinModal(imageUrl) {
   modal.innerHTML = '<h3>Epingler au moodboard</h3>'
   const list = document.createElement('div')
   list.className = 'pin-modal-list'
-  const boards = getMoodboards()
-  if (boards.length === 0) {
+  const data = loadMoodboards()
+  if (data.boards.length === 0) {
     const hint = document.createElement('div')
     hint.style.cssText = 'font-size:12px;color:#4a6280;padding:8px 0;'
     hint.textContent = 'Aucun moodboard. Cree-en un !'
     list.appendChild(hint)
   } else {
-    boards.forEach(b => {
+    data.boards.forEach(b => {
       const item = document.createElement('div')
       item.className = 'pin-modal-item'
-      const alreadyPinned = b.images.includes(imageUrl)
-      item.innerHTML = '<span>' + b.name + (alreadyPinned ? ' ✓' : '') + '</span><span class="pin-count">' + b.images.length + ' img</span>'
+      const alreadyPinned = b.images.some(i => i.src === imageUrl)
+      item.innerHTML = '<span>' + b.name + (alreadyPinned ? ' \u2713' : '') + '</span><span class="pin-count">' + b.images.length + ' img</span>'
       if (!alreadyPinned) {
         item.onclick = () => {
-          pinToMoodboard(b.name, imageUrl)
+          addToBoard(b.name, imageUrl)
           closePinModal()
         }
       } else {
@@ -2272,14 +2257,14 @@ function openPinModal(imageUrl) {
   newRow.className = 'pin-modal-new'
   const input = document.createElement('input')
   input.type = 'text'
-  input.placeholder = 'Nouveau moodboard…'
+  input.placeholder = 'Nouveau moodboard\u2026'
   const addBtn = document.createElement('button')
   addBtn.textContent = 'Creer'
   addBtn.onclick = () => {
     const name = input.value.trim()
     if (!name) return
-    if (createMoodboard(name)) {
-      pinToMoodboard(name, imageUrl)
+    if (createBoard(name) !== false) {
+      addToBoard(name, imageUrl)
       closePinModal()
     } else {
       input.style.borderColor = '#e24b4a'
