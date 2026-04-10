@@ -258,8 +258,15 @@
         </div>
       </div>
 
+      <!-- Sub-tabs -->
+      <div class="community-tabs">
+        <button class="community-tab active" id="ctab-feed" onclick="switchCommunityTab('feed')">Feed</button>
+        <button class="community-tab" id="ctab-mine" onclick="switchCommunityTab('mine')">Mes dessins</button>
+      </div>
+
       <!-- Feed communauté -->
       <div id="community-feed"></div>
+      <div id="community-mine" style="display:none;"></div>
       <div id="community-empty" style="font-size:13px;color:#556;text-align:center;padding:30px 0;display:none;">Chargement...</div>
     </div>
 

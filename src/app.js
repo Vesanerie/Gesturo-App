@@ -892,9 +892,66 @@ async function renderCommunity() {
 }
 
 let communityInterval = null
+let _communityTab = 'feed'
+
 function startCommunityRefresh() {
   if (communityInterval) clearInterval(communityInterval)
-  communityInterval = setInterval(() => { if (mainMode === 'community') renderCommunity() }, 60 * 1000)
+  communityInterval = setInterval(() => { if (mainMode === 'community') { if (_communityTab === 'feed') renderCommunity() } }, 60 * 1000)
+}
+
+function switchCommunityTab(tab) {
+  _communityTab = tab
+  document.getElementById('ctab-feed').classList.toggle('active', tab === 'feed')
+  document.getElementById('ctab-mine').classList.toggle('active', tab === 'mine')
+  document.getElementById('community-feed').style.display = tab === 'feed' ? '' : 'none'
+  document.getElementById('community-mine').style.display = tab === 'mine' ? '' : 'none'
+  document.getElementById('community-empty').style.display = 'none'
+  if (tab === 'feed') renderCommunity()
+  else renderMyPosts()
+}
+
+async function renderMyPosts() {
+  const grid = document.getElementById('community-mine')
+  const empty = document.getElementById('community-empty')
+  grid.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
+  try {
+    const res = await window.electronAPI.getCommunityPosts()
+    const myPosts = (res.posts || []).filter(p => p.user_email === _communityEmail)
+    empty.style.display = 'none'
+    if (myPosts.length === 0) {
+      grid.innerHTML = '<div class="mine-empty">Tu n\'as pas encore partage de dessin.<br>Fais une session et partage depuis le Recap !</div>'
+      return
+    }
+
+    await loadReactions(myPosts.map(p => p.id))
+
+    myPosts.forEach((post, i) => {
+      const card = buildPostCard({
+        id: post.id,
+        image_url: post.image_url,
+        username: post.username,
+        created_at: post.created_at,
+        source: 'community',
+      }, i)
+
+      // Add delete button
+      const del = document.createElement('button')
+      del.className = 'community-post-delete'
+      del.textContent = '×'
+      del.title = 'Supprimer'
+      del.onclick = async (e) => {
+        e.stopPropagation()
+        if (!confirm('Supprimer ce dessin ?')) return
+        try {
+          await window.electronAPI.deleteCommunityPost(post.id)
+          renderMyPosts()
+        } catch(err) { /* silent */ }
+      }
+      card.appendChild(del)
+
+      grid.appendChild(card)
+    })
+  } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
 }
 
 function selectSubMode(mode) {

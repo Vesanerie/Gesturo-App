@@ -726,6 +726,15 @@ ipcMain.handle('get-community-posts', async () => {
   }
 })
 
+ipcMain.handle('delete-community-post', async (_e, postId) => {
+  try {
+    return await callUserData('deleteCommunityPost', { postId })
+  } catch (e) {
+    console.warn('[community] delete error:', e.message)
+    return { error: e.message }
+  }
+})
+
 app.on('window-all-closed', () => {
   if (oauthServer) { try { oauthServer.close() } catch(e) {} oauthServer = null }
   if (process.platform !== 'darwin') app.quit()

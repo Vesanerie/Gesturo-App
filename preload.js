@@ -43,6 +43,7 @@ getFavorites: () => ipcRenderer.invoke('get-favorites'),
   toggleReaction: (postId, emoji) => ipcRenderer.invoke('toggle-reaction', postId, emoji),
   submitCommunityPost: (data) => ipcRenderer.invoke('submit-community-post', data),
   getCommunityPosts: () => ipcRenderer.invoke('get-community-posts'),
+  deleteCommunityPost: (id) => ipcRenderer.invoke('delete-community-post', id),
 
   // ── Gesturo Moodboard (in-app via webview) ──
   getMoodboardPreloadPath: () => ipcRenderer.invoke('mb:get-preload-path'),

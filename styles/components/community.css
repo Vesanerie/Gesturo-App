@@ -1,5 +1,74 @@
 /* ═══ COMMUNITY FEED ═══ */
 
+/* Sub-tabs (Feed / Mes dessins) */
+.community-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 0.5px solid #1e2d40;
+}
+.community-tab {
+  flex: 1;
+  background: #0d1825;
+  border: none;
+  color: #4a6280;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.community-tab:hover {
+  background: #162030;
+}
+.community-tab.active {
+  background: #1a2738;
+  color: #c8d6e5;
+}
+
+/* Mes dessins grid (same as feed) */
+#community-mine {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.mine-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 13px;
+  color: #4a6280;
+  padding: 30px 0;
+}
+
+/* Delete button on own posts */
+.community-post-delete {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(231, 76, 60, 0.85);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.community-post:hover .community-post-delete {
+  opacity: 1;
+}
+
 .community-cta {
   text-align: center;
   font-size: 13px;
@@ -158,7 +227,7 @@
 
 /* ── Mobile ── */
 @media (max-width: 767px) {
-  #community-feed {
+  #community-feed, #community-mine {
     grid-template-columns: 1fr;
     gap: 10px;
   }
@@ -167,11 +236,16 @@
     padding: 6px 12px;
     font-size: 16px;
   }
+  .community-tab {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .community-post-delete { opacity: 1; }
 }
 
 /* ── Tablet ── */
 @media (min-width: 768px) and (max-width: 1199px) {
-  #community-feed {
+  #community-feed, #community-mine {
     grid-template-columns: repeat(3, 1fr);
   }
 }

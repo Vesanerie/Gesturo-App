@@ -139,6 +139,20 @@ if (action === 'getStreak') {
       return json({ posts });
     }
 
+    if (action === 'deleteCommunityPost') {
+      const { postId } = payload || {};
+      if (!postId) return json({ error: 'missing postId' }, 400);
+      // Only allow deleting own posts
+      const { data: post } = await admin
+        .from('community_posts').select('id, image_key')
+        .eq('id', postId).eq('user_email', email).maybeSingle();
+      if (!post) return json({ error: 'not found or not yours' }, 404);
+      await admin.from('community_posts').delete().eq('id', post.id);
+      // Also delete reactions for this post
+      await admin.from('post_reactions').delete().eq('post_id', post.id);
+      return json({ ok: true });
+    }
+
     // ── Community reactions (no profile needed, just email) ──
     if (action === 'getReactions') {
       // Returns all reactions for given post IDs
