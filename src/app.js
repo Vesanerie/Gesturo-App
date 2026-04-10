@@ -1811,6 +1811,11 @@ function finishSession() {
   document.getElementById('stat-poses-label').textContent = 'poses'
   document.getElementById('stat-time-label').textContent = 'min'
   showScreen('screen-end')
+  // Auto-open share overlay after a challenge session
+  if (_challengeSession) {
+    _challengeSession = false
+    setTimeout(() => openShareDrawing(), 400)
+  }
   // Pop-up Discord (1 fois sur 3)
   if (Math.random() < 0.33) {
     setTimeout(() => {
