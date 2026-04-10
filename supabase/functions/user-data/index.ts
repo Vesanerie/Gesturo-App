@@ -110,6 +110,15 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    if (action === 'updateUsername') {
+      const { username } = payload || {};
+      if (!username || typeof username !== 'string' || username.trim().length < 1) return json({ error: 'invalid username' }, 400);
+      const clean = username.trim().slice(0, 30);
+      const { error } = await admin.from('profiles').update({ username: clean }).eq('email', email);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, username: clean });
+    }
+
     // ── Community posts ──
     if (action === 'submitCommunityPost') {
       const { refImageUrl, username } = payload || {};

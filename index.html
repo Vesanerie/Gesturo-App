@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="styles/components/badges.css">
   <link rel="stylesheet" href="styles/components/community.css">
   <link rel="stylesheet" href="styles/components/moodboard-pin.css">
+  <link rel="stylesheet" href="styles/components/profile.css">
 </head>
 <body>
 
@@ -34,6 +35,9 @@
   onmouseout="this.style.borderColor='#1e2d40';this.style.color='#3a5570';this.style.background='#131f2e'">
   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
 </a>
+<button id="profile-btn" onclick="openProfile()">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+</button>
 <button id="options-btn" onclick="toggleOptions()">⋯</button>
 <div id="options-dropdown">
   <div class="opt-item" onclick="toggleOptions(); switchMainMode('hist')">📈 Historique</div>
@@ -570,6 +574,45 @@
     <span class="btab-label">Communauté</span>
   </button>
 </nav>
+
+<!-- ═ PROFILE MODAL ═ -->
+<div id="profile-modal" class="profile-overlay" style="display:none;">
+  <div class="profile-card">
+    <button class="profile-close" onclick="closeProfile()">&times;</button>
+    <div class="profile-avatar" id="profile-avatar">?</div>
+    <div class="profile-field">
+      <label>Pseudo</label>
+      <div class="profile-username-row">
+        <input id="profile-username" type="text" maxlength="30" placeholder="Ton pseudo">
+        <button id="profile-save-username" class="profile-save-btn" onclick="saveProfileUsername()">OK</button>
+      </div>
+      <div id="profile-username-msg" class="profile-msg"></div>
+    </div>
+    <div class="profile-field">
+      <label>Email</label>
+      <div class="profile-value" id="profile-email">—</div>
+    </div>
+    <div class="profile-field">
+      <label>Plan</label>
+      <div class="profile-value" id="profile-plan">Free</div>
+    </div>
+    <div class="profile-stats">
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profile-streak">0</div>
+        <div class="profile-stat-label">Streak</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profile-poses">0</div>
+        <div class="profile-stat-label">Poses</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profile-badges">0</div>
+        <div class="profile-stat-label">Badges</div>
+      </div>
+    </div>
+    <button class="profile-logout-btn" onclick="handleLogout()">Se deconnecter</button>
+  </div>
+</div>
 
 <script src="src/app.js"></script>
 

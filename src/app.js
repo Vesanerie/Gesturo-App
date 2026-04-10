@@ -61,6 +61,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderWeekBar()
   document.getElementById('options-btn').style.display = 'flex'
   document.getElementById('discord-btn').style.display = 'flex'
+  document.getElementById('profile-btn').style.display = 'flex'
 
   if (window.electronAPI?.onAuthRequired) {
     if (window.electronAPI?.onAuthSuccess) {
@@ -72,6 +73,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     window.electronAPI.onAuthRequired(() => {
       document.getElementById('options-btn').style.display = 'none'
+      document.getElementById('profile-btn').style.display = 'none'
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
       const existing = document.getElementById('screen-login')
       if (existing) existing.remove()
@@ -424,6 +426,7 @@ function showScreen(id) {
   const visible = id === 'screen-config'
   document.getElementById('options-btn').style.display = visible ? 'flex' : 'none'
   document.getElementById('discord-btn').style.display = visible ? 'flex' : 'none'
+  document.getElementById('profile-btn').style.display = visible ? 'flex' : 'none'
   const badge = document.getElementById('plan-badge')
   if (badge) badge.style.display = (visible && badge.textContent.trim()) ? 'flex' : 'none'
   document.getElementById('options-dropdown').classList.remove('open')
@@ -2499,8 +2502,63 @@ function confirmResetHistory() {
 }
 async function handleLogout() {
   document.getElementById('options-dropdown').classList.remove('open')
+  closeProfile()
   if (confirm('Se déconnecter ?')) await window.electronAPI.authLogout()
 }
+
+// ══ PROFIL ══
+function openProfile() {
+  const modal = document.getElementById('profile-modal')
+  modal.style.display = 'flex'
+  // Fill data
+  document.getElementById('profile-email').textContent = _communityEmail || '—'
+  document.getElementById('profile-username').value = _communityUsername || ''
+  document.getElementById('profile-username-msg').textContent = ''
+  // Avatar: first letter of username
+  const avatar = document.getElementById('profile-avatar')
+  const initial = (_communityUsername || _communityEmail || '?')[0].toUpperCase()
+  avatar.textContent = initial
+  // Plan
+  const badge = document.getElementById('plan-badge')
+  document.getElementById('profile-plan').textContent = badge && badge.textContent.includes('Pro') ? 'Pro' : 'Free'
+  // Stats
+  const hist = JSON.parse(localStorage.getItem('gd4_history') || '[]')
+  const totalPoses = hist.reduce((a, s) => a + (s.poses || 0), 0)
+  document.getElementById('profile-poses').textContent = totalPoses
+  const badges = Object.keys(JSON.parse(localStorage.getItem('gd4_badges') || '{}')).length
+  document.getElementById('profile-badges').textContent = badges
+  // Streak from DOM (already computed)
+  const streakEl = document.getElementById('week-streak')
+  document.getElementById('profile-streak').textContent = streakEl ? streakEl.textContent : '0'
+}
+
+function closeProfile() {
+  document.getElementById('profile-modal').style.display = 'none'
+}
+
+async function saveProfileUsername() {
+  const input = document.getElementById('profile-username')
+  const msg = document.getElementById('profile-username-msg')
+  const newName = input.value.trim()
+  if (!newName) { msg.textContent = 'Le pseudo ne peut pas etre vide'; msg.style.color = '#e24b4a'; return }
+  msg.textContent = 'Enregistrement...'; msg.style.color = '#4a6280'
+  try {
+    const res = await window.electronAPI.updateUsername(newName)
+    if (res.ok) {
+      _communityUsername = res.username || newName
+      document.getElementById('profile-avatar').textContent = _communityUsername[0].toUpperCase()
+      msg.textContent = 'Pseudo mis a jour !'; msg.style.color = '#2ecc71'
+    } else {
+      msg.textContent = res.error || 'Erreur'; msg.style.color = '#e24b4a'
+    }
+  } catch (e) { msg.textContent = e.message; msg.style.color = '#e24b4a' }
+}
+
+// Close profile on click outside
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('profile-modal')
+  if (modal.style.display === 'flex' && e.target === modal) closeProfile()
+})
 
 // ══ RACCOURCIS CLAVIER ══
 document.addEventListener('keydown', (e) => {
