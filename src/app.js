@@ -731,6 +731,23 @@ async function loadChallenges() {
   renderChallengeFilter()
 }
 
+let _dailyChallengeTriggered = false
+async function triggerDailyChallenge() {
+  if (_dailyChallengeTriggered) return
+  _dailyChallengeTriggered = true
+  try {
+    const sb = window.__gesturoAuth
+      ? await window.__gesturoAuth.getSupabase()
+      : null
+    if (sb) {
+      await sb.functions.invoke('daily-challenge')
+    } else {
+      // Desktop: call via electronAPI helper or direct fetch
+      await window.electronAPI.triggerDailyChallenge()
+    }
+  } catch(e) { /* silent — challenge is optional */ }
+}
+
 function renderChallengeBanner() {
   const banner = document.getElementById('challenge-banner')
   if (!_activeChallenges.length) { banner.style.display = 'none'; return }
@@ -785,6 +802,88 @@ function participateChallenge() {
   // Switch to Poses config with the challenge ref loaded
   switchMainMode('pose')
   // TODO: could auto-load the challenge ref image in the session
+}
+
+// ── Upload from Community tab ──
+let _communityBlob = null
+
+function openCommunityUpload() {
+  const overlay = document.getElementById('community-upload-overlay')
+  overlay.style.display = 'flex'
+  document.getElementById('community-preview-img').style.display = 'none'
+  document.getElementById('community-upload-actions').style.display = 'none'
+  document.getElementById('community-upload-status').style.display = 'none'
+  document.getElementById('community-upload-label').style.display = 'inline-flex'
+  document.getElementById('community-file-input').value = ''
+  _communityBlob = null
+  const desc = document.querySelector('#community-upload-overlay .share-drawing-box p')
+  if (desc && _activeChallenges.length) {
+    desc.textContent = 'Challenge en cours : ' + _activeChallenges[0].title + ' — ton dessin sera inscrit !'
+  } else if (desc) {
+    desc.textContent = 'Prends en photo ton croquis pour le montrer a la communaute !'
+  }
+}
+
+function closeCommunityUpload() {
+  document.getElementById('community-upload-overlay').style.display = 'none'
+}
+
+function handleCommunityFile(input) {
+  const file = input.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = function(e) {
+    const img = new Image()
+    img.onload = function() {
+      const canvas = document.createElement('canvas')
+      const maxW = 1200
+      let w = img.width, h = img.height
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      canvas.toBlob(function(blob) {
+        _communityBlob = blob
+        const preview = document.getElementById('community-preview-img')
+        preview.src = URL.createObjectURL(blob)
+        preview.style.display = 'block'
+        document.getElementById('community-upload-label').style.display = 'none'
+        document.getElementById('community-upload-actions').style.display = 'flex'
+      }, 'image/jpeg', 0.8)
+    }
+    img.src = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+async function confirmCommunityUpload() {
+  if (!_communityBlob) return
+  const status = document.getElementById('community-upload-status')
+  status.style.display = 'block'
+  status.style.color = '#6a8aaa'
+  status.textContent = 'Envoi en cours...'
+  document.getElementById('community-upload-actions').style.display = 'none'
+  try {
+    const res = await window.electronAPI.submitCommunityPost({
+      refImageUrl: null,
+      username: _communityEmail ? _communityEmail.split('@')[0] : 'anonyme',
+    })
+    if (res.error) throw new Error(res.error)
+    await fetch(res.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: _communityBlob,
+    })
+    if (_activeChallenges.length && res.postId) {
+      try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) {}
+    }
+    status.textContent = 'Publie !'
+    status.style.color = '#2ecc71'
+    setTimeout(() => { closeCommunityUpload(); renderCommunity() }, 1500)
+  } catch(e) {
+    status.textContent = 'Erreur : ' + (e.message || 'echec')
+    status.style.color = '#e74c3c'
+    document.getElementById('community-upload-actions').style.display = 'flex'
+  }
 }
 
 // ── Share drawing (Recap screen) ──
@@ -989,7 +1088,13 @@ async function renderCommunity() {
     ])
 
     // Load challenges (once, cached in _activeChallenges)
-    if (!_activeChallenges.length) await loadChallenges()
+    // If none exist, trigger daily-challenge to auto-create one
+    if (!_activeChallenges.length) {
+      await loadChallenges()
+      if (!_activeChallenges.length) {
+        try { await triggerDailyChallenge(); await loadChallenges() } catch(e) { /* silent */ }
+      }
+    }
 
     empty.style.display = 'none'
 
