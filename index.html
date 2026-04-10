@@ -412,8 +412,9 @@
         <h3>Partage ton dessin</h3>
         <p>Prends en photo ton croquis pour le montrer a la communaute !</p>
         <label class="share-upload-label" id="share-upload-label">
-          <input type="file" accept="image/jpeg,image/png" id="share-file-input" onchange="handleShareFile(this)">
-          Choisir une photo
+          <input type="file" accept="image/jpeg,image/png" capture="environment" id="share-file-input" onchange="handleShareFile(this)">
+          <span class="share-upload-text-mobile">Prendre une photo</span>
+          <span class="share-upload-text-desktop">Choisir une photo</span>
         </label>
         <canvas id="share-preview-canvas" style="display:none;"></canvas>
         <img id="share-preview-img" style="display:none;">

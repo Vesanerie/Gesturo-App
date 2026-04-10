@@ -25,6 +25,12 @@
 .share-actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
 .share-close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: #4a6280; font-size: 22px; cursor: pointer; }
 .share-close:hover { color: #fff; }
+.share-upload-text-mobile { display: none; }
+.share-upload-text-desktop { display: inline; }
+@media (max-width: 1199px) {
+  .share-upload-text-mobile { display: inline; }
+  .share-upload-text-desktop { display: none; }
+}
 #recap-grid { padding: 24px 40px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
 .recap-item { position: relative; border-radius: 8px; overflow: hidden; background: #131f2e; aspect-ratio: 3/4; cursor: zoom-in; }
 .recap-item:hover { opacity: 0.85; }
