@@ -1675,7 +1675,7 @@ function showFrame(idx) {
   if (!animFrames[idx]) { setTimeout(() => showFrame(idx), 50); return }
   animIndex = idx
   document.getElementById('anim-img').src = animFrames[idx].dataUrl
-  document.getElementById('anim-frame-info').textContent = 'Frame ' + (idx + 1) + ' / ' + animFrames.length
+  document.getElementById('anim-frame-info').textContent = 'Image ' + (idx + 1) + ' / ' + animFrames.length
   document.querySelectorAll('.thumb-item').forEach((t, i) => t.classList.toggle('active', i === idx))
   const active = document.querySelector('.thumb-item.active')
   if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
@@ -1696,7 +1696,7 @@ function playOnce() {
       clearInterval(animInterval); animLooping = false; showFrame(0)
       document.getElementById('btn-loop-again').style.display = 'inline-flex'
       document.getElementById('anim-mode-badge').className = 'anim-mode-badge study'
-      document.getElementById('anim-mode-badge').textContent = 'Étude — Frame 1 / ' + animFrames.length
+      document.getElementById('anim-mode-badge').textContent = 'Étude — Image 1 / ' + animFrames.length
       startStudyTimer(); return
     }
     showFrame(next)
@@ -1749,7 +1749,7 @@ function enterStudyMode() {
   showFrame(0)
   document.getElementById('anim-overlay').classList.add('hidden')
   document.getElementById('anim-mode-badge').className = 'anim-mode-badge study'
-  document.getElementById('anim-mode-badge').textContent = 'Étude — Frame 1 / ' + animFrames.length
+  document.getElementById('anim-mode-badge').textContent = 'Étude — Image 1 / ' + animFrames.length
   document.getElementById('btn-study').style.display = 'none'
   document.getElementById('btn-loop-again').style.display = 'inline-flex'
   document.getElementById('btn-anim-pause').style.display = 'inline-flex'
