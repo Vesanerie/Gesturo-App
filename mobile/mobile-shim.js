@@ -107,7 +107,6 @@
       if (!window.__gesturoAuth) return { authenticated: false };
       return window.__gesturoAuth.check();
     },
-    authAdmin: reject('authAdmin'),
     onAuthSuccess: on('authSuccess'),
     onAuthNotAllowed: on('authNotAllowed'),
     onAuthExpired: on('authExpired'),
@@ -175,6 +174,43 @@
         console.warn('[shim] getInstagramPosts error', e);
         return [];
       }
+    },
+
+    // ── Community ──
+    submitCommunityPost: async (postData) => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'submitCommunityPost', payload: postData } });
+        return data || { success: false };
+      } catch (e) { return { success: false }; }
+    },
+    getCommunityPosts: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getCommunityPosts' } });
+        return data || [];
+      } catch (e) { return []; }
+    },
+    deleteCommunityPost: async (id) => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'deleteCommunityPost', payload: { id } } });
+        return data || { success: false };
+      } catch (e) { return { success: false }; }
+    },
+    getReactions: async (postIds) => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getReactions', payload: { postIds } } });
+        return data || { reactions: [] };
+      } catch (e) { return { reactions: [] }; }
+    },
+    toggleReaction: async (postId, emoji) => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'toggleReaction', payload: { postId, emoji } } });
+        return data || { toggled: 'error' };
+      } catch (e) { return { toggled: 'error' }; }
     },
 
     // ── Moodboard webview path — N/A on mobile ──
