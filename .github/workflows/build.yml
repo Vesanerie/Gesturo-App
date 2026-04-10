@@ -105,7 +105,7 @@ jobs:
         run: |
           git clone https://x-access-token:${GH_TOKEN}@github.com/Vesanerie/gesturo-website.git site
           cd site
-          sed -i '' "s|Gesturo-[0-9]*\.[0-9]*\.[0-9]*-\(arm64\|universal\)\.dmg|Gesturo-${VERSION}-universal.dmg|g" download.html
+          sed -i '' "s|/download/v[0-9]*\.[0-9]*\.[0-9]*/Gesturo-[0-9]*\.[0-9]*\.[0-9]*-\(arm64\|universal\)\.dmg|/download/v${VERSION}/Gesturo-${VERSION}-universal.dmg|g" download.html
           git config user.email "bot@gesturo.fr"
           git config user.name "Gesturo Bot"
           git add download.html
