@@ -275,6 +275,7 @@
             <div class="challenge-label">CHALLENGE</div>
             <h3 id="challenge-title"></h3>
             <div id="challenge-deadline" class="challenge-deadline"></div>
+            <div id="challenge-participants" class="challenge-participants"></div>
             <button class="end-btn end-btn-share" onclick="participateChallenge()">Participer</button>
           </div>
         </div>
@@ -286,6 +287,9 @@
           <option value="">Tous les posts</option>
         </select>
       </div>
+
+      <!-- Challenge hero (visible when filtering by challenge) -->
+      <div id="challenge-hero" style="display:none;"></div>
 
       <!-- Feed communauté -->
       <div id="community-feed"></div>

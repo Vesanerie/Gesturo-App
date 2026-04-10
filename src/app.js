@@ -618,7 +618,10 @@ function switchMainMode(mode) {
   if (mode === 'favs') renderFavsConfig()
   if (mode === 'hist') renderHist()
   if (mode === 'community') { renderCommunity(); startCommunityRefresh() }
-  if (mode !== 'community' && communityInterval) { clearInterval(communityInterval); communityInterval = null }
+  if (mode !== 'community') {
+    if (communityInterval) { clearInterval(communityInterval); communityInterval = null }
+    if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null }
+  }
   // Sync bottom tab bar (mobile) — Démarrer = tout sauf community
   const btabStart = document.getElementById('btab-start')
   const btabCommu = document.getElementById('btab-community')

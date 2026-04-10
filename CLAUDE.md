@@ -39,7 +39,7 @@ styles/
   screens/{config,session,anim,recap,cinema}.css
   components/{favs,options,streak,history,badges,community}.css
 src/
-  app.js                     Le gros monolithe renderer (~2130 lignes).
+  app.js                     Le gros monolithe renderer (~2148 lignes).
                              State, auth init, folder loading, categories,
                              sequences, mode switching, session pose+anim,
                              recap, lightbox, favs, history, streak, grid,
@@ -200,12 +200,16 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
 - **Supabase auth redirect URLs** doivent inclure
   `https://gesturo-admin.pages.dev/*` (et `http://localhost:5500/*` pour
   le dev local) sinon le magic link de l'admin ne marche pas.
-- **Community** : table `community_posts` (user_id, image_key, caption,
-  challenge_id) + réactions stockées dans la même table ou table liée.
-  Les posts sont gérés via l'Edge Function `user-data` (actions
-  `community-post`, `community-feed`, `community-delete`, `community-react`).
-  Le feed est affiché dans l'onglet Communauté (desktop + mobile bottom tab).
-  La capture caméra utilise `navigator.mediaDevices` sur mobile/tablet.
+- **Community** : tables `community_posts` (user_id, image_key, caption,
+  challenge_id), `post_reactions`, `challenges` (title, ref_image_key,
+  starts_at, ends_at). Les posts sont gérés via l'Edge Function `user-data`
+  (actions : community-post, community-feed, community-delete,
+  community-react, getCommunityLeaderboard, getChallenges,
+  tagPostToChallenge). Le feed est affiché dans l'onglet Communauté
+  (desktop + mobile bottom tab) avec sub-tabs Feed / Mes dessins /
+  Leaderboard. Challenges = banner avec image ref + countdown, auto-tag
+  depuis Recap. La capture caméra utilise `navigator.mediaDevices` sur
+  mobile/tablet.
 - **Tables Postgres pour la rotation** (Phase D) : `rotations` et
   `rotation_files` déjà créées avec RLS strict (service role only).
   `profiles.is_admin` aussi déjà ajoutée. Voir migration dans l'historique
@@ -347,14 +351,17 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - ✅ ~~Retirer `@aws-sdk`~~ — scripts morts supprimés
 
 ### En cours
-- **Community tab** (branch `feat/community-tab`) — onglet communauté
-  dans l'app : feed partagé, posts depuis Recap, réactions emoji,
-  onglet "Mes dessins" + suppression, capture caméra mobile/tablet.
-  Tables Supabase `community_posts` + réactions. Edge Function `user-data`
-  étendue (actions: community-post, community-feed, community-delete,
-  community-react, etc.). **5 fichiers modifiés non commités** (index.html,
-  main.js, preload.js, src/app.js, user-data/index.ts) — dernière étape
-  en cours.
+- **Community tab** (branch `feat/community-tab`, 3 commits ahead of main,
+  working tree clean) — onglet communauté dans l'app : feed partagé,
+  posts depuis Recap, réactions emoji, onglet "Mes dessins" + suppression,
+  capture caméra mobile/tablet, **leaderboard "Top artistes"** (classement
+  par posts + réactions reçues, médailles top 3), **challenges "Draw this
+  in your style"** (banner avec image ref + countdown, filtre par challenge,
+  auto-tag post). Tables Supabase : `community_posts` (avec `challenge_id`),
+  `post_reactions`, `challenges`. Edge Function `user-data` étendue
+  (actions: community-post, community-feed, community-delete,
+  community-react, getCommunityLeaderboard, getChallenges,
+  tagPostToChallenge).
 - **Refonte tablet** (branch `tablet-version`) — breakpoints phone ≤767px,
   tablet 768-1199px, desktop ≥1200px. Config sidebar + Session controls XL.
 - **1er run Android sur device** — refonte UI mobile terminée, Manifest OK,
@@ -376,13 +383,15 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   test avec `npm start` pour vérifier que les images R2 se chargent.
 - **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
   pas urgent. main.js fait ~720 lignes, encore lisible.
-- **Vrai découpage modulaire de `src/app.js`** — monolithe global ~2130L.
+- **Vrai découpage modulaire de `src/app.js`** — monolithe global ~2148L.
   Nécessite import/export, virer globals, event delegation. Gros chantier.
 - **CI iOS** — Capacitor iOS scaffold pas encore généré.
 - **Tests** — il n'y en a pas. Pas une priorité pour un solo dev.
 
 ## Commits récents importants
 
+- `0e279f0` feat(community): challenges "Draw this in your style"
+- `291ebdd` feat(community): leaderboard "Top artistes" sub-tab
 - `3f261d6` feat(mobile): add community & reactions methods to mobile shim
 - `633303a` feat(community): "Mes dessins" tab + delete own posts
 - `842a4e7` feat(community): camera capture on mobile/tablet
