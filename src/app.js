@@ -108,6 +108,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
       }
       loadR2(isPro)
+      syncFavsFromServer()
     })
     window.electronAPI.onAutoLoad(f => { isR2Mode = false; loadFolder(f) })
   }
@@ -1283,7 +1284,34 @@ function onLbKey(e) { if (e.key === 'Escape') closeLightbox() }
 // ══ FAVORIS ══
 const FAV_KEY = 'gd4_favorites'
 function loadFavs() { try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]') } catch { return [] } }
-function saveFavs(favs) { localStorage.setItem(FAV_KEY, JSON.stringify(favs)) }
+function saveFavs(favs) {
+  localStorage.setItem(FAV_KEY, JSON.stringify(favs))
+  // Persist to Supabase (fire-and-forget)
+  if (window.electronAPI?.saveFavorites) {
+    window.electronAPI.saveFavorites(favs).catch(() => {})
+  }
+}
+
+// Merge remote favs with local on boot (called after auth)
+async function syncFavsFromServer() {
+  try {
+    if (!window.electronAPI?.getFavorites) return
+    const remote = await window.electronAPI.getFavorites()
+    if (!Array.isArray(remote) || remote.length === 0) return
+    const local = loadFavs()
+    // Merge: add remote favs not already in local (by src)
+    const localSrcs = new Set(local.map(f => f.src))
+    const merged = [...local]
+    for (const fav of remote) {
+      if (fav.src && !localSrcs.has(fav.src)) merged.push(fav)
+    }
+    if (merged.length !== local.length) {
+      localStorage.setItem(FAV_KEY, JSON.stringify(merged))
+      // Push merged set back to server
+      window.electronAPI.saveFavorites(merged).catch(() => {})
+    }
+  } catch (e) { console.warn('[favs] sync error', e) }
+}
 
 function currentPoseSrc() {
   const entry = sessionEntries[currentIndex]; if (!entry) return null
