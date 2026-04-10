@@ -55,6 +55,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (result.isAdmin) document.getElementById('admin-source-card').style.display = 'block'
         if (result.email) _communityEmail = result.email
         if (result.username) _communityUsername = result.username
+        maybeShowOnboarding()
       }
     })
   }
@@ -69,6 +70,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (user.isAdmin) document.getElementById('admin-source-card').style.display = 'block'
         if (user.email) _communityEmail = user.email
         if (user.username) _communityUsername = user.username
+        maybeShowOnboarding()
       })
     }
     window.electronAPI.onAuthRequired(() => {
@@ -2374,6 +2376,147 @@ document.addEventListener('click', (e) => {
   const modal = document.getElementById('profile-modal')
   if (modal.style.display === 'flex' && e.target === modal) closeProfile()
 })
+
+// ══ ONBOARDING ══
+const ONBOARDING_KEY = 'gd4_onboarding_done'
+let _onboardingShown = false
+
+function maybeShowOnboarding() {
+  if (_onboardingShown) return
+  if (localStorage.getItem(ONBOARDING_KEY) === '1') return
+  _onboardingShown = true
+  showOnboarding()
+}
+
+function showOnboarding() {
+  if (document.getElementById('onboarding-overlay')) return
+  const slides = [
+    {
+      logo: true,
+      title: 'Bienvenue sur Gesturo',
+      subtitle: 'Ton compagnon d\u2019entrainement au dessin de poses',
+    },
+    {
+      icon: '\ud83c\udfa8',
+      title: 'Dessine des poses',
+      subtitle: 'Choisis tes categories, lance une session et progresse chaque jour',
+    },
+    {
+      icon: '\ud83c\udf0d',
+      title: 'Rejoins la communaute',
+      subtitle: 'Partage tes dessins, participe aux challenges et decouvre les creations des autres',
+    },
+    {
+      icon: '\ud83d\ude80',
+      title: 'C\u2019est parti !',
+      subtitle: 'Tu es pret a commencer ton premier entrainement',
+      cta: 'Commencer',
+    },
+  ]
+  let current = 0
+
+  const overlay = document.createElement('div')
+  overlay.id = 'onboarding-overlay'
+  overlay.className = 'onboarding-overlay'
+  overlay.innerHTML = `
+    <button class="onboarding-skip" id="onboarding-skip">Passer</button>
+    <div class="onboarding-viewport">
+      <div class="onboarding-track" id="onboarding-track">
+        ${slides.map(s => `
+          <div class="onboarding-slide">
+            ${s.logo
+              ? '<div class="onboarding-logo">Gesturo<span class="onboarding-logo-dot">.</span></div>'
+              : '<div class="onboarding-icon">' + s.icon + '</div>'}
+            <h2 class="onboarding-title">${s.title}</h2>
+            <p class="onboarding-subtitle">${s.subtitle}</p>
+            ${s.cta ? '<button class="onboarding-start-btn" id="onboarding-start">' + s.cta + '</button>' : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="onboarding-nav">
+      <button class="onboarding-arrow" id="onboarding-prev" aria-label="Precedent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="onboarding-dots" id="onboarding-dots">
+        ${slides.map((_, i) => `<button class="onboarding-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="Slide ${i+1}"></button>`).join('')}
+      </div>
+      <button class="onboarding-arrow" id="onboarding-next" aria-label="Suivant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+  `
+  document.body.appendChild(overlay)
+
+  const track = document.getElementById('onboarding-track')
+  const prevBtn = document.getElementById('onboarding-prev')
+  const nextBtn = document.getElementById('onboarding-next')
+  const dots = overlay.querySelectorAll('.onboarding-dot')
+
+  function goTo(idx) {
+    current = Math.max(0, Math.min(slides.length - 1, idx))
+    track.style.transform = 'translateX(-' + (current * 100) + '%)'
+    dots.forEach((d, i) => d.classList.toggle('active', i === current))
+    prevBtn.disabled = current === 0
+    nextBtn.disabled = current === slides.length - 1
+  }
+
+  prevBtn.addEventListener('click', () => goTo(current - 1))
+  nextBtn.addEventListener('click', () => goTo(current + 1))
+  dots.forEach(d => d.addEventListener('click', () => goTo(parseInt(d.dataset.idx))))
+  document.getElementById('onboarding-skip').addEventListener('click', closeOnboarding)
+  const startBtn = document.getElementById('onboarding-start')
+  if (startBtn) startBtn.addEventListener('click', closeOnboarding)
+
+  // Keyboard nav
+  const keyHandler = (e) => {
+    if (e.key === 'ArrowRight') goTo(current + 1)
+    else if (e.key === 'ArrowLeft') goTo(current - 1)
+    else if (e.key === 'Escape') closeOnboarding()
+  }
+  document.addEventListener('keydown', keyHandler)
+  overlay._keyHandler = keyHandler
+
+  // Swipe (touch)
+  let touchStartX = 0, touchStartY = 0
+  track.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX
+    touchStartY = e.touches[0].clientY
+  }, { passive: true })
+  track.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX
+    const dy = e.changedTouches[0].clientY - touchStartY
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) goTo(current + 1)
+      else goTo(current - 1)
+    }
+  }, { passive: true })
+
+  // Mouse drag (desktop)
+  let mouseStartX = 0, dragging = false
+  track.addEventListener('mousedown', (e) => { dragging = true; mouseStartX = e.clientX })
+  window.addEventListener('mouseup', (e) => {
+    if (!dragging) return
+    dragging = false
+    const dx = e.clientX - mouseStartX
+    if (Math.abs(dx) > 60) {
+      if (dx < 0) goTo(current + 1)
+      else goTo(current - 1)
+    }
+  })
+
+  goTo(0)
+}
+
+function closeOnboarding() {
+  const overlay = document.getElementById('onboarding-overlay')
+  if (!overlay) return
+  if (overlay._keyHandler) document.removeEventListener('keydown', overlay._keyHandler)
+  overlay.style.transition = 'opacity 0.25s ease'
+  overlay.style.opacity = '0'
+  setTimeout(() => overlay.remove(), 250)
+  localStorage.setItem(ONBOARDING_KEY, '1')
+}
 
 // ══ RACCOURCIS CLAVIER ══
 document.addEventListener('keydown', (e) => {
