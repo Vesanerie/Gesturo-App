@@ -902,7 +902,7 @@ function participateChallenge() {
   currentIndex = 0; sessionLog = []; _challengeSession = true
   imgCache.clear()
   mainMode = 'pose'; currentSubMode = 'class'
-  document.getElementById('confirm-bar').style.display = 'none'
+  closeEndConfirm()
   document.getElementById('controls').style.display = 'flex'
   showScreen('screen-session'); loadAndShow(0)
 }
@@ -1491,7 +1491,7 @@ async function startSession() {
   }
   currentIndex = 0; sessionLog = []
   imgCache.clear()
-  document.getElementById('confirm-bar').style.display = 'none'
+  closeEndConfirm()
   document.getElementById('controls').style.display = 'flex'
   showScreen('screen-session'); loadAndShow(0)
 }
@@ -1539,7 +1539,7 @@ async function loadAndShow(idx) {
   const arcR = document.getElementById('countdown-arc')
   if (arcR) { arcR.style.transition = 'none'; arcR.style.strokeDashoffset = '0'; arcR.className = 'arc' }
   document.getElementById('session-info').textContent = 'Pose ' + (idx + 1) + ' / ' + sessionEntries.length
-  document.getElementById('confirm-bar').style.display = 'none'
+  closeEndConfirm()
   document.getElementById('controls').style.display = 'flex'
   const badge = document.getElementById('phase-badge')
   if (currentSubMode === 'progressive' && progressiveQueue[idx] !== undefined) {
@@ -1575,9 +1575,25 @@ function onPoseReady(entry) {
   document.getElementById('btn-pause').disabled = false
   currentRotation = flipModeEnabled ? 180 : 0; currentFlipH = false
   requestAnimationFrame(() => applyTransform()); resetGrid()
+  if (_challengeSession) {
+    // Challenge = durée illimitée, pas de timer
+    timerDuration = 0
+    logPoseEntry(entry, 0)
+    document.getElementById('btn-next').disabled = true
+    document.getElementById('btn-pause').disabled = true
+    document.getElementById('timer-display').textContent = '∞'
+    document.getElementById('timer-display').className = ''
+    document.getElementById('prog-wrap').style.display = 'none'
+    document.getElementById('countdown-circle').style.display = 'none'
+    document.getElementById('mode-label').textContent = 'Challenge — prends ton temps'
+    updatePoseStarBtn()
+    return
+  }
   timerDuration = currentSubMode === 'progressive' && progressiveQueue[currentIndex] ? progressiveQueue[currentIndex] : getSelectedDuration()
   logPoseEntry(entry, timerDuration)
   document.getElementById('btn-next').disabled = false
+  document.getElementById('prog-wrap').style.display = ''
+  document.getElementById('countdown-circle').style.display = ''
   timeLeft = timerDuration; paused = false
   document.getElementById('btn-pause').textContent = 'Pause'
   const d = timerDuration
@@ -1623,8 +1639,32 @@ function togglePause() { paused = !paused; document.getElementById('btn-pause').
 function nextPhoto() { advance() }
 function prevPhoto() { if (currentIndex === 0) return; clearInterval(ticker); ticker = null; currentIndex--; loadAndShow(currentIndex) }
 function advance() { clearInterval(ticker); ticker = null; currentIndex++; if (currentIndex >= sessionEntries.length) { finishSession(); return }; loadAndShow(currentIndex) }
-function askEnd() { paused = true; document.getElementById('btn-pause').textContent = 'Reprendre'; document.getElementById('controls').style.display = 'none'; document.getElementById('confirm-bar').style.display = 'flex' }
-function cancelEnd() { document.getElementById('confirm-bar').style.display = 'none'; document.getElementById('controls').style.display = 'flex'; paused = false; document.getElementById('btn-pause').textContent = 'Pause' }
+function askEnd() { paused = true; document.getElementById('btn-pause').textContent = 'Reprendre'; openEndConfirm('pose') }
+
+// ── Modale commune "Terminer la session ?" ──
+let _endConfirmMode = null
+function openEndConfirm(mode) {
+  _endConfirmMode = mode
+  document.getElementById('end-confirm-modal').classList.add('open')
+}
+function closeEndConfirm() {
+  document.getElementById('end-confirm-modal').classList.remove('open')
+  _endConfirmMode = null
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('end-confirm-yes').addEventListener('click', () => {
+    const mode = _endConfirmMode
+    closeEndConfirm()
+    if (mode === 'pose') finishSession()
+    else if (mode === 'anim') askEndAnim()
+    else if (mode === 'cinema') endCinemaSession()
+  })
+  document.getElementById('end-confirm-cancel').addEventListener('click', () => {
+    const wasPose = _endConfirmMode === 'pose'
+    closeEndConfirm()
+    if (wasPose) { paused = false; document.getElementById('btn-pause').textContent = 'Pause' }
+  })
+})
 
 // ══ ANIMATION SESSION ══
 let animLoopCount = 0
