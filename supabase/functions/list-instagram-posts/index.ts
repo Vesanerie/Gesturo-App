@@ -8,7 +8,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-const IG_USER_ID = '17841435268041471';
+const IG_USER_ID = '26298274916502895';
 const TTL_MS = 60 * 60 * 1000; // 1h
 const FIELDS = 'id,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,caption,username';
 
