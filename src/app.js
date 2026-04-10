@@ -2577,8 +2577,7 @@ function toggleBadgesPanel() {
       hintShown = false
       const ctrls = document.getElementById('controls')
       if (ctrls) ctrls.style.display = ''
-      const cb = document.getElementById('confirm-bar')
-      if (cb) cb.style.display = 'none'
+      closeEndConfirm()
       return _origStartSession.apply(this, arguments)
     }
   }

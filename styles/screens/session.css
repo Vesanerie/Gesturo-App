@@ -39,8 +39,6 @@
 .s-btn-blue { border-color: #1a4a7a; color: #5b9bd5; }
 .s-btn-blue:hover { background: #0f2035; }
 #controls { display: flex; gap: 8px; }
-#confirm-bar { display: none; align-items: center; gap: 10px; }
-#confirm-bar span { font-size: 13px; color: #6a8aaa; }
 
 #plan-badge {
   position: fixed; top: 14px; right: 134px; font-size: 11px; font-weight: 600;
@@ -149,33 +147,6 @@
   #screen-session #controls .s-btn:hover { background: rgba(255, 255, 255, 0.05); }
   #screen-session #controls .s-btn-danger { color: #E24B4A; }
   #screen-session #controls .s-btn:disabled { opacity: 0.35; }
-
-  /* Confirm "Terminer ?" → modale plein écran centrée (sinon il serait
-     coincé dans la dock invisible) */
-  #screen-session #confirm-bar {
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 12, 22, 0.88);
-    -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
-    flex-direction: column;
-    justify-content: center;
-    gap: 22px;
-    padding: 30px;
-    z-index: 600;
-    pointer-events: auto;
-  }
-  #screen-session #confirm-bar span {
-    font-size: 18px;
-    color: #fff;
-    font-weight: 500;
-  }
-  #screen-session #confirm-bar .s-btn {
-    width: 220px;
-    padding: 14px;
-    font-size: 15px;
-    border-radius: 12px;
-  }
 
   /* Transform controls (grille / N&B / miroir / rotation) → colonne
      verticale au milieu droit, comme apps photo natives */
@@ -405,31 +376,6 @@
   #screen-session #controls .s-btn-danger { color: #E24B4A; }
   #screen-session #controls .s-btn:disabled { opacity: 0.35; }
 
-  /* Confirm "Terminer ?" → modale plein écran centrée */
-  #screen-session #confirm-bar {
-    position: fixed;
-    inset: 0;
-    background: rgba(5, 12, 22, 0.88);
-    -webkit-backdrop-filter: blur(14px);
-            backdrop-filter: blur(14px);
-    flex-direction: column;
-    justify-content: center;
-    gap: 28px;
-    padding: 40px;
-    z-index: 600;
-    pointer-events: auto;
-  }
-  #screen-session #confirm-bar span {
-    font-size: 22px;
-    color: #fff;
-    font-weight: 500;
-  }
-  #screen-session #confirm-bar .s-btn {
-    width: 280px;
-    padding: 18px;
-    font-size: 16px;
-    border-radius: 14px;
-  }
 
   /* Transform controls (grille / N&B / miroir / rotation) → colonne
      verticale au milieu droit, boutons plus grands qu'en mobile */
