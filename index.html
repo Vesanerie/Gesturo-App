@@ -262,11 +262,35 @@
       <div class="community-tabs">
         <button class="community-tab active" id="ctab-feed" onclick="switchCommunityTab('feed')">Feed</button>
         <button class="community-tab" id="ctab-mine" onclick="switchCommunityTab('mine')">Mes dessins</button>
+        <button class="community-tab" id="ctab-leaderboard" onclick="switchCommunityTab('leaderboard')">Top artistes</button>
+      </div>
+
+      <!-- Challenge banner -->
+      <div id="challenge-banner" style="display:none;">
+        <div class="challenge-card">
+          <div class="challenge-ref">
+            <img id="challenge-ref-img" src="" alt="Ref">
+          </div>
+          <div class="challenge-info">
+            <div class="challenge-label">CHALLENGE</div>
+            <h3 id="challenge-title"></h3>
+            <div id="challenge-deadline" class="challenge-deadline"></div>
+            <button class="end-btn end-btn-share" onclick="participateChallenge()">Participer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Challenge filter -->
+      <div id="challenge-filter" style="display:none;">
+        <select id="challenge-select" onchange="filterByChallenge()">
+          <option value="">Tous les posts</option>
+        </select>
       </div>
 
       <!-- Feed communauté -->
       <div id="community-feed"></div>
       <div id="community-mine" style="display:none;"></div>
+      <div id="community-leaderboard" style="display:none;"></div>
       <div id="community-empty" style="font-size:13px;color:#556;text-align:center;padding:30px 0;display:none;">Chargement...</div>
     </div>
 

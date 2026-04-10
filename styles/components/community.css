@@ -28,6 +28,90 @@
   color: #c8d6e5;
 }
 
+/* ═══ CHALLENGE ═══ */
+#challenge-banner {
+  margin-bottom: 12px;
+}
+.challenge-card {
+  display: flex;
+  gap: 14px;
+  background: linear-gradient(135deg, #1a2738 0%, #0d1825 100%);
+  border: 1px solid #2983eb44;
+  border-radius: 12px;
+  padding: 14px;
+  overflow: hidden;
+}
+.challenge-ref {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0a1520;
+}
+.challenge-ref img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.challenge-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  min-width: 0;
+}
+.challenge-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #2983eb;
+  text-transform: uppercase;
+}
+.challenge-info h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #c8d6e5;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.challenge-deadline {
+  font-size: 11px;
+  color: #4a6280;
+  margin-bottom: 4px;
+}
+.challenge-info .end-btn-share {
+  align-self: flex-start;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* Challenge filter dropdown */
+#challenge-filter {
+  margin-bottom: 10px;
+}
+#challenge-select {
+  width: 100%;
+  background: #0d1825;
+  border: 0.5px solid #1e2d40;
+  border-radius: 8px;
+  color: #c8d6e5;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a6280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+#challenge-select:focus {
+  outline: none;
+  border-color: #2983eb;
+}
+
 /* Mes dessins grid (same as feed) */
 #community-mine {
   display: grid;
@@ -241,6 +325,74 @@
     font-size: 14px;
   }
   .community-post-delete { opacity: 1; }
+}
+
+/* ═══ LEADERBOARD ═══ */
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #141e2a;
+  border: 0.5px solid #1e2d40;
+  border-radius: 10px;
+  padding: 10px 14px;
+  animation: community-fade-in 0.35s ease both;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.leaderboard-row:hover {
+  border-color: #2983eb44;
+  transform: translateY(-1px);
+}
+
+.leaderboard-top {
+  background: #1a2738;
+  border-color: #2983eb33;
+}
+
+.leaderboard-rank {
+  font-size: 20px;
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+  color: #4a6280;
+}
+.leaderboard-top .leaderboard-rank {
+  color: inherit;
+}
+
+.leaderboard-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: #c8d6e5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboard-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #8899aa;
+  white-space: nowrap;
+}
+.lb-posts::before { content: '📝 '; }
+.lb-reactions::before { content: '💬 '; }
+
+/* ── Mobile ── */
+@media (max-width: 767px) {
+  .leaderboard-row { padding: 12px 14px; }
+  .leaderboard-rank { font-size: 22px; }
+  .leaderboard-name { font-size: 15px; }
+  .leaderboard-stats { gap: 8px; font-size: 11px; flex-direction: column; gap: 2px; }
 }
 
 /* ── Tablet ── */

@@ -153,6 +153,29 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    // ── Challenges ──
+    if (action === 'getChallenges') {
+      const { data } = await admin
+        .from('challenges').select('*')
+        .gte('deadline', new Date().toISOString())
+        .order('deadline', { ascending: true });
+      return json({ challenges: data || [] });
+    }
+
+    if (action === 'tagPostToChallenge') {
+      const { postId, challengeId } = payload || {};
+      if (!postId || !challengeId) return json({ error: 'missing postId or challengeId' }, 400);
+      const { data: post } = await admin
+        .from('community_posts').select('id')
+        .eq('id', postId).eq('user_email', email).maybeSingle();
+      if (!post) return json({ error: 'not found or not yours' }, 404);
+      const { error } = await admin
+        .from('community_posts').update({ challenge_id: challengeId })
+        .eq('id', postId);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
     // ── Community reactions (no profile needed, just email) ──
     if (action === 'getReactions') {
       // Returns all reactions for given post IDs
@@ -179,6 +202,52 @@ if (action === 'getStreak') {
         await admin.from('post_reactions').insert({ post_id: postId, emoji, user_email: email });
         return json({ toggled: 'on' });
       }
+    }
+
+    // ── Community leaderboard ──
+    if (action === 'getCommunityLeaderboard') {
+      const { data: postCounts } = await admin
+        .from('community_posts')
+        .select('user_email, username')
+        .eq('approved', true);
+
+      const { data: allPosts } = await admin
+        .from('community_posts')
+        .select('id, user_email')
+        .eq('approved', true);
+
+      const postIdToAuthor: Record<string, string> = {};
+      (allPosts || []).forEach((p: any) => { postIdToAuthor[p.id] = p.user_email; });
+
+      const postIds = Object.keys(postIdToAuthor);
+      let reactionsByAuthor: Record<string, number> = {};
+      if (postIds.length) {
+        const { data: reactions } = await admin
+          .from('post_reactions')
+          .select('post_id')
+          .in('post_id', postIds);
+        (reactions || []).forEach((r: any) => {
+          const author = postIdToAuthor[r.post_id];
+          if (author) reactionsByAuthor[author] = (reactionsByAuthor[author] || 0) + 1;
+        });
+      }
+
+      const userMap: Record<string, { username: string; posts: number; reactions: number }> = {};
+      (postCounts || []).forEach((p: any) => {
+        if (!userMap[p.user_email]) userMap[p.user_email] = { username: p.username || p.user_email.split('@')[0], posts: 0, reactions: 0 };
+        userMap[p.user_email].posts++;
+      });
+      Object.entries(reactionsByAuthor).forEach(([em, count]) => {
+        if (!userMap[em]) userMap[em] = { username: em.split('@')[0], posts: 0, reactions: 0 };
+        userMap[em].reactions = count;
+      });
+
+      const leaderboard = Object.entries(userMap)
+        .map(([em, d]) => ({ username: d.username, posts: d.posts, reactions: d.reactions, score: d.posts + d.reactions }))
+        .sort((a, b) => b.score - a.score || b.posts - a.posts)
+        .slice(0, 10);
+
+      return json({ leaderboard });
     }
 
     return json({ error: 'unknown action' }, 400);

@@ -726,11 +726,38 @@ ipcMain.handle('get-community-posts', async () => {
   }
 })
 
+ipcMain.handle('get-community-leaderboard', async () => {
+  try {
+    return await callUserData('getCommunityLeaderboard')
+  } catch (e) {
+    console.warn('[community] leaderboard error:', e.message)
+    return { leaderboard: [] }
+  }
+})
+
 ipcMain.handle('delete-community-post', async (_e, postId) => {
   try {
     return await callUserData('deleteCommunityPost', { postId })
   } catch (e) {
     console.warn('[community] delete error:', e.message)
+    return { error: e.message }
+  }
+})
+
+ipcMain.handle('get-challenges', async () => {
+  try {
+    return await callUserData('getChallenges')
+  } catch (e) {
+    console.warn('[challenges] get error:', e.message)
+    return { challenges: [] }
+  }
+})
+
+ipcMain.handle('tag-post-to-challenge', async (_e, postId, challengeId) => {
+  try {
+    return await callUserData('tagPostToChallenge', { postId, challengeId })
+  } catch (e) {
+    console.warn('[challenges] tag error:', e.message)
     return { error: e.message }
   }
 })

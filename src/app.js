@@ -695,8 +695,61 @@ function formatPostDate(ts) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
+// ── Challenges ──
+let _activeChallenges = []
+let _selectedChallengeFilter = ''
+
+async function loadChallenges() {
+  try {
+    const res = await window.electronAPI.getChallenges()
+    _activeChallenges = res?.challenges || []
+  } catch(e) { _activeChallenges = [] }
+  renderChallengeBanner()
+  renderChallengeFilter()
+}
+
+function renderChallengeBanner() {
+  const banner = document.getElementById('challenge-banner')
+  if (!_activeChallenges.length) { banner.style.display = 'none'; return }
+  const c = _activeChallenges[0] // Show first active challenge
+  banner.style.display = ''
+  document.getElementById('challenge-title').textContent = c.title
+  document.getElementById('challenge-ref-img').src = c.ref_image_url
+  const dl = new Date(c.deadline)
+  const now = new Date()
+  const days = Math.max(0, Math.ceil((dl - now) / 86400000))
+  document.getElementById('challenge-deadline').textContent = days <= 0 ? 'Derniere chance !' : days + ' jour' + (days > 1 ? 's' : '') + ' restant' + (days > 1 ? 's' : '')
+}
+
+function renderChallengeFilter() {
+  const filter = document.getElementById('challenge-filter')
+  const select = document.getElementById('challenge-select')
+  if (!_activeChallenges.length) { filter.style.display = 'none'; return }
+  filter.style.display = ''
+  select.innerHTML = '<option value="">Tous les posts</option>'
+  _activeChallenges.forEach(c => {
+    const opt = document.createElement('option')
+    opt.value = c.id
+    opt.textContent = 'Challenge: ' + c.title
+    select.appendChild(opt)
+  })
+}
+
+function filterByChallenge() {
+  _selectedChallengeFilter = document.getElementById('challenge-select').value
+  renderCommunity()
+}
+
+function participateChallenge() {
+  if (!_activeChallenges.length) return
+  // Switch to Poses config with the challenge ref loaded
+  switchMainMode('pose')
+  // TODO: could auto-load the challenge ref image in the session
+}
+
 // ── Share drawing (Recap screen) ──
 let _lastRefUrl = ''
+let _activeChallenge = null
 function setLastRefUrl(url) { _lastRefUrl = url }
 
 function openShareDrawing() {
@@ -903,11 +956,14 @@ function switchCommunityTab(tab) {
   _communityTab = tab
   document.getElementById('ctab-feed').classList.toggle('active', tab === 'feed')
   document.getElementById('ctab-mine').classList.toggle('active', tab === 'mine')
+  document.getElementById('ctab-leaderboard').classList.toggle('active', tab === 'leaderboard')
   document.getElementById('community-feed').style.display = tab === 'feed' ? '' : 'none'
   document.getElementById('community-mine').style.display = tab === 'mine' ? '' : 'none'
+  document.getElementById('community-leaderboard').style.display = tab === 'leaderboard' ? '' : 'none'
   document.getElementById('community-empty').style.display = 'none'
   if (tab === 'feed') renderCommunity()
-  else renderMyPosts()
+  else if (tab === 'mine') renderMyPosts()
+  else if (tab === 'leaderboard') renderLeaderboard()
 }
 
 async function renderMyPosts() {
@@ -951,6 +1007,49 @@ async function renderMyPosts() {
 
       grid.appendChild(card)
     })
+  } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
+}
+
+const LEADERBOARD_MEDALS = ['🥇', '🥈', '🥉']
+
+async function renderLeaderboard() {
+  const container = document.getElementById('community-leaderboard')
+  const empty = document.getElementById('community-empty')
+  container.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
+  try {
+    const res = await window.electronAPI.getCommunityLeaderboard()
+    const list = res.leaderboard || []
+    empty.style.display = 'none'
+    if (list.length === 0) {
+      container.innerHTML = '<div class="mine-empty">Pas encore de classement.<br>Partage tes dessins pour apparaitre ici !</div>'
+      return
+    }
+    const table = document.createElement('div')
+    table.className = 'leaderboard-list'
+    list.forEach((entry, i) => {
+      const row = document.createElement('div')
+      row.className = 'leaderboard-row' + (i < 3 ? ' leaderboard-top' : '')
+      row.style.animationDelay = (i * 50) + 'ms'
+
+      const rank = document.createElement('span')
+      rank.className = 'leaderboard-rank'
+      rank.textContent = i < 3 ? LEADERBOARD_MEDALS[i] : '#' + (i + 1)
+
+      const name = document.createElement('span')
+      name.className = 'leaderboard-name'
+      name.textContent = entry.username
+
+      const stats = document.createElement('span')
+      stats.className = 'leaderboard-stats'
+      stats.innerHTML = '<span class="lb-posts">' + entry.posts + ' post' + (entry.posts > 1 ? 's' : '') + '</span>'
+        + '<span class="lb-reactions">' + entry.reactions + ' reaction' + (entry.reactions > 1 ? 's' : '') + '</span>'
+
+      row.appendChild(rank)
+      row.appendChild(name)
+      row.appendChild(stats)
+      table.appendChild(row)
+    })
+    container.appendChild(table)
   } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
 }
 

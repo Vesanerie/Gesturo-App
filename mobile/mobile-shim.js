@@ -198,6 +198,13 @@
         return data || { success: false };
       } catch (e) { return { success: false }; }
     },
+    getCommunityLeaderboard: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getCommunityLeaderboard' } });
+        return data || { leaderboard: [] };
+      } catch (e) { return { leaderboard: [] }; }
+    },
     getReactions: async (postIds) => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();
