@@ -18,16 +18,25 @@
   padding: 4px 0;
 }
 
+/* Fade-in stagger animation */
+@keyframes community-fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* Single post card */
 .community-post {
   background: #141e2a;
   border-radius: 10px;
   overflow: hidden;
   border: 0.5px solid #1e2d40;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, transform 0.2s;
+  animation: community-fade-in 0.35s ease both;
+  position: relative;
 }
 .community-post:hover {
   border-color: #2983eb44;
+  transform: translateY(-2px);
 }
 
 /* Post image */
@@ -38,6 +47,27 @@
   display: block;
   cursor: pointer;
   background: #0a1520;
+  transition: filter 0.2s;
+}
+.community-post-img:hover {
+  filter: brightness(0.85);
+}
+
+/* Community badge for tagged posts */
+.community-post-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(41, 131, 235, 0.85);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* Post info bar */
@@ -63,6 +93,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
+  transition: color 0.15s;
 }
 .community-post-user:hover {
   color: #2983eb;
@@ -85,7 +116,7 @@
 /* Emoji reactions bar */
 .community-reactions {
   display: flex;
-  gap: 2px;
+  gap: 3px;
   padding: 4px 10px 8px;
   flex-wrap: wrap;
 }
@@ -100,13 +131,16 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
   color: #8899aa;
   line-height: 1;
 }
 .community-reaction-btn:hover {
   background: #1a2738;
   border-color: #2983eb44;
+}
+.community-reaction-btn:active {
+  transform: scale(0.92);
 }
 .community-reaction-btn.active {
   background: #1a2738;
@@ -116,6 +150,10 @@
   font-size: 11px;
   min-width: 8px;
   text-align: center;
+  color: #8899aa;
+}
+.community-reaction-btn.active .count {
+  color: #2983eb;
 }
 
 /* ── Mobile ── */
@@ -123,6 +161,11 @@
   #community-feed {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+  .community-reaction-btn {
+    min-height: 44px;
+    padding: 6px 12px;
+    font-size: 16px;
   }
 }
 

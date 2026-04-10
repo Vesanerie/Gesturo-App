@@ -108,6 +108,34 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    // ── Community reactions (no profile needed, just email) ──
+    if (action === 'getReactions') {
+      // Returns all reactions for given post IDs
+      const postIds = Array.isArray(payload?.postIds) ? payload.postIds : [];
+      if (!postIds.length) return json({ reactions: [] });
+      const { data } = await admin
+        .from('post_reactions').select('post_id, emoji, user_email')
+        .in('post_id', postIds);
+      return json({ reactions: data || [] });
+    }
+
+    if (action === 'toggleReaction') {
+      const { postId, emoji } = payload || {};
+      if (!postId || !emoji) return json({ error: 'missing postId or emoji' }, 400);
+      // Check if already reacted
+      const { data: existing } = await admin
+        .from('post_reactions').select('id')
+        .eq('post_id', postId).eq('emoji', emoji).eq('user_email', email)
+        .maybeSingle();
+      if (existing) {
+        await admin.from('post_reactions').delete().eq('id', existing.id);
+        return json({ toggled: 'off' });
+      } else {
+        await admin.from('post_reactions').insert({ post_id: postId, emoji, user_email: email });
+        return json({ toggled: 'on' });
+      }
+    }
+
     return json({ error: 'unknown action' }, 400);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

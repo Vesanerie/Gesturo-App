@@ -51,8 +51,9 @@ function soundNext() { beep(440, 0.3, 0.4); setTimeout(() => beep(550, 0.3, 0.3)
 window.addEventListener('DOMContentLoaded', () => {
   if (window.electronAPI?.authCheck) {
     window.electronAPI.authCheck().then(result => {
-      if (result.authenticated && result.isAdmin) {
-        document.getElementById('admin-source-card').style.display = 'block'
+      if (result.authenticated) {
+        if (result.isAdmin) document.getElementById('admin-source-card').style.display = 'block'
+        if (result.email) _communityEmail = result.email
       }
     })
   }
@@ -64,6 +65,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (window.electronAPI?.onAuthSuccess) {
       window.electronAPI.onAuthSuccess((user) => {
         if (user.isAdmin) document.getElementById('admin-source-card').style.display = 'block'
+        if (user.email) _communityEmail = user.email
       })
     }
     window.electronAPI.onAuthRequired(() => {
@@ -629,28 +631,57 @@ function switchMainMode(mode) {
 const preloadCache = {}
 
 const COMMUNITY_EMOJIS = ['🔥', '💪', '🎨', '😍', '👏', '✨']
-const communityReactions = JSON.parse(localStorage.getItem('gd4_community_reactions') || '{}')
+let reactionsCache = {}
+let myReactions = {}
+let _communityEmail = ''
 
-function saveCommunityReactions() {
-  localStorage.setItem('gd4_community_reactions', JSON.stringify(communityReactions))
+async function loadReactions(postIds) {
+  try {
+    const res = await window.electronAPI.getReactions(postIds)
+    const all = res?.reactions || []
+    reactionsCache = {}
+    myReactions = {}
+    const currentUser = _communityEmail
+    all.forEach(r => {
+      if (!reactionsCache[r.post_id]) reactionsCache[r.post_id] = {}
+      reactionsCache[r.post_id][r.emoji] = (reactionsCache[r.post_id][r.emoji] || 0) + 1
+      if (r.user_email === currentUser) {
+        if (!myReactions[r.post_id]) myReactions[r.post_id] = []
+        myReactions[r.post_id].push(r.emoji)
+      }
+    })
+  } catch(e) { /* silent */ }
 }
 
-function toggleReaction(postId, emoji) {
-  if (!communityReactions[postId]) communityReactions[postId] = []
-  const idx = communityReactions[postId].indexOf(emoji)
-  if (idx >= 0) communityReactions[postId].splice(idx, 1)
-  else communityReactions[postId].push(emoji)
-  saveCommunityReactions()
-  renderReactionButtons(postId)
+async function toggleReaction(postId, emoji) {
+  const btn = document.querySelector(`.community-reactions[data-post="${postId}"] .community-reaction-btn[data-emoji="${emoji}"]`)
+  if (btn) btn.classList.toggle('active')
+  try {
+    const res = await window.electronAPI.toggleReaction(postId, emoji)
+    if (!myReactions[postId]) myReactions[postId] = []
+    if (!reactionsCache[postId]) reactionsCache[postId] = {}
+    if (res.toggled === 'on') {
+      myReactions[postId].push(emoji)
+      reactionsCache[postId][emoji] = (reactionsCache[postId][emoji] || 0) + 1
+    } else {
+      myReactions[postId] = myReactions[postId].filter(e => e !== emoji)
+      reactionsCache[postId][emoji] = Math.max(0, (reactionsCache[postId][emoji] || 1) - 1)
+    }
+    renderReactionButtons(postId)
+  } catch(e) { /* silent */ }
 }
 
 function renderReactionButtons(postId) {
   const container = document.querySelector(`.community-reactions[data-post="${postId}"]`)
   if (!container) return
-  const mine = communityReactions[postId] || []
+  const mine = myReactions[postId] || []
+  const counts = reactionsCache[postId] || {}
   container.querySelectorAll('.community-reaction-btn').forEach(btn => {
     const em = btn.dataset.emoji
+    const count = counts[em] || 0
     btn.classList.toggle('active', mine.includes(em))
+    const countEl = btn.querySelector('.count')
+    if (countEl) countEl.textContent = count || ''
   })
 }
 
@@ -672,13 +703,23 @@ async function renderCommunity() {
     const posts = await window.electronAPI.getInstagramPosts()
     empty.style.display = 'none'
     if (!posts || posts.length === 0) { empty.style.display = 'block'; empty.textContent = 'Aucune photo pour le moment.'; return }
+
+    // Filter + dedup
+    const validPosts = []
     const seen = new Set()
     posts.forEach(post => {
       if (post.media_type !== 'IMAGE' && post.media_type !== 'CAROUSEL_ALBUM') return
       if (seen.has(post.id)) return; seen.add(post.id)
+      validPosts.push(post)
+    })
 
+    // Load reactions from Supabase
+    await loadReactions(validPosts.map(p => p.id))
+
+    validPosts.forEach((post, i) => {
       const card = document.createElement('div')
       card.className = 'community-post'
+      card.style.animationDelay = (i * 60) + 'ms'
 
       // Image
       const img = document.createElement('img')
@@ -688,6 +729,14 @@ async function renderCommunity() {
       img.loading = 'lazy'
       img.onclick = () => window.electronAPI.openExternal(post.permalink)
       card.appendChild(img)
+
+      // Source badge for tagged posts
+      if (post.source === 'tagged') {
+        const badge = document.createElement('div')
+        badge.className = 'community-post-badge'
+        badge.textContent = 'Community'
+        card.appendChild(badge)
+      }
 
       // Info bar
       const info = document.createElement('div')
@@ -717,16 +766,18 @@ async function renderCommunity() {
 
       card.appendChild(info)
 
-      // Emoji reactions
+      // Emoji reactions from Supabase
       const reactions = document.createElement('div')
       reactions.className = 'community-reactions'
       reactions.dataset.post = post.id
-      const mine = communityReactions[post.id] || []
+      const mine = myReactions[post.id] || []
+      const counts = reactionsCache[post.id] || {}
       COMMUNITY_EMOJIS.forEach(em => {
         const btn = document.createElement('button')
+        const count = counts[em] || 0
         btn.className = 'community-reaction-btn' + (mine.includes(em) ? ' active' : '')
         btn.dataset.emoji = em
-        btn.innerHTML = em
+        btn.innerHTML = em + '<span class="count">' + (count || '') + '</span>'
         btn.onclick = () => toggleReaction(post.id, em)
         reactions.appendChild(btn)
       })

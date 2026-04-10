@@ -39,6 +39,8 @@ getFavorites: () => ipcRenderer.invoke('get-favorites'),
   refreshProStatus: () => ipcRenderer.invoke('refresh-pro-status'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   getInstagramPosts: () => ipcRenderer.invoke('get-instagram-posts'),
+  getReactions: (postIds) => ipcRenderer.invoke('get-reactions', postIds),
+  toggleReaction: (postId, emoji) => ipcRenderer.invoke('toggle-reaction', postId, emoji),
 
   // ── Gesturo Moodboard (in-app via webview) ──
   getMoodboardPreloadPath: () => ipcRenderer.invoke('mb:get-preload-path'),

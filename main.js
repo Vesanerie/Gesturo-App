@@ -690,6 +690,24 @@ ipcMain.handle('get-instagram-posts', async () => {
   }
 })
 
+ipcMain.handle('get-reactions', async (_e, postIds) => {
+  try {
+    return await callUserData('getReactions', { postIds })
+  } catch (e) {
+    console.warn('[reactions] get error:', e.message)
+    return { reactions: [] }
+  }
+})
+
+ipcMain.handle('toggle-reaction', async (_e, postId, emoji) => {
+  try {
+    return await callUserData('toggleReaction', { postId, emoji })
+  } catch (e) {
+    console.warn('[reactions] toggle error:', e.message)
+    return { toggled: 'error' }
+  }
+})
+
 app.on('window-all-closed', () => {
   if (oauthServer) { try { oauthServer.close() } catch(e) {} oauthServer = null }
   if (process.platform !== 'darwin') app.quit()
