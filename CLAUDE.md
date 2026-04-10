@@ -132,6 +132,38 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   Supabase secrets ne casse rien côté client (les Edge Functions lisent
   `Deno.env.get`).
 
+## Audit code (2026-04-10)
+
+### P0 — Critique
+
+- 🔴 **`whitelist.json` shippé dans le DMG + APK** avec mot de passe admin
+  en clair. `sync-web.js` le copie aussi dans `www/`. À retirer du build
+  ou supprimer le flow admin local (`auth-admin` IPC handler).
+- 🔴 **Electron 30 obsolète** — vulnérabilités hautes publiées (ASAR
+  integrity bypass, use-after-free). Mettre à jour vers ≥ v35.7.5.
+- 🔴 **`@aws-sdk/client-s3` + `@aws-sdk/lib-storage`** dans devDependencies,
+  plus utilisés depuis le refactor serveur mais shippés dans le DMG via
+  `node_modules/**/*`. À retirer.
+
+### P1 — Important
+
+- 🟠 **`build.yml` écrit des secrets inutiles** (R2, Google, IG) dans le
+  `.env` CI. Le client n'a besoin que de `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY`.
+- 🟠 **Shim mobile `getInstagramPosts`** route vers `user-data` au lieu de
+  `list-instagram-posts` — appel silencieusement cassé sur Android.
+- 🟠 **Favoris en double stockage** : `localStorage` côté renderer +
+  Supabase côté backend, sans synchronisation entre les deux.
+- 🟠 **`webSecurity: false` + CSP vide** dans `createWindow()` (`main.js`).
+  Désactive Same-Origin Policy et toute protection CSP.
+- 🟠 **Diff non commité dans `main.js`** (propagation d'erreurs R2).
+
+### P2 — Mineur
+
+- 🟡 Credentials Supabase dupliquées entre `config.js` et `admin-web/app.js`.
+- 🟡 `dotenv` dans dependencies, shippé dans le DMG inutilement.
+- 🟡 Pas d'`aria-label` sur les boutons emoji (accessibilité basique).
+- 🟡 Liens Stripe test dupliqués entre `main.js` et `mobile-shim.js`.
+
 ## Conventions / gotchas
 
 - **Onclick inline préservés** : 74 `onclick=` dans index.html référencent
@@ -298,6 +330,19 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 
 ## TODO connus / pas encore faits
 
+### Priorité immédiate (P0 audit)
+- **Retirer `whitelist.json` du build** ou supprimer le flow admin local
+- **Mettre à jour Electron** ≥ v35.7.5 (CVEs publiques)
+- **Retirer `@aws-sdk`** des devDependencies (deps mortes shippées)
+
+### En cours
+- **Refonte tablet** (branch `tablet-version`) — breakpoints phone ≤767px,
+  tablet 768-1199px, desktop ≥1200px. Config sidebar + Session controls XL.
+- **1er run Android sur device** — refonte UI mobile terminée, Manifest OK,
+  Edge Functions OK, shim mobile OK. Reste à valider gestes tactiles +
+  safe-area-inset + deep link auth sur device réel.
+
+### Backlog
 - **Phase D — Rotations planifiées** (admin web). Prêt côté DB (tables
   rotations + rotation_files créées). Reste à implémenter :
   Edge Functions `rotations-create` (presigned PUT vers staging),
@@ -308,40 +353,42 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - **Table admin_audit_log** + logging dans toutes les actions admin —
   pas urgent pour usage solo mais utile en cas de doute (qui a archivé
   quoi quand).
-- **1er run Android sur device** — ⭐ PRIORITÉ #1 ⭐ — refonte UI mobile
-  terminée, Manifest OK, Edge Functions OK, shim mobile OK. Reste juste
-  à lancer Android Studio pour valider gestes tactiles + safe-area-inset
-  + deep link auth sur device réel.
+- **Nettoyer `build.yml`** — ne pas écrire les secrets R2/Google/IG dans
+  le `.env` CI (le client n'en a pas besoin).
+- **Fixer shim mobile `getInstagramPosts`** — route vers `user-data` au
+  lieu de `list-instagram-posts`.
+- **Synchroniser les favoris** localStorage ↔ Supabase.
+- **Réactiver `webSecurity`** ou documenter + CSP minimal.
 - **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
-  P1 audit, pas urgent. main.js fait ~720 lignes, encore lisible.
-- **Vrai découpage modulaire de `src/app.js`** — actuellement c'est un
-  monolithe global, juste sorti d'index.html. Pour le découper en vrais
-  modules ES6 il faudrait ajouter des `import/export`, virer les
-  globals, et probablement remplacer les `onclick=` par event delegation.
-  Gros chantier — à faire seulement quand il y a un vrai besoin.
+  pas urgent. main.js fait ~720 lignes, encore lisible.
+- **Vrai découpage modulaire de `src/app.js`** — monolithe global ~1720L.
+  Nécessite import/export, virer globals, event delegation. Gros chantier.
 - **CI iOS** — Capacitor iOS scaffold pas encore généré.
-- **Tests** — il n'y en a pas. Pas une priorité pour un solo dev sur app
-  desktop.
-- **Plugins Capacitor Camera/Photos** — l'audit initial le listait mais
-  Gesturo n'a pas besoin de la caméra ni de la galerie utilisateur (les
-  poses viennent toutes de R2 via Edge Functions). Filesystem suffit.
+- **Tests** — il n'y en a pas. Pas une priorité pour un solo dev.
 
 ## Commits récents importants
 
+- `707c8df` feat(tablet): refonte Session pose — controls flottants XL (768-1199)
+- `deecc9a` feat(tablet): refonte Config — sidebar permanente + layout repensé
+- `752f240` refactor(breakpoints): phone ≤767px pour libérer 768-1199 au tablet
 - `4ee0f66` docs: plan de refonte UI mobile (Option B mobile-first)
 - `51afaac` fix(admin-r2): bump presigned PUT TTL from 5min to 1h
 - `f85200b` fix(admin-r2): refuse to overwrite existing destination on move
-- `b5713d0` fix(admin-web): reach archive zone + keep success message visible
-- `1f39819` docs: update CLAUDE.md with admin-web stack and Phase D status
 - `2606aed` feat(admin): upload + unarchive + in-app move + context menu (Phase C)
 - `5efffdf` feat(admin): selection + delete/archive + Finder-like nav (Phase B)
 - `81abbb4` feat(admin-web): scaffold + file browser navigation (Phase A)
-- `1d86171` feat(admin): add admin-r2 Edge Function with list action
-- `1d54a64` feat(admin): add requireAdmin() helper for admin-only Edge Functions
-- `c531f23` fix(cinema): le récap n'affiche que les frames réellement vues
-- `0c5f458` fix(poses): ne plus auto-sélectionner les catégories
-- `803e53f` refactor(js): extract bubbles + cinema into src/
-- `7803bd8` refactor(css): extract inline styles into styles/ modules
 - `396a71d` fix(security): enforce server-side Pro check on R2 functions
 - `3915352` feat: add Capacitor Android scaffold + mobile web shim
 - `96ee74c` refactor: move R2/Instagram/OAuth secrets server-side
+
+## Pipeline d'agents
+
+5 agents Gesturo dans `.claude/agents/` + 1 traducteur :
+
+- **gesturo-translator** — traduit le langage naturel en brief technique,
+  puis lance automatiquement l'orchestrateur
+- **gesturo-orchestrator** — décompose un objectif en tickets atomiques
+- **gesturo-frontend** — implémente tickets frontend (vanilla JS/CSS/HTML)
+- **gesturo-backend** — implémente tickets backend (Electron, Edge Functions, admin)
+- **gesturo-reviewer** — relit les tickets (sécu, conventions, non-régression)
+- **gesturo-auditor** — bilan de session, mémoire, priorités suivantes

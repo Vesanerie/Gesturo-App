@@ -30,33 +30,25 @@
     return supabasePromise;
   }
 
-  async function loadWhitelist() {
-    try {
-      const r = await fetch('whitelist.json', { cache: 'no-store' });
-      return await r.json();
-    } catch (e) {
-      return { emails: [], expires: null };
-    }
-  }
+  // whitelist.json removed from mobile build (P0 audit) — auth checks via Supabase only
 
   async function isEmailAllowed(email) {
     if (!email) return false;
-    const wl = await loadWhitelist();
-    const local = (wl.emails || []).map((e) => e.toLowerCase()).includes(email.toLowerCase());
-    if (local) return true;
     try {
       const sb = await getSupabase();
       const { data } = await sb.from('waitlist').select('email,approved').eq('email', email).maybeSingle();
-      return !!(data && data.approved);
+      if (data && data.approved) return true;
+      // Fallback: user already has a profile
+      const { data: profile } = await sb.from('profiles').select('email').eq('email', email.toLowerCase()).maybeSingle();
+      return !!profile;
     } catch (e) {
       return false;
     }
   }
 
   async function isBetaExpired() {
-    const wl = await loadWhitelist();
-    if (!wl.expires) return false;
-    return new Date() > new Date(wl.expires + 'T23:59:59');
+    // Beta expiry now managed server-side — no local file on mobile
+    return false;
   }
 
   // Resolve a profile from a Supabase user → mirrors desktop semantics.

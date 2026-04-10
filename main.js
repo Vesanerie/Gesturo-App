@@ -346,19 +346,8 @@ ipcMain.handle('auth-logout', async () => {
   return true
 })
 
-ipcMain.handle('auth-admin', (event, password) => {
-  try {
-    const raw = JSON.parse(fs.readFileSync(WHITELIST_PATH, 'utf8'))
-    const adminPassword = raw.admin_password || 'admin'
-    if (password === adminPassword) {
-      setAdminMode()
-      return { success: true }
-    }
-    return { success: false }
-  } catch (e) {
-    return { success: false }
-  }
-})
+// auth-admin handler removed (P0 audit 2026-04-10) — admin access is now
+// exclusively via admin-web (magic link + requireAdmin server-side).
 
 ipcMain.handle('auth-check', async () => {
   if (isAdminMode()) return { authenticated: true, email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true }

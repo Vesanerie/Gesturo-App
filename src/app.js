@@ -76,10 +76,6 @@ window.addEventListener('DOMContentLoaded', () => {
         <h2 style="color:#fff;font-size:20px;">Gesturo</h2>
         <p style="color:#555;font-size:14px;">Vous avez été déconnecté</p>
         <button id="btn-google-login" style="background:#fff;color:#111;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:600;cursor:pointer;">Se connecter avec Google</button>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <input id="admin-input" type="password" placeholder="Mot de passe admin" style="background:#222;border:0.5px solid #444;border-radius:8px;padding:10px 14px;font-size:14px;color:#fff;outline:none;width:220px;">
-          <button id="btn-admin-login" style="background:#333;color:#ccc;border:0.5px solid #444;border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer;">Entrer</button>
-        </div>
       `
       document.body.appendChild(div)
       document.getElementById('btn-google-login').addEventListener('click', () => {
@@ -87,16 +83,6 @@ window.addEventListener('DOMContentLoaded', () => {
           if (result?.success) location.reload()
           else alert('Connexion échouée : ' + (result?.message || result?.reason || 'inconnu'))
         }).catch(e => alert('Erreur : ' + e.message))
-      })
-      document.getElementById('btn-admin-login').addEventListener('click', () => {
-        const input = document.getElementById('admin-input')
-        window.electronAPI.authAdmin(input.value).then(result => {
-          if (result.success) location.reload()
-          else { input.style.borderColor = '#E24B4A'; input.value = '' }
-        })
-      })
-      document.getElementById('admin-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') document.getElementById('btn-admin-login').click()
       })
     })
   }

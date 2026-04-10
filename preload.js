@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   authGoogle: () => ipcRenderer.invoke('auth-google'),
   authLogout: () => ipcRenderer.invoke('auth-logout'),
   authCheck: () => ipcRenderer.invoke('auth-check'),
-  authAdmin: (password) => ipcRenderer.invoke('auth-admin', password),
+  // authAdmin removed — admin access via admin-web only
   onAuthSuccess: (callback) => ipcRenderer.on('auth-success', (event, user) => callback(user)),
   onAuthNotAllowed: (callback) => ipcRenderer.on('auth-not-allowed', (event, email) => callback(email)),
   onAuthExpired: (callback) => ipcRenderer.on('auth-expired', (event, data) => callback(data)),

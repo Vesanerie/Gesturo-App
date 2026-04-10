@@ -14,7 +14,6 @@ const ASSETS = [
   'index.html',
   'styles',
   'src',
-  'whitelist.json',
   'moodboard',
 ];
 
