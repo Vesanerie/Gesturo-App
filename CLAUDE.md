@@ -351,17 +351,19 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - ✅ ~~Retirer `@aws-sdk`~~ — scripts morts supprimés
 
 ### En cours
-- **Community tab** (branch `feat/community-tab`, 3 commits ahead of main,
-  working tree clean) — onglet communauté dans l'app : feed partagé,
-  posts depuis Recap, réactions emoji, onglet "Mes dessins" + suppression,
-  capture caméra mobile/tablet, **leaderboard "Top artistes"** (classement
-  par posts + réactions reçues, médailles top 3), **challenges "Draw this
-  in your style"** (banner avec image ref + countdown, filtre par challenge,
-  auto-tag post). Tables Supabase : `community_posts` (avec `challenge_id`),
-  `post_reactions`, `challenges`. Edge Function `user-data` étendue
-  (actions: community-post, community-feed, community-delete,
-  community-react, getCommunityLeaderboard, getChallenges,
-  tagPostToChallenge).
+- **Community tab** (branch `feat/community-tab`, 16+ commits ahead of main)
+  — onglet communauté complet : feed splitté par challenge, upload dessin
+  direct, réactions emoji avec tooltips usernames, "Mes dessins" +
+  suppression, capture caméra mobile/tablet, leaderboard "Top artistes",
+  challenges "Draw this in your style" (hero banner + countdown live +
+  participants + "Participer" lance session + auto-share), stats perso
+  header. **Auth email/password** avec signup/login/username. **Moodboard
+  natif** (boards system remplace le webview Electron, pin depuis Recap/
+  Favoris). **Badge detail modal + week activity chart**. **Daily challenge
+  auto-gen** via Edge Function. **Admin challenges** CRUD + R2 image
+  picker. Tables Supabase : `community_posts` (avec `challenge_id`),
+  `post_reactions`, `challenges`. Edge Functions : `user-data` étendue,
+  `daily-challenge` (auto-gen).
 - **Refonte tablet** (branch `tablet-version`) — breakpoints phone ≤767px,
   tablet 768-1199px, desktop ≥1200px. Config sidebar + Session controls XL.
 - **1er run Android sur device** — refonte UI mobile terminée, Manifest OK,
@@ -390,6 +392,16 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 
 ## Commits récents importants
 
+- `785c8a1` fix(moodboard): unify pin storage + FREE/PRO limits
+- `8ad3011` feat(auth): email/password signup + login with username
+- `ed8ada9` fix(moodboard): hide pin button on mobile/tablet
+- `467d7df` feat(moodboard): replace webview with native boards system
+- `fd8c289` feat(moodboard): pin images from Recap and Favorites
+- `d864ae3` fix(ui): CTA communauté clean + badges stat card cliquable
+- `e783169` feat(history+badges): badge detail modal + week activity chart
+- `45f9537` feat(admin): R2 image picker for challenge ref image
+- `4ad3446` feat(community): "Participer" lance session challenge + auto-share
+- `dfd5b9c` feat(community): split feed by challenge — challenge posts first
 - `0e279f0` feat(community): challenges "Draw this in your style"
 - `291ebdd` feat(community): leaderboard "Top artistes" sub-tab
 - `3f261d6` feat(mobile): add community & reactions methods to mobile shim
