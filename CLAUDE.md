@@ -132,37 +132,40 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   Supabase secrets ne casse rien côté client (les Edge Functions lisent
   `Deno.env.get`).
 
-## Audit code (2026-04-10)
+## Audit code (2026-04-10) — mis à jour 2026-04-10
 
 ### P0 — Critique
 
-- 🔴 **`whitelist.json` shippé dans le DMG + APK** avec mot de passe admin
-  en clair. `sync-web.js` le copie aussi dans `www/`. À retirer du build
-  ou supprimer le flow admin local (`auth-admin` IPC handler).
+- ✅ ~~`whitelist.json` shippé avec mot de passe admin~~ — mot de passe
+  retiré, fichier gitignored.
 - 🔴 **Electron 30 obsolète** — vulnérabilités hautes publiées (ASAR
   integrity bypass, use-after-free). Mettre à jour vers ≥ v35.7.5.
-- 🔴 **`@aws-sdk/client-s3` + `@aws-sdk/lib-storage`** dans devDependencies,
-  plus utilisés depuis le refactor serveur mais shippés dans le DMG via
-  `node_modules/**/*`. À retirer.
+- ✅ ~~`@aws-sdk` dans devDependencies~~ — retiré (scripts morts
+  `clear-r2.js`, `upload-to-r2.js`, `tag-poses.js` supprimés).
 
 ### P1 — Important
 
-- 🟠 **`build.yml` écrit des secrets inutiles** (R2, Google, IG) dans le
-  `.env` CI. Le client n'a besoin que de `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY`.
-- 🟠 **Shim mobile `getInstagramPosts`** route vers `user-data` au lieu de
-  `list-instagram-posts` — appel silencieusement cassé sur Android.
-- 🟠 **Favoris en double stockage** : `localStorage` côté renderer +
-  Supabase côté backend, sans synchronisation entre les deux.
+- ✅ ~~`build.yml` écrit des secrets inutiles~~ — nettoyé, seuls
+  `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` restent.
+- ✅ ~~Shim mobile `getInstagramPosts` mauvais endpoint~~ — corrigé,
+  route maintenant vers `list-instagram-posts`.
+- ✅ ~~Favoris localStorage only~~ — `saveFavs()` persiste côté Supabase
+  en fire-and-forget, `syncFavsFromServer()` merge au boot.
+- ✅ ~~Erreurs R2 swallowed sur mobile~~ — propagées au renderer.
+- ✅ ~~`isEmailAllowed` diverge mobile/desktop~~ — aligné (pas de check
+  `approved`).
 - 🟠 **`webSecurity: false` + CSP vide** dans `createWindow()` (`main.js`).
-  Désactive Same-Origin Policy et toute protection CSP.
-- 🟠 **Diff non commité dans `main.js`** (propagation d'erreurs R2).
+  Désactive Same-Origin Policy et toute protection CSP. À tester avec
+  `npm start` avant de réactiver — risque de casser le chargement
+  d'images R2 cross-origin.
 
 ### P2 — Mineur
 
 - 🟡 Credentials Supabase dupliquées entre `config.js` et `admin-web/app.js`.
-- 🟡 `dotenv` dans dependencies, shippé dans le DMG inutilement.
 - 🟡 Pas d'`aria-label` sur les boutons emoji (accessibilité basique).
 - 🟡 Liens Stripe test dupliqués entre `main.js` et `mobile-shim.js`.
+- ✅ ~~Liens Discord incohérents~~ — unifié sur `f9pf3vmgg2`.
+- ✅ ~~`ANIM_LOOP_TARGET` vestige~~ — remplacé par `getLoopTarget()`.
 
 ## Conventions / gotchas
 
@@ -331,9 +334,9 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 ## TODO connus / pas encore faits
 
 ### Priorité immédiate (P0 audit)
-- **Retirer `whitelist.json` du build** ou supprimer le flow admin local
+- ✅ ~~Retirer `whitelist.json` du build~~ — gitignored + password retiré
 - **Mettre à jour Electron** ≥ v35.7.5 (CVEs publiques)
-- **Retirer `@aws-sdk`** des devDependencies (deps mortes shippées)
+- ✅ ~~Retirer `@aws-sdk`~~ — scripts morts supprimés
 
 ### En cours
 - **Refonte tablet** (branch `tablet-version`) — breakpoints phone ≤767px,
@@ -353,12 +356,8 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - **Table admin_audit_log** + logging dans toutes les actions admin —
   pas urgent pour usage solo mais utile en cas de doute (qui a archivé
   quoi quand).
-- **Nettoyer `build.yml`** — ne pas écrire les secrets R2/Google/IG dans
-  le `.env` CI (le client n'en a pas besoin).
-- **Fixer shim mobile `getInstagramPosts`** — route vers `user-data` au
-  lieu de `list-instagram-posts`.
-- **Synchroniser les favoris** localStorage ↔ Supabase.
-- **Réactiver `webSecurity`** ou documenter + CSP minimal.
+- **Réactiver `webSecurity`** ou documenter + CSP minimal — nécessite
+  test avec `npm start` pour vérifier que les images R2 se chargent.
 - **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
   pas urgent. main.js fait ~720 lignes, encore lisible.
 - **Vrai découpage modulaire de `src/app.js`** — monolithe global ~1720L.
