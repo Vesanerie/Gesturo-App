@@ -146,6 +146,10 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .grid-item.folder:hover .hint { opacity: 1; }
 .grid-item.folder.drop-hover { background: linear-gradient(180deg, #1c3556 0%, #15243d 100%); border-color: var(--accent); transform: scale(1.04); box-shadow: 0 0 0 3px rgba(41, 131, 235, 0.4); }
 .breadcrumb .crumb.drop-hover { background: var(--accent); color: #fff; }
+/* Grid loading spinner */
+.grid-loader { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; padding: 60px 0; }
+.grid-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+
 #grid-msg { padding: 14px 24px; }
 
 /* Marquee (rectangle de sélection au lasso) */

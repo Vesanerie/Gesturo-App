@@ -58,8 +58,8 @@ function onLoggedIn(session) {
   $('user-email').textContent = session.user.email || '';
   show('admin');
   loadGrid();
-  // Stats globales = listing récursif coûteux. Affiché en idle, déclenché à la demande.
-  $('global-stats').textContent = '📊 Cliquer pour calculer';
+  // Stats globales : auto-load après un petit délai pour ne pas bloquer le premier render.
+  setTimeout(loadGlobalStats, 800);
 }
 
 async function loadGlobalStats() {
@@ -233,9 +233,9 @@ async function loadGrid() {
   const grid = $('grid');
   const msg = $('grid-msg');
   const countEl = $('result-count');
-  grid.innerHTML = '';
+  grid.innerHTML = '<div class="grid-loader"><div class="grid-spinner"></div></div>';
   countEl.textContent = '';
-  setMsg(msg, 'Chargement…');
+  setMsg(msg, '');
   // La sélection persiste à travers les navigations (cross-folder).
   updateActionBar();
   setActiveRoot();
@@ -255,6 +255,11 @@ async function loadGrid() {
       },
       body: JSON.stringify({ action: 'browse', prefix: currentPrefix }),
     });
+    if (res.status === 401) {
+      setMsg(msg, 'Session expirée — reconnecte-toi.', 'err');
+      toast('Session expirée. Recharge la page.', 'err', 8000);
+      return;
+    }
     if (res.status === 403) { setMsg(msg, 'Accès refusé — tu n\'es pas admin sur ce compte.', 'err'); return; }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -410,26 +415,30 @@ function renderGrid(folders, files) {
     card.appendChild(check);
 
     card.addEventListener('click', (e) => {
-      // Shift-click → range select from last clicked to here
+      // Shift-click ou Cmd/Ctrl-click → mode sélection multi
       if (e.shiftKey && lastClickedIdx >= 0) {
         const [a, b] = [lastClickedIdx, idx].sort((x, y) => x - y);
         for (let i = a; i <= b; i++) selectAdd(slice[i].key, slice[i].size || 0);
-      } else {
+      } else if (e.metaKey || e.ctrlKey) {
+        // Cmd/Ctrl-click → toggle sélection sans perdre les autres
         if (selected.has(it.key)) selectDelete(it.key);
         else selectAdd(it.key, it.size || 0);
         lastClickedIdx = idx;
+      } else if (selected.size > 0) {
+        // Clic simple SANS modifier + sélection existante → toggle comme avant
+        if (selected.has(it.key)) selectDelete(it.key);
+        else selectAdd(it.key, it.size || 0);
+        lastClickedIdx = idx;
+      } else {
+        // Clic simple, rien de sélectionné → ouvrir la lightbox directement
+        openLightbox(it.url);
+        return;
       }
       // Re-render selection state without rebuilding the whole grid
       document.querySelectorAll('.grid-item[data-key]').forEach((el) => {
         el.classList.toggle('selected', selected.has(el.dataset.key));
       });
       updateActionBar();
-    });
-
-    card.addEventListener('dblclick', (e) => {
-      e.preventDefault();
-      // Open full-res image (not the thumbnail) in lightbox
-      openLightbox(it.url);
     });
 
     // In-app drag: allow dragging files onto folders / breadcrumbs to move them.
@@ -524,6 +533,9 @@ async function callAdminOnSelection(action, busyMsg) {
       totalFail ? 'err' : 'ok',
     );
   }
+  // Vider la sélection après une action réussie pour éviter les items fantômes.
+  selectClearAll();
+  updateActionBar();
   loadGrid();
 }
 
@@ -661,6 +673,8 @@ async function callAdmin(action, body, busyMsg) {
       `✓ ${okCount} ok${failCount ? ` · ${failCount} échec(s)` : ''}`,
       failCount ? 'err' : 'ok',
     );
+    selectClearAll();
+    updateActionBar();
     loadGrid();
   } catch (e) {
     toast('Erreur réseau : ' + e.message, 'err', 6000);
@@ -1069,6 +1083,9 @@ document.addEventListener('keydown', (e) => {
       el.classList.toggle('selected', selected.has(el.dataset.key));
     });
     updateActionBar();
+  } else if (!inInput && (e.key === 'Delete' || e.key === 'Backspace') && selected.size > 0) {
+    e.preventDefault();
+    $('action-delete').click();
   } else if (!inInput && e.key === 'Escape' && selected.size > 0) {
     selectClearAll();
     document.querySelectorAll('.grid-item.selected').forEach((el) => el.classList.remove('selected'));
