@@ -632,6 +632,7 @@ const preloadCache = {}
 
 const COMMUNITY_EMOJIS = ['🔥', '💪', '🎨', '😍', '👏', '✨']
 let reactionsCache = {}
+let reactionUsers = {}
 let myReactions = {}
 let _communityEmail = ''
 
@@ -640,11 +641,16 @@ async function loadReactions(postIds) {
     const res = await window.electronAPI.getReactions(postIds)
     const all = res?.reactions || []
     reactionsCache = {}
+    reactionUsers = {}
     myReactions = {}
     const currentUser = _communityEmail
     all.forEach(r => {
       if (!reactionsCache[r.post_id]) reactionsCache[r.post_id] = {}
+      if (!reactionUsers[r.post_id]) reactionUsers[r.post_id] = {}
       reactionsCache[r.post_id][r.emoji] = (reactionsCache[r.post_id][r.emoji] || 0) + 1
+      if (!reactionUsers[r.post_id][r.emoji]) reactionUsers[r.post_id][r.emoji] = []
+      const name = (r.user_email || '').split('@')[0] || 'anonyme'
+      reactionUsers[r.post_id][r.emoji].push(name)
       if (r.user_email === currentUser) {
         if (!myReactions[r.post_id]) myReactions[r.post_id] = []
         myReactions[r.post_id].push(r.emoji)
@@ -676,12 +682,26 @@ function renderReactionButtons(postId) {
   if (!container) return
   const mine = myReactions[postId] || []
   const counts = reactionsCache[postId] || {}
+  const users = reactionUsers[postId] || {}
   container.querySelectorAll('.community-reaction-btn').forEach(btn => {
     const em = btn.dataset.emoji
     const count = counts[em] || 0
     btn.classList.toggle('active', mine.includes(em))
     const countEl = btn.querySelector('.count')
     if (countEl) countEl.textContent = count || ''
+    // Tooltip with usernames
+    let tooltip = btn.querySelector('.reaction-tooltip')
+    const names = users[em] || []
+    if (count > 0 && names.length > 0) {
+      if (!tooltip) {
+        tooltip = document.createElement('span')
+        tooltip.className = 'reaction-tooltip'
+        btn.appendChild(tooltip)
+      }
+      tooltip.textContent = names.slice(0, 8).join(', ') + (names.length > 8 ? '…' : '')
+    } else if (tooltip) {
+      tooltip.remove()
+    }
   })
 }
 
@@ -711,14 +731,31 @@ async function loadChallenges() {
 function renderChallengeBanner() {
   const banner = document.getElementById('challenge-banner')
   if (!_activeChallenges.length) { banner.style.display = 'none'; return }
-  const c = _activeChallenges[0] // Show first active challenge
+  const c = _activeChallenges[0]
   banner.style.display = ''
   document.getElementById('challenge-title').textContent = c.title
   document.getElementById('challenge-ref-img').src = c.ref_image_url
-  const dl = new Date(c.deadline)
-  const now = new Date()
-  const days = Math.max(0, Math.ceil((dl - now) / 86400000))
-  document.getElementById('challenge-deadline').textContent = days <= 0 ? 'Derniere chance !' : days + ' jour' + (days > 1 ? 's' : '') + ' restant' + (days > 1 ? 's' : '')
+  updateChallengeCountdown()
+}
+
+function updateChallengeCountdown() {
+  const el = document.getElementById('challenge-deadline')
+  if (!_activeChallenges.length || !el) return
+  const dl = new Date(_activeChallenges[0].deadline)
+  const diff = dl - new Date()
+  if (diff <= 0) { el.textContent = 'Derniere chance !'; return }
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor((diff % 86400000) / 3600000)
+  if (days > 0) el.textContent = days + 'j ' + hours + 'h restants'
+  else el.textContent = hours + 'h restantes'
+}
+
+function updateChallengeParticipants(allPosts) {
+  const el = document.getElementById('challenge-participants')
+  if (!el || !_activeChallenges.length) { if (el) el.textContent = ''; return }
+  const cid = _activeChallenges[0].id
+  const count = allPosts.filter(p => p.challenge_id === cid).length
+  el.textContent = count > 0 ? count + ' participant' + (count > 1 ? 's' : '') : ''
 }
 
 function renderChallengeFilter() {
@@ -894,12 +931,20 @@ function buildPostCard(post, i) {
   reactions.dataset.post = post.id
   const mine = myReactions[post.id] || []
   const counts = reactionsCache[post.id] || {}
+  const users = reactionUsers[post.id] || {}
   COMMUNITY_EMOJIS.forEach(em => {
     const btn = document.createElement('button')
     const count = counts[em] || 0
     btn.className = 'community-reaction-btn' + (mine.includes(em) ? ' active' : '')
     btn.dataset.emoji = em
     btn.innerHTML = em + '<span class="count">' + (count || '') + '</span>'
+    const names = users[em] || []
+    if (count > 0 && names.length > 0) {
+      const tooltip = document.createElement('span')
+      tooltip.className = 'reaction-tooltip'
+      tooltip.textContent = names.slice(0, 8).join(', ') + (names.length > 8 ? '…' : '')
+      btn.appendChild(tooltip)
+    }
     btn.onclick = () => toggleReaction(post.id, em)
     reactions.appendChild(btn)
   })
@@ -947,10 +992,28 @@ async function renderCommunity() {
       })
     })
 
+    // Update participants count in banner
+    updateChallengeParticipants(allPosts)
+
     // Filter by challenge if selected
     let filtered = allPosts
+    const hero = document.getElementById('challenge-hero')
     if (_selectedChallengeFilter) {
       filtered = allPosts.filter(p => p.challenge_id === _selectedChallengeFilter)
+      const ch = _activeChallenges.find(c => c.id === _selectedChallengeFilter)
+      if (ch && hero) {
+        hero.style.display = ''
+        hero.innerHTML = '<div class="challenge-hero-card">'
+          + '<img class="challenge-hero-img" src="' + ch.ref_image_url + '" alt="Ref">'
+          + '<div class="challenge-hero-overlay">'
+          + '<div class="challenge-label">CHALLENGE</div>'
+          + '<h2>' + ch.title + '</h2>'
+          + '<div class="challenge-hero-count">' + filtered.length + ' dessin' + (filtered.length > 1 ? 's' : '') + '</div>'
+          + '</div></div>'
+      }
+    } else if (hero) {
+      hero.style.display = 'none'
+      hero.innerHTML = ''
     }
 
     if (filtered.length === 0) { empty.style.display = 'block'; empty.textContent = _selectedChallengeFilter ? 'Aucun dessin pour ce challenge.' : 'Aucune photo pour le moment.'; return }
@@ -966,11 +1029,15 @@ async function renderCommunity() {
 }
 
 let communityInterval = null
+let _countdownInterval = null
 let _communityTab = 'feed'
 
 function startCommunityRefresh() {
   if (communityInterval) clearInterval(communityInterval)
   communityInterval = setInterval(() => { if (mainMode === 'community') { if (_communityTab === 'feed') renderCommunity() } }, 60 * 1000)
+  // Live countdown update every minute
+  if (_countdownInterval) clearInterval(_countdownInterval)
+  _countdownInterval = setInterval(updateChallengeCountdown, 60 * 1000)
 }
 
 function switchCommunityTab(tab) {
@@ -990,6 +1057,8 @@ function switchCommunityTab(tab) {
 async function renderMyPosts() {
   const grid = document.getElementById('community-mine')
   const empty = document.getElementById('community-empty')
+  const oldStats = grid.parentNode.querySelector('.my-posts-stats')
+  if (oldStats) oldStats.remove()
   grid.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
   try {
     const res = await window.electronAPI.getCommunityPosts()
@@ -1001,6 +1070,18 @@ async function renderMyPosts() {
     }
 
     await loadReactions(myPosts.map(p => p.id))
+
+    // Stats header
+    let totalReactions = 0
+    myPosts.forEach(p => {
+      const counts = reactionsCache[p.id] || {}
+      Object.values(counts).forEach(c => { totalReactions += c })
+    })
+    const statsEl = document.createElement('div')
+    statsEl.className = 'my-posts-stats'
+    statsEl.innerHTML = '<span>📝 ' + myPosts.length + ' dessin' + (myPosts.length > 1 ? 's' : '') + '</span>'
+      + '<span>💬 ' + totalReactions + ' reaction' + (totalReactions > 1 ? 's' : '') + ' reçue' + (totalReactions > 1 ? 's' : '') + '</span>'
+    grid.parentNode.insertBefore(statsEl, grid)
 
     myPosts.forEach((post, i) => {
       const card = buildPostCard({

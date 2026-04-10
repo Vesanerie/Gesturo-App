@@ -309,6 +309,50 @@
   color: #2983eb;
 }
 
+/* Reaction tooltip (usernames on hover) */
+.community-reaction-btn {
+  position: relative;
+}
+.reaction-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 15, 25, 0.92);
+  color: #c8d6e5;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 0.5px solid #1e2d40;
+}
+.community-reaction-btn:hover .reaction-tooltip {
+  display: block;
+}
+
+/* My posts stats header */
+.my-posts-stats {
+  display: flex;
+  gap: 16px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: #141e2a;
+  border: 0.5px solid #1e2d40;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #c8d6e5;
+  font-weight: 600;
+}
+
 /* ── Mobile ── */
 @media (max-width: 767px) {
   #community-feed, #community-mine {
