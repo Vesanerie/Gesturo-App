@@ -1760,7 +1760,12 @@ function finishAnimSession() {
     const star = document.createElement('button')
     star.className = 'recap-star' + (isFaved(log.src) ? ' faved' : ''); star.textContent = isFaved(log.src) ? '★' : '☆'; star.title = 'Favori'
     star.onclick = (e) => { e.stopPropagation(); if (isFaved(log.src)) { removeFav(log.src); star.textContent = '☆'; star.classList.remove('faved') } else { addFav(log.src, 'Frame ' + (log.frameNum + 1)); star.textContent = '★'; star.classList.add('faved') }; star.classList.add('bump'); setTimeout(() => star.classList.remove('bump'), 250) }
-    item.appendChild(star); grid.appendChild(item)
+    item.appendChild(star)
+    const pin = document.createElement('button')
+    pin.className = 'pin-btn'; pin.textContent = '📌'; pin.title = 'Epingler au moodboard'
+    pin.onclick = (e) => { e.stopPropagation(); openPinModal(log.src) }
+    item.appendChild(pin)
+    grid.appendChild(item)
   })
   // Reset récap header
   document.getElementById('recap-title').textContent = 'Session terminée'
@@ -1800,6 +1805,10 @@ function finishSession() {
       star.className = 'recap-star' + (isFaved(src) ? ' faved' : ''); star.textContent = isFaved(src) ? '★' : '☆'; star.title = 'Favori'
       star.onclick = (e) => { e.stopPropagation(); if (isFaved(src)) { removeFav(src); star.textContent = '☆'; star.classList.remove('faved') } else { addFav(src, 'Pose ' + (i + 1)); star.textContent = '★'; star.classList.add('faved') }; star.classList.add('bump'); setTimeout(() => star.classList.remove('bump'), 250) }
       item.appendChild(star)
+      const pin = document.createElement('button')
+      pin.className = 'pin-btn'; pin.textContent = '📌'; pin.title = 'Epingler au moodboard'
+      pin.onclick = (e) => { e.stopPropagation(); openPinModal(src) }
+      item.appendChild(pin)
     }
     item.addEventListener('click', () => { if (src) openLightbox(src, i, log.duration, log.rotation || 0) })
     grid.appendChild(item)
@@ -1949,6 +1958,9 @@ function renderFavsConfig() {
     const removeBtn = document.createElement('button'); removeBtn.textContent = '✕'; removeBtn.style.cssText = 'position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:none;border-radius:4px;color:#888;font-size:13px;cursor:pointer;padding:3px 6px;opacity:0;transition:opacity 0.15s,color 0.15s;'; removeBtn.title = 'Retirer des favoris'
     removeBtn.onclick = (e) => { e.stopPropagation(); removeFav(fav.src); renderFavsConfig() }
     item.appendChild(removeBtn)
+    const pin = document.createElement('button'); pin.className = 'pin-btn'; pin.textContent = '📌'; pin.title = 'Epingler au moodboard'
+    pin.onclick = (e) => { e.stopPropagation(); openPinModal(fav.src) }
+    item.appendChild(pin)
     item.onclick = () => openLightboxFav(fav.src, i)
     item.addEventListener('mouseenter', () => { removeBtn.style.opacity = '1' })
     item.addEventListener('mouseleave', () => { removeBtn.style.opacity = '0' })
@@ -1966,6 +1978,109 @@ function openLightboxFav(src, index) {
   lb.classList.add('open'); document.addEventListener('keydown', onLbKey)
 }
 function removeFavFromLightbox() { if (!lbFavSrc) return; removeFav(lbFavSrc); lbFavSrc = null; closeLightbox(); renderFavsConfig() }
+
+// ══ MOODBOARD PIN ══
+function getMoodboards() {
+  try { return JSON.parse(localStorage.getItem('gesturo-moodboards') || '[]') } catch { return [] }
+}
+function saveMoodboards(boards) { localStorage.setItem('gesturo-moodboards', JSON.stringify(boards)) }
+function createMoodboard(name) {
+  const boards = getMoodboards()
+  if (boards.some(b => b.name === name)) return false
+  boards.push({ name, images: [] })
+  saveMoodboards(boards)
+  return true
+}
+function pinToMoodboard(boardName, imageUrl) {
+  const boards = getMoodboards()
+  const board = boards.find(b => b.name === boardName)
+  if (!board) return false
+  if (board.images.includes(imageUrl)) return false
+  board.images.push(imageUrl)
+  saveMoodboards(boards)
+  return true
+}
+function unpinFromMoodboard(boardName, imageUrl) {
+  const boards = getMoodboards()
+  const board = boards.find(b => b.name === boardName)
+  if (!board) return false
+  board.images = board.images.filter(u => u !== imageUrl)
+  saveMoodboards(boards)
+  return true
+}
+
+let _pinModalEl = null
+function openPinModal(imageUrl) {
+  if (_pinModalEl) _pinModalEl.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'pin-modal-backdrop'
+  const modal = document.createElement('div')
+  modal.className = 'pin-modal'
+  modal.innerHTML = '<h3>Epingler au moodboard</h3>'
+  const list = document.createElement('div')
+  list.className = 'pin-modal-list'
+  const boards = getMoodboards()
+  if (boards.length === 0) {
+    const hint = document.createElement('div')
+    hint.style.cssText = 'font-size:12px;color:#4a6280;padding:8px 0;'
+    hint.textContent = 'Aucun moodboard. Cree-en un !'
+    list.appendChild(hint)
+  } else {
+    boards.forEach(b => {
+      const item = document.createElement('div')
+      item.className = 'pin-modal-item'
+      const alreadyPinned = b.images.includes(imageUrl)
+      item.innerHTML = '<span>' + b.name + (alreadyPinned ? ' ✓' : '') + '</span><span class="pin-count">' + b.images.length + ' img</span>'
+      if (!alreadyPinned) {
+        item.onclick = () => {
+          pinToMoodboard(b.name, imageUrl)
+          closePinModal()
+        }
+      } else {
+        item.style.opacity = '0.5'
+        item.style.cursor = 'default'
+      }
+      list.appendChild(item)
+    })
+  }
+  modal.appendChild(list)
+  // New moodboard row
+  const newRow = document.createElement('div')
+  newRow.className = 'pin-modal-new'
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.placeholder = 'Nouveau moodboard…'
+  const addBtn = document.createElement('button')
+  addBtn.textContent = 'Creer'
+  addBtn.onclick = () => {
+    const name = input.value.trim()
+    if (!name) return
+    if (createMoodboard(name)) {
+      pinToMoodboard(name, imageUrl)
+      closePinModal()
+    } else {
+      input.style.borderColor = '#e24b4a'
+    }
+  }
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addBtn.click() })
+  newRow.appendChild(input)
+  newRow.appendChild(addBtn)
+  modal.appendChild(newRow)
+  // Close button
+  const close = document.createElement('button')
+  close.className = 'pin-modal-close'
+  close.textContent = 'Annuler'
+  close.onclick = closePinModal
+  modal.appendChild(close)
+  backdrop.appendChild(modal)
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closePinModal() })
+  document.body.appendChild(backdrop)
+  _pinModalEl = backdrop
+  setTimeout(() => input.focus(), 50)
+}
+function closePinModal() {
+  if (_pinModalEl) { _pinModalEl.remove(); _pinModalEl = null }
+}
 
 function renderWeekBar() {
   if (!document.getElementById('week-streak')) return
