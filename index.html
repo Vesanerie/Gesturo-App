@@ -403,11 +403,6 @@
       <button class="s-btn" id="btn-next" onclick="nextPhoto()" disabled>Suiv. →</button>
       <button class="s-btn s-btn-danger" onclick="askEnd()">Terminer</button>
     </div>
-    <div id="confirm-bar">
-      <span>Terminer ?</span>
-      <button class="s-btn s-btn-danger-solid" onclick="finishSession()">Oui</button>
-      <button class="s-btn" onclick="cancelEnd()">Annuler</button>
-    </div>
   </div>
 </div>
 
@@ -437,16 +432,16 @@
       <button class="s-btn" id="btn-anim-pause" onclick="toggleAnimLoop()" style="display:none">Pause</button>
       <button class="s-btn" id="btn-anim-prev" onclick="animPrevFrame()" style="display:none" disabled>←</button>
       <button class="s-btn" id="btn-anim-next" onclick="animNextFrame()" style="display:none" disabled>→</button>
-      <button class="s-btn s-btn-danger" onclick="document.getElementById('anim-confirm-bar').classList.add('open')">Terminer</button>
+      <button class="s-btn s-btn-danger" onclick="openEndConfirm('anim')">Terminer</button>
     </div>
   </div>
 </div>
 
-<!-- Modale confirm Terminer Animation — top-level pour échapper aux containing blocks -->
-<div id="anim-confirm-bar">
+<!-- Modale confirm Terminer — commune aux 3 modes -->
+<div id="end-confirm-modal">
   <span>Terminer la session ?</span>
-  <button class="s-btn s-btn-danger-solid" onclick="document.getElementById('anim-confirm-bar').classList.remove('open'); askEndAnim()">Oui, terminer</button>
-  <button class="s-btn" onclick="document.getElementById('anim-confirm-bar').classList.remove('open')">Annuler</button>
+  <button class="s-btn s-btn-danger-solid" id="end-confirm-yes">Oui, terminer</button>
+  <button class="s-btn" id="end-confirm-cancel">Annuler</button>
 </div>
 
 <!-- ══ RÉCAP ══ -->
