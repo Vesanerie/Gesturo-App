@@ -386,16 +386,6 @@ ipcMain.handle('auth-email', async (_e, { email, password }) => {
   }
 })
 
-ipcMain.handle('auth-reset-password', async (_e, email) => {
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
-    if (error) return { success: false, message: error.message }
-    return { success: true }
-  } catch (e) {
-    return { success: false, message: e.message }
-  }
-})
-
 ipcMain.handle('auth-logout', async () => {
   try { await supabase.auth.signOut() } catch (e) {}
   clearAuthStorage()
@@ -404,13 +394,8 @@ ipcMain.handle('auth-logout', async () => {
   return true
 })
 
-ipcMain.handle('update-username', async (_e, username) => {
-  try {
-    return await callUserData('updateUsername', { username })
-  } catch (e) {
-    return { error: e.message }
-  }
-})
+// auth-admin handler removed (P0 audit 2026-04-10) — admin access is now
+// exclusively via admin-web (magic link + requireAdmin server-side).
 
 ipcMain.handle('auth-check', async () => {
   if (isAdminMode()) return { authenticated: true, email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true }
