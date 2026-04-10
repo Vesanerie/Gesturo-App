@@ -400,7 +400,7 @@ ipcMain.handle('auth-logout', async () => {
   try { await supabase.auth.signOut() } catch (e) {}
   clearAuthStorage()
   clearAdminMode()
-  mainWindow.webContents.send('auth-required')
+  mainWindow.loadFile('index.html')
   return true
 })
 

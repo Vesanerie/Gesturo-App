@@ -2281,9 +2281,12 @@ function closeProfile() {
 async function saveProfileUsername() {
   const input = document.getElementById('profile-username')
   const msg = document.getElementById('profile-username-msg')
+  const btn = document.getElementById('profile-save-username')
   const newName = input.value.trim()
   if (!newName) { msg.textContent = 'Le pseudo ne peut pas etre vide'; msg.style.color = '#e24b4a'; return }
+  if (newName === _communityUsername) { msg.textContent = 'C\'est deja ton pseudo actuel'; msg.style.color = '#4a6280'; return }
   msg.textContent = 'Enregistrement...'; msg.style.color = '#4a6280'
+  btn.disabled = true
   try {
     const res = await window.electronAPI.updateUsername(newName)
     if (res.ok) {
@@ -2294,6 +2297,7 @@ async function saveProfileUsername() {
       msg.textContent = res.error || 'Erreur'; msg.style.color = '#e24b4a'
     }
   } catch (e) { msg.textContent = e.message; msg.style.color = '#e24b4a' }
+  btn.disabled = false
 }
 
 // Close profile on click outside
