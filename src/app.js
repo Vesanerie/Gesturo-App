@@ -1491,40 +1491,69 @@ async function startSession() {
   }
   currentIndex = 0; sessionLog = []
   imgCache.clear()
+  if (_bgPreloadTimer) { clearTimeout(_bgPreloadTimer); _bgPreloadTimer = null }
+  _bgPreloadIdx = 0
   closeEndConfirm()
   document.getElementById('controls').style.display = 'flex'
-  showScreen('screen-session'); loadAndShow(0)
+  showScreen('screen-session')
+  document.getElementById('photo-placeholder').style.display = 'block'
+  document.getElementById('photo-placeholder').textContent = 'Préparation...'
+  document.getElementById('photo-img').style.display = 'none'
+  await preloadInitial()
+  startBackgroundPreload()
+  loadAndShow(0)
 }
 
 // ══ POSE : AFFICHAGE ══
 const imgCache = new Map()
-const IMG_CACHE_MAX = 5
+const IMG_PRELOAD_INITIAL = 15
+const IMG_PRELOAD_BATCH = 10
+let _bgPreloadIdx = 0
+let _bgPreloadTimer = null
 
 async function getImageSrc(entry) { if (entry.isR2) return entry.path; return 'file://' + entry.path }
 
-// Précharge les 2 prochaines poses pour éliminer le délai visible entre
-// chaque image. En mode R2, on instancie une Image() pour forcer le
-// navigateur à fetch + mettre en cache HTTP — sinon le fetch n'arrive
-// qu'au moment où le <img> visible demande l'URL, créant un blanc.
-// En mode local, on lit les bytes via Electron IPC.
-async function preloadNext(idx) {
-  for (let k = 1; k <= 2; k++) {
-    const next = sessionEntries[idx + k]
-    if (!next || next.type === 'pdf') continue
-    const key = next.path
-    if (imgCache.has(key)) continue
-    if (next.isR2) {
+function preloadOneImage(entry) {
+  return new Promise((resolve) => {
+    if (!entry || entry.type === 'pdf') { resolve(); return }
+    const key = entry.path
+    if (imgCache.has(key)) { resolve(); return }
+    if (entry.isR2) {
       const im = new Image()
-      im.src = next.path
-      imgCache.set(key, next.path)
+      im.onload = () => { imgCache.set(key, entry.path); resolve() }
+      im.onerror = () => resolve()
+      im.src = entry.path
     } else {
-      try {
-        const dataUrl = await window.electronAPI.readFileAsBase64(next.path)
-        imgCache.set(key, dataUrl)
-      } catch (e) { continue }
+      window.electronAPI.readFileAsBase64(entry.path)
+        .then(dataUrl => { imgCache.set(key, dataUrl); resolve() })
+        .catch(() => resolve())
     }
-    if (imgCache.size > IMG_CACHE_MAX) imgCache.delete(imgCache.keys().next().value)
-  }
+  })
+}
+
+async function preloadInitial() {
+  const count = Math.min(IMG_PRELOAD_INITIAL, sessionEntries.length)
+  const promises = []
+  for (let i = 0; i < count; i++) promises.push(preloadOneImage(sessionEntries[i]))
+  await Promise.all(promises)
+  _bgPreloadIdx = count
+}
+
+function startBackgroundPreload() {
+  if (_bgPreloadTimer) clearTimeout(_bgPreloadTimer)
+  _bgPreloadTimer = null
+  if (_bgPreloadIdx >= sessionEntries.length) return
+  const end = Math.min(_bgPreloadIdx + IMG_PRELOAD_BATCH, sessionEntries.length)
+  const promises = []
+  for (let i = _bgPreloadIdx; i < end; i++) promises.push(preloadOneImage(sessionEntries[i]))
+  _bgPreloadIdx = end
+  Promise.all(promises).then(() => {
+    if (_bgPreloadIdx < sessionEntries.length) _bgPreloadTimer = setTimeout(startBackgroundPreload, 500)
+  })
+}
+
+function preloadNext(idx) {
+  for (let k = 1; k <= 3; k++) preloadOneImage(sessionEntries[idx + k])
 }
 
 async function loadAndShow(idx) {
