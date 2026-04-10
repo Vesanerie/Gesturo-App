@@ -983,7 +983,7 @@ async function confirmCommunityUpload() {
     status.style.color = '#2ecc71'
     setTimeout(() => { closeCommunityUpload(); renderCommunity() }, 1500)
   } catch(e) {
-    status.textContent = 'Erreur : ' + (e.message || 'echec')
+    status.textContent = 'Erreur : ' + (e.message || 'échec')
     status.style.color = '#e74c3c'
     document.getElementById('community-upload-actions').style.display = 'flex'
   }
@@ -1070,7 +1070,7 @@ async function confirmShareDrawing() {
     status.style.color = '#2ecc71'
     setTimeout(closeShareDrawing, 2000)
   } catch(e) {
-    status.textContent = 'Erreur : ' + (e.message || 'echec upload')
+    status.textContent = 'Erreur : ' + (e.message || 'échec upload')
     status.style.color = '#e74c3c'
     document.getElementById('share-actions').style.display = 'flex'
   }
@@ -1096,7 +1096,7 @@ function buildPostCard(post, i) {
   if (post.source === 'tagged' || post.source === 'community') {
     const badge = document.createElement('div')
     badge.className = 'community-post-badge'
-    badge.textContent = post.source === 'community' ? 'Dessin' : 'Community'
+    badge.textContent = post.source === 'community' ? 'Dessin' : 'Communauté'
     card.appendChild(badge)
   }
 
@@ -1141,7 +1141,7 @@ function buildPostCard(post, i) {
     refRow.appendChild(refThumb)
     const refLabel = document.createElement('span')
     refLabel.className = 'community-ref-label'
-    refLabel.textContent = 'Ref utilisee'
+    refLabel.textContent = 'Réf utilisée'
     refRow.appendChild(refLabel)
     const refBtn = document.createElement('button')
     refBtn.className = 'community-ref-btn'
