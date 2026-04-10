@@ -67,7 +67,7 @@
       }
     },
     "win": {
-      "icon": "icon.png",
+      "icon": "icon.ico",
       "target": {
         "target": "nsis",
         "arch": [
