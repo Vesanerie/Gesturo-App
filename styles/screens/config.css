@@ -438,7 +438,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     bottom: 0;
     width: var(--tablet-sidebar-width);
     flex-direction: column;
-    gap: 2px;
+    gap: 6px;
     padding: calc(env(safe-area-inset-top, 0px) + 72px) 14px
              calc(env(safe-area-inset-bottom, 0px) + 18px) 14px;
     border: none;
