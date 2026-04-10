@@ -1,5 +1,6 @@
 // List R2 animations under Animations/current/{free,pro}/. Mirrors main.js listR2Animations.
 import { listAll, extOf, IMAGE_EXTS, CORS_HEADERS, requireUser, resolveIsPro } from '../_shared/r2.ts';
+import { checkRateLimit } from '../_shared/rate-limit.ts';
 
 // Auth-gated: caller must present a valid Supabase JWT, and Pro status is
 // resolved server-side. Free users only see free/, Pro users see free/ + pro/.
@@ -7,6 +8,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
   try {
     const email = await requireUser(req);
+    checkRateLimit(`animations:${email}`, { limit: 60, windowMs: 60_000 });
     const isPro = await resolveIsPro(email);
     const publicUrl = Deno.env.get('R2_PUBLIC_URL')!;
     const prefixes = isPro
