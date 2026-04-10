@@ -54,6 +54,7 @@ window.addEventListener('DOMContentLoaded', () => {
       if (result.authenticated) {
         if (result.isAdmin) document.getElementById('admin-source-card').style.display = 'block'
         if (result.email) _communityEmail = result.email
+        if (result.username) _communityUsername = result.username
       }
     })
   }
@@ -66,6 +67,7 @@ window.addEventListener('DOMContentLoaded', () => {
       window.electronAPI.onAuthSuccess((user) => {
         if (user.isAdmin) document.getElementById('admin-source-card').style.display = 'block'
         if (user.email) _communityEmail = user.email
+        if (user.username) _communityUsername = user.username
       })
     }
     window.electronAPI.onAuthRequired(() => {
@@ -136,26 +138,182 @@ function adminSetSource(source) {
 window.addEventListener('resize', () => { if (gridMode > 0) positionGridOverlay() })
 
 // ══ MOODBOARD (in-app) ══
-let moodboardLoaded = false
-async function openMoodboard() {
-  // Désactivé sur phone : <webview> = Electron-only et un écran phone est trop
-  // petit pour servir de référence visuelle pendant qu'on dessine. Cf. CLAUDE.md.
-  if (window.matchMedia && window.matchMedia('(max-width: 1199px)').matches) {
-    showScreen('screen-config')
-    return
+const MB_KEY = 'gd4_moodboards'
+let mbCurrentBoard = 0
+
+function loadMoodboards() {
+  try {
+    const d = JSON.parse(localStorage.getItem(MB_KEY))
+    if (d && Array.isArray(d.boards) && d.boards.length) return d
+  } catch {}
+  return { boards: [{ name: 'G\u00e9n\u00e9ral', images: [] }] }
+}
+function saveMoodboards(d) { localStorage.setItem(MB_KEY, JSON.stringify(d)) }
+
+function openMoodboard() {
+  // D\u00e9sactiv\u00e9 sur phone \u2014 trop petit pour servir de ref visuelle
+  if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+    showScreen('screen-config'); return
   }
-  const wv = document.getElementById('moodboard-webview')
-  if (!moodboardLoaded) {
-    try {
-      const p = await window.electronAPI.getMoodboardPreloadPath()
-      wv.setAttribute('preload', 'file://' + p)
-    } catch (e) { console.warn('moodboard preload path failed', e) }
-    wv.setAttribute('src', 'moodboard/index.html')
-    moodboardLoaded = true
-  }
+  renderMoodboard()
   showScreen('screen-moodboard')
 }
 function closeMoodboard() { showScreen('screen-config') }
+
+function renderMoodboard() {
+  const data = loadMoodboards()
+  if (mbCurrentBoard >= data.boards.length) mbCurrentBoard = 0
+  const board = data.boards[mbCurrentBoard]
+
+  // Tabs
+  const tabsEl = document.getElementById('mb-tabs')
+  tabsEl.innerHTML = ''
+  data.boards.forEach((b, i) => {
+    const tab = document.createElement('button')
+    tab.className = 'mb-tab' + (i === mbCurrentBoard ? ' active' : '')
+    tab.textContent = b.name
+    tab.addEventListener('click', () => { mbCurrentBoard = i; renderMoodboard() })
+    tabsEl.appendChild(tab)
+  })
+  const addBtn = document.createElement('button')
+  addBtn.className = 'mb-tab-add'
+  addBtn.textContent = '+'
+  addBtn.title = 'Nouveau board'
+  addBtn.addEventListener('click', () => {
+    const name = prompt('Nom du nouveau board :')
+    if (name && name.trim()) { createBoard(name.trim()); renderMoodboard() }
+  })
+  tabsEl.appendChild(addBtn)
+
+  // Delete button visibility
+  const delBtn = document.getElementById('mb-delete-btn')
+  if (delBtn) delBtn.style.display = data.boards.length > 1 ? '' : 'none'
+
+  // Grid
+  const grid = document.getElementById('mb-grid')
+  const empty = document.getElementById('mb-empty')
+  grid.innerHTML = ''
+
+  if (board.images.length === 0) {
+    grid.style.display = 'none'; empty.style.display = 'flex'
+  } else {
+    grid.style.display = ''; empty.style.display = 'none'
+    board.images.forEach(img => {
+      const card = document.createElement('div')
+      card.className = 'mb-card'
+      const imgEl = document.createElement('img')
+      imgEl.src = img.src
+      imgEl.alt = ''
+      imgEl.loading = 'lazy'
+      imgEl.addEventListener('click', () => {
+        document.querySelector('#lightbox img').src = img.src
+        document.getElementById('lightbox').classList.add('open')
+      })
+      const removeBtn = document.createElement('button')
+      removeBtn.className = 'mb-remove'
+      removeBtn.textContent = '\u2715'
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        removeFromBoard(board.name, img.src)
+        renderMoodboard()
+      })
+      card.appendChild(imgEl)
+      card.appendChild(removeBtn)
+      grid.appendChild(card)
+    })
+  }
+
+  // Drag-and-drop files onto grid area
+  const dropTarget = document.getElementById('screen-moodboard')
+  dropTarget.ondragover = (e) => { e.preventDefault(); grid.classList.add('mb-drop-active') }
+  dropTarget.ondragleave = (e) => { if (!dropTarget.contains(e.relatedTarget)) grid.classList.remove('mb-drop-active') }
+  dropTarget.ondrop = (e) => {
+    e.preventDefault(); grid.classList.remove('mb-drop-active')
+    const files = e.dataTransfer.files
+    if (!files.length) return
+    Array.from(files).forEach(f => {
+      if (!f.type.startsWith('image/')) return
+      const reader = new FileReader()
+      reader.onload = () => { addToBoard(board.name, reader.result); renderMoodboard() }
+      reader.readAsDataURL(f)
+    })
+  }
+}
+
+function createBoard(name) {
+  const data = loadMoodboards()
+  if (data.boards.some(b => b.name === name)) return
+  data.boards.push({ name, images: [] })
+  mbCurrentBoard = data.boards.length - 1
+  saveMoodboards(data)
+}
+
+function deleteBoard(name) {
+  const data = loadMoodboards()
+  if (data.boards.length <= 1) return
+  const idx = data.boards.findIndex(b => b.name === name)
+  if (idx < 0) return
+  data.boards.splice(idx, 1)
+  if (mbCurrentBoard >= data.boards.length) mbCurrentBoard = data.boards.length - 1
+  saveMoodboards(data)
+}
+
+function mbDeleteCurrentBoard() {
+  const data = loadMoodboards()
+  const board = data.boards[mbCurrentBoard]
+  if (!board || data.boards.length <= 1) return
+  if (!confirm('Supprimer le board \u00ab ' + board.name + ' \u00bb et toutes ses images ?')) return
+  deleteBoard(board.name)
+  renderMoodboard()
+}
+
+function addToBoard(boardName, src) {
+  const data = loadMoodboards()
+  const board = data.boards.find(b => b.name === boardName)
+  if (!board) return
+  if (board.images.some(i => i.src === src)) return
+  board.images.push({ src, addedAt: new Date().toISOString() })
+  saveMoodboards(data)
+}
+
+function removeFromBoard(boardName, src) {
+  const data = loadMoodboards()
+  const board = data.boards.find(b => b.name === boardName)
+  if (!board) return
+  board.images = board.images.filter(i => i.src !== src)
+  saveMoodboards(data)
+}
+
+function mbPromptAddURL() {
+  let overlay = document.querySelector('.mb-url-modal')
+  if (overlay) overlay.remove()
+  overlay = document.createElement('div')
+  overlay.className = 'mb-url-modal'
+  overlay.innerHTML = `
+    <div class="mb-url-card">
+      <h3>Ajouter une image</h3>
+      <input type="text" id="mb-url-input" placeholder="Coller l\u2019URL d\u2019une image\u2026" autofocus>
+      <div class="mb-url-actions">
+        <button class="s-btn" onclick="this.closest('.mb-url-modal').remove()">Annuler</button>
+        <button class="s-btn" style="background:#2983eb;color:#fff;" onclick="mbConfirmAddURL()">Ajouter</button>
+      </div>
+    </div>
+  `
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
+  document.body.appendChild(overlay)
+  setTimeout(() => document.getElementById('mb-url-input').focus(), 50)
+}
+
+function mbConfirmAddURL() {
+  const input = document.getElementById('mb-url-input')
+  const url = input ? input.value.trim() : ''
+  if (!url) return
+  const data = loadMoodboards()
+  const board = data.boards[mbCurrentBoard]
+  if (board) { addToBoard(board.name, url); renderMoodboard() }
+  const modal = document.querySelector('.mb-url-modal')
+  if (modal) modal.remove()
+}
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
@@ -638,6 +796,7 @@ let reactionsCache = {}
 let reactionUsers = {}
 let myReactions = {}
 let _communityEmail = ''
+let _communityUsername = ''
 
 async function loadReactions(postIds) {
   try {
