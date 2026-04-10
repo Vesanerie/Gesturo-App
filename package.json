@@ -1,6 +1,6 @@
 {
   "name": "gesturo",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Entraînement au dessin de poses",
   "author": "Gesturo",
   "main": "main.js",
@@ -53,7 +53,7 @@
       "target": {
         "target": "dmg",
         "arch": [
-          "arm64"
+          "universal"
         ]
       }
     },
