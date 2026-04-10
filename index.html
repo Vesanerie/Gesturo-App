@@ -13,14 +13,12 @@
   <link rel="stylesheet" href="styles/screens/anim.css">
   <link rel="stylesheet" href="styles/screens/recap.css">
   <link rel="stylesheet" href="styles/screens/cinema.css">
-  <link rel="stylesheet" href="styles/screens/moodboard.css">
   <link rel="stylesheet" href="styles/components/favs.css">
   <link rel="stylesheet" href="styles/components/options.css">
   <link rel="stylesheet" href="styles/components/streak.css">
   <link rel="stylesheet" href="styles/components/history.css">
   <link rel="stylesheet" href="styles/components/badges.css">
   <link rel="stylesheet" href="styles/components/community.css">
-  <link rel="stylesheet" href="styles/components/moodboard-pin.css">
   <link rel="stylesheet" href="styles/components/profile.css">
 </head>
 <body>
@@ -264,7 +262,7 @@
 
       <!-- Sub-tabs -->
       <div class="community-tabs">
-        <button class="community-tab active" id="ctab-feed" onclick="switchCommunityTab('feed')">Feed</button>
+        <button class="community-tab active" id="ctab-feed" onclick="switchCommunityTab('feed')">Fil</button>
         <button class="community-tab" id="ctab-mine" onclick="switchCommunityTab('mine')">Mes dessins</button>
         <button class="community-tab" id="ctab-leaderboard" onclick="switchCommunityTab('leaderboard')">Top artistes</button>
       </div>
@@ -305,7 +303,7 @@
       <div id="community-upload-overlay" style="display:none;">
         <div class="share-drawing-box">
           <h3>Partage ton dessin</h3>
-          <p>Prends en photo ton croquis pour le montrer a la communaute !</p>
+          <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
           <label class="share-upload-label" id="community-upload-label">
             <input type="file" accept="image/jpeg,image/png" capture="environment" id="community-file-input" onchange="handleCommunityFile(this)">
             <span class="share-upload-text-mobile">Prendre une photo</span>
@@ -469,7 +467,7 @@
     <div id="share-drawing-overlay" style="display:none;">
       <div class="share-drawing-box">
         <h3>Partage ton dessin</h3>
-        <p>Prends en photo ton croquis pour le montrer a la communaute !</p>
+        <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
         <label class="share-upload-label" id="share-upload-label">
           <input type="file" accept="image/jpeg,image/png" capture="environment" id="share-file-input" onchange="handleShareFile(this)">
           <span class="share-upload-text-mobile">Prendre une photo</span>
@@ -523,23 +521,13 @@
   </div>
 </div>
 
-<!-- ══ MOODBOARD (native boards) ══ -->
-<div class="screen" id="screen-moodboard">
-  <div class="mb-topbar">
-    <button class="s-btn" onclick="closeMoodboard()">← Retour</button>
-    <span class="mb-title">🖼 Moodboard</span>
+<!-- ══ MOODBOARD (in-app via webview) ══ -->
+<div class="screen" id="screen-moodboard" style="background:#0f0f0f;flex-direction:column;">
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 84px;background:#0f1923;border-bottom:0.5px solid #1e2d40;-webkit-app-region:drag;">
+    <button class="s-btn" style="-webkit-app-region:no-drag;" onclick="closeMoodboard()">← Retour</button>
+    <span style="font-size:13px;color:#4a6280;">🖼 Moodboard</span>
   </div>
-  <div class="mb-tabs" id="mb-tabs"></div>
-  <div class="mb-actions">
-    <button class="s-btn" onclick="mbPromptAddURL()">+ Ajouter une image</button>
-    <button class="mb-delete-board" id="mb-delete-btn" onclick="mbDeleteCurrentBoard()" style="display:none;">Supprimer ce board</button>
-  </div>
-  <div class="mb-grid" id="mb-grid"></div>
-  <div class="mb-empty" id="mb-empty" style="display:none;">
-    <div class="mb-empty-icon">🖼</div>
-    <div>Aucune image dans ce board</div>
-    <div style="font-size:11px;">Clique sur « + Ajouter une image » ou glisse-dépose un fichier</div>
-  </div>
+  <webview id="moodboard-webview" style="flex:1;width:100%;"></webview>
 </div>
 
 <!-- LIGHTBOX -->

@@ -105,7 +105,7 @@ window.addEventListener('DOMContentLoaded', () => {
           </div>
           <div id="auth-signup-form" class="auth-form" style="display:none;">
             <div class="auth-input-wrap">
-              <input id="auth-signup-username" type="text" placeholder="Pseudo (visible dans la communaute)" autocomplete="username">
+              <input id="auth-signup-username" type="text" placeholder="Pseudo (visible dans la communauté)" autocomplete="username">
               <span class="auth-input-icon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></span>
             </div>
             <div class="auth-input-wrap">
@@ -136,7 +136,7 @@ window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('btn-google-login').addEventListener('click', () => {
         window.electronAPI.authGoogle().then(result => {
           if (result?.success) location.reload()
-          else document.getElementById('auth-msg').textContent = result?.message || result?.reason || 'Connexion echouee'
+          else document.getElementById('auth-msg').textContent = result?.message || result?.reason || 'Connexion échouée'
         }).catch(e => document.getElementById('auth-msg').textContent = e.message)
       })
       document.getElementById('btn-email-login').addEventListener('click', () => {
@@ -147,7 +147,7 @@ window.addEventListener('DOMContentLoaded', () => {
         msg.textContent = 'Connexion...'
         window.electronAPI.authEmail({ email, password }).then(result => {
           if (result?.success) location.reload()
-          else msg.textContent = result?.message || 'Connexion echouee'
+          else msg.textContent = result?.message || 'Connexion échouée'
         }).catch(e => msg.textContent = e.message)
       })
       document.getElementById('btn-email-signup').addEventListener('click', () => {
@@ -160,9 +160,9 @@ window.addEventListener('DOMContentLoaded', () => {
         if (password.length < 6) { msg.textContent = 'Mot de passe trop court (6 car. min)'; return }
         msg.textContent = 'Inscription...'
         window.electronAPI.authSignup({ email, password, username }).then(result => {
-          if (result?.needsConfirmation) { msg.textContent = 'Verifie tes emails pour confirmer ton compte !'; msg.style.color = '#2ecc71'; return }
+          if (result?.needsConfirmation) { msg.textContent = 'Vérifie tes emails pour confirmer ton compte !'; msg.style.color = '#2ecc71'; return }
           if (result?.success) location.reload()
-          else msg.textContent = result?.message || 'Inscription echouee'
+          else msg.textContent = result?.message || 'Inscription échouée'
         }).catch(e => msg.textContent = e.message)
       })
       document.getElementById('auth-password').addEventListener('keydown', (e) => {
@@ -177,7 +177,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!email) { msg.textContent = 'Entre ton email ci-dessus d\'abord'; msg.style.color = '#e24b4a'; return }
         msg.textContent = 'Envoi du lien...'; msg.style.color = '#4a6280'
         window.electronAPI.authResetPassword(email).then(result => {
-          if (result?.success) { msg.textContent = 'Lien envoye ! Verifie tes emails.'; msg.style.color = '#2ecc71' }
+          if (result?.success) { msg.textContent = 'Lien envoyé ! Vérifie tes emails.'; msg.style.color = '#2ecc71' }
           else { msg.textContent = result?.message || 'Erreur'; msg.style.color = '#e24b4a' }
         }).catch(e => { msg.textContent = e.message; msg.style.color = '#e24b4a' })
       })
@@ -230,195 +230,24 @@ function adminSetSource(source) {
 
 window.addEventListener('resize', () => { if (gridMode > 0) positionGridOverlay() })
 
-// ══ MOODBOARD (in-app) ══
-const MB_KEY = 'gd4_moodboards'
-let mbCurrentBoard = 0
-
-function loadMoodboards() {
-  try {
-    const d = JSON.parse(localStorage.getItem(MB_KEY))
-    if (d && Array.isArray(d.boards) && d.boards.length) return d
-  } catch {}
-  return { boards: [{ name: 'G\u00e9n\u00e9ral', images: [] }] }
-}
-function saveMoodboards(d) { localStorage.setItem(MB_KEY, JSON.stringify(d)) }
-
-function openMoodboard() {
-  // D\u00e9sactiv\u00e9 sur phone \u2014 trop petit pour servir de ref visuelle
-  if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+// ══ MOODBOARD (in-app via webview) ══
+let moodboardLoaded = false
+async function openMoodboard() {
+  if (window.matchMedia && window.matchMedia('(max-width: 1199px)').matches) {
     showScreen('screen-config'); return
   }
-  renderMoodboard()
+  const wv = document.getElementById('moodboard-webview')
+  if (!moodboardLoaded) {
+    try {
+      const p = await window.electronAPI.getMoodboardPreloadPath()
+      if (p) wv.setAttribute('preload', 'file://' + p)
+    } catch (e) { console.warn('moodboard preload path failed', e) }
+    wv.setAttribute('src', 'moodboard/index.html')
+    moodboardLoaded = true
+  }
   showScreen('screen-moodboard')
 }
 function closeMoodboard() { showScreen('screen-config') }
-
-function renderMoodboard() {
-  const data = loadMoodboards()
-  if (mbCurrentBoard >= data.boards.length) mbCurrentBoard = 0
-  const board = data.boards[mbCurrentBoard]
-
-  // Tabs
-  const tabsEl = document.getElementById('mb-tabs')
-  tabsEl.innerHTML = ''
-  data.boards.forEach((b, i) => {
-    const tab = document.createElement('button')
-    tab.className = 'mb-tab' + (i === mbCurrentBoard ? ' active' : '')
-    tab.textContent = b.name
-    tab.addEventListener('click', () => { mbCurrentBoard = i; renderMoodboard() })
-    tabsEl.appendChild(tab)
-  })
-  const addBtn = document.createElement('button')
-  addBtn.className = 'mb-tab-add'
-  addBtn.textContent = '+'
-  addBtn.title = 'Nouveau board'
-  addBtn.addEventListener('click', () => {
-    const name = prompt('Nom du nouveau board :')
-    if (name && name.trim()) { createBoard(name.trim()); renderMoodboard() }
-  })
-  tabsEl.appendChild(addBtn)
-
-  // Delete button visibility
-  const delBtn = document.getElementById('mb-delete-btn')
-  if (delBtn) delBtn.style.display = data.boards.length > 1 ? '' : 'none'
-
-  // Grid
-  const grid = document.getElementById('mb-grid')
-  const empty = document.getElementById('mb-empty')
-  grid.innerHTML = ''
-
-  if (board.images.length === 0) {
-    grid.style.display = 'none'; empty.style.display = 'flex'
-  } else {
-    grid.style.display = ''; empty.style.display = 'none'
-    board.images.forEach(img => {
-      const card = document.createElement('div')
-      card.className = 'mb-card'
-      const imgEl = document.createElement('img')
-      imgEl.src = img.src
-      imgEl.alt = ''
-      imgEl.loading = 'lazy'
-      imgEl.addEventListener('click', () => {
-        document.querySelector('#lightbox img').src = img.src
-        document.getElementById('lightbox').classList.add('open')
-      })
-      const removeBtn = document.createElement('button')
-      removeBtn.className = 'mb-remove'
-      removeBtn.textContent = '\u2715'
-      removeBtn.addEventListener('click', (e) => {
-        e.stopPropagation()
-        removeFromBoard(board.name, img.src)
-        renderMoodboard()
-      })
-      card.appendChild(imgEl)
-      card.appendChild(removeBtn)
-      grid.appendChild(card)
-    })
-  }
-
-  // Drag-and-drop files onto grid area
-  const dropTarget = document.getElementById('screen-moodboard')
-  dropTarget.ondragover = (e) => { e.preventDefault(); grid.classList.add('mb-drop-active') }
-  dropTarget.ondragleave = (e) => { if (!dropTarget.contains(e.relatedTarget)) grid.classList.remove('mb-drop-active') }
-  dropTarget.ondrop = (e) => {
-    e.preventDefault(); grid.classList.remove('mb-drop-active')
-    const files = e.dataTransfer.files
-    if (!files.length) return
-    Array.from(files).forEach(f => {
-      if (!f.type.startsWith('image/')) return
-      const reader = new FileReader()
-      reader.onload = () => { addToBoard(board.name, reader.result); renderMoodboard() }
-      reader.readAsDataURL(f)
-    })
-  }
-}
-
-function createBoard(name) {
-  const data = loadMoodboards()
-  if (data.boards.some(b => b.name === name)) return false
-  // Free limit: max 1 board
-  if (!currentUserIsPro && data.boards.length >= 1) {
-    alert('Passe Pro pour plus de tableaux et d\u2019images \u2b50')
-    return false
-  }
-  data.boards.push({ name, images: [] })
-  mbCurrentBoard = data.boards.length - 1
-  saveMoodboards(data)
-  return true
-}
-
-function deleteBoard(name) {
-  const data = loadMoodboards()
-  if (data.boards.length <= 1) return
-  const idx = data.boards.findIndex(b => b.name === name)
-  if (idx < 0) return
-  data.boards.splice(idx, 1)
-  if (mbCurrentBoard >= data.boards.length) mbCurrentBoard = data.boards.length - 1
-  saveMoodboards(data)
-}
-
-function mbDeleteCurrentBoard() {
-  const data = loadMoodboards()
-  const board = data.boards[mbCurrentBoard]
-  if (!board || data.boards.length <= 1) return
-  if (!confirm('Supprimer le board \u00ab ' + board.name + ' \u00bb et toutes ses images ?')) return
-  deleteBoard(board.name)
-  renderMoodboard()
-}
-
-function addToBoard(boardName, src) {
-  const data = loadMoodboards()
-  const board = data.boards.find(b => b.name === boardName)
-  if (!board) return false
-  if (board.images.some(i => i.src === src)) return false
-  // Free limit: max 15 images per board
-  if (!currentUserIsPro && board.images.length >= 15) {
-    alert('Passe Pro pour plus de tableaux et d\u2019images \u2b50')
-    return false
-  }
-  board.images.push({ src, addedAt: new Date().toISOString() })
-  saveMoodboards(data)
-  return true
-}
-
-function removeFromBoard(boardName, src) {
-  const data = loadMoodboards()
-  const board = data.boards.find(b => b.name === boardName)
-  if (!board) return
-  board.images = board.images.filter(i => i.src !== src)
-  saveMoodboards(data)
-}
-
-function mbPromptAddURL() {
-  let overlay = document.querySelector('.mb-url-modal')
-  if (overlay) overlay.remove()
-  overlay = document.createElement('div')
-  overlay.className = 'mb-url-modal'
-  overlay.innerHTML = `
-    <div class="mb-url-card">
-      <h3>Ajouter une image</h3>
-      <input type="text" id="mb-url-input" placeholder="Coller l\u2019URL d\u2019une image\u2026" autofocus>
-      <div class="mb-url-actions">
-        <button class="s-btn" onclick="this.closest('.mb-url-modal').remove()">Annuler</button>
-        <button class="s-btn" style="background:#2983eb;color:#fff;" onclick="mbConfirmAddURL()">Ajouter</button>
-      </div>
-    </div>
-  `
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
-  document.body.appendChild(overlay)
-  setTimeout(() => document.getElementById('mb-url-input').focus(), 50)
-}
-
-function mbConfirmAddURL() {
-  const input = document.getElementById('mb-url-input')
-  const url = input ? input.value.trim() : ''
-  if (!url) return
-  const data = loadMoodboards()
-  const board = data.boards[mbCurrentBoard]
-  if (board) { addToBoard(board.name, url); renderMoodboard() }
-  const modal = document.querySelector('.mb-url-modal')
-  if (modal) modal.remove()
-}
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
@@ -1028,7 +857,7 @@ function updateChallengeCountdown() {
   if (!_activeChallenges.length || !el) return
   const dl = new Date(_activeChallenges[0].deadline)
   const diff = dl - new Date()
-  if (diff <= 0) { el.textContent = 'Derniere chance !'; return }
+  if (diff <= 0) { el.textContent = 'Dernière chance !'; return }
   const days = Math.floor(diff / 86400000)
   const hours = Math.floor((diff % 86400000) / 3600000)
   if (days > 0) el.textContent = days + 'j ' + hours + 'h restants'
@@ -1094,7 +923,7 @@ function openCommunityUpload() {
   if (desc && _activeChallenges.length) {
     desc.textContent = 'Challenge en cours : ' + _activeChallenges[0].title + ' — ton dessin sera inscrit !'
   } else if (desc) {
-    desc.textContent = 'Prends en photo ton croquis pour le montrer a la communaute !'
+    desc.textContent = 'Prends en photo ton croquis pour le montrer à la communauté !'
   }
 }
 
@@ -1150,7 +979,7 @@ async function confirmCommunityUpload() {
     if (_activeChallenges.length && res.postId) {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) {}
     }
-    status.textContent = 'Publie !'
+    status.textContent = 'Publié !'
     status.style.color = '#2ecc71'
     setTimeout(() => { closeCommunityUpload(); renderCommunity() }, 1500)
   } catch(e) {
@@ -1177,7 +1006,7 @@ function openShareDrawing() {
   if (desc && _activeChallenges.length) {
     desc.textContent = 'Challenge en cours : ' + _activeChallenges[0].title + ' — ton dessin sera automatiquement inscrit !'
   } else if (desc) {
-    desc.textContent = 'Prends en photo ton croquis pour le montrer a la communaute !'
+    desc.textContent = 'Prends en photo ton croquis pour le montrer à la communauté !'
   }
 }
 
@@ -1237,7 +1066,7 @@ async function confirmShareDrawing() {
     if (_activeChallenges.length && res.postId) {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) { /* silent */ }
     }
-    status.textContent = 'Publie ! Ton dessin est visible dans la Communaute.'
+    status.textContent = 'Publié ! Ton dessin est visible dans la Communauté.'
     status.style.color = '#2ecc71'
     setTimeout(closeShareDrawing, 2000)
   } catch(e) {
@@ -2026,10 +1855,6 @@ function finishAnimSession() {
     star.className = 'recap-star' + (isFaved(log.src) ? ' faved' : ''); star.textContent = isFaved(log.src) ? '★' : '☆'; star.title = 'Favori'
     star.onclick = (e) => { e.stopPropagation(); if (isFaved(log.src)) { removeFav(log.src); star.textContent = '☆'; star.classList.remove('faved') } else { addFav(log.src, 'Frame ' + (log.frameNum + 1)); star.textContent = '★'; star.classList.add('faved') }; star.classList.add('bump'); setTimeout(() => star.classList.remove('bump'), 250) }
     item.appendChild(star)
-    const pin = document.createElement('button')
-    pin.className = 'pin-btn'; pin.textContent = '📌'; pin.title = 'Epingler au moodboard'
-    pin.onclick = (e) => { e.stopPropagation(); openPinModal(log.src) }
-    item.appendChild(pin)
     grid.appendChild(item)
   })
   // Reset récap header
@@ -2070,10 +1895,6 @@ function finishSession() {
       star.className = 'recap-star' + (isFaved(src) ? ' faved' : ''); star.textContent = isFaved(src) ? '★' : '☆'; star.title = 'Favori'
       star.onclick = (e) => { e.stopPropagation(); if (isFaved(src)) { removeFav(src); star.textContent = '☆'; star.classList.remove('faved') } else { addFav(src, 'Pose ' + (i + 1)); star.textContent = '★'; star.classList.add('faved') }; star.classList.add('bump'); setTimeout(() => star.classList.remove('bump'), 250) }
       item.appendChild(star)
-      const pin = document.createElement('button')
-      pin.className = 'pin-btn'; pin.textContent = '📌'; pin.title = 'Epingler au moodboard'
-      pin.onclick = (e) => { e.stopPropagation(); openPinModal(src) }
-      item.appendChild(pin)
     }
     item.addEventListener('click', () => { if (src) openLightbox(src, i, log.duration, log.rotation || 0) })
     grid.appendChild(item)
@@ -2223,9 +2044,6 @@ function renderFavsConfig() {
     const removeBtn = document.createElement('button'); removeBtn.textContent = '✕'; removeBtn.style.cssText = 'position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:none;border-radius:4px;color:#888;font-size:13px;cursor:pointer;padding:3px 6px;opacity:0;transition:opacity 0.15s,color 0.15s;'; removeBtn.title = 'Retirer des favoris'
     removeBtn.onclick = (e) => { e.stopPropagation(); removeFav(fav.src); renderFavsConfig() }
     item.appendChild(removeBtn)
-    const pin = document.createElement('button'); pin.className = 'pin-btn'; pin.textContent = '📌'; pin.title = 'Epingler au moodboard'
-    pin.onclick = (e) => { e.stopPropagation(); openPinModal(fav.src) }
-    item.appendChild(pin)
     item.onclick = () => openLightboxFav(fav.src, i)
     item.addEventListener('mouseenter', () => { removeBtn.style.opacity = '1' })
     item.addEventListener('mouseleave', () => { removeBtn.style.opacity = '0' })
@@ -2243,82 +2061,6 @@ function openLightboxFav(src, index) {
   lb.classList.add('open'); document.addEventListener('keydown', onLbKey)
 }
 function removeFavFromLightbox() { if (!lbFavSrc) return; removeFav(lbFavSrc); lbFavSrc = null; closeLightbox(); renderFavsConfig() }
-
-// ══ MOODBOARD PIN ══
-// Uses the same storage as the main moodboard (MB_KEY / loadMoodboards / saveMoodboards)
-
-let _pinModalEl = null
-function openPinModal(imageUrl) {
-  if (_pinModalEl) _pinModalEl.remove()
-  const backdrop = document.createElement('div')
-  backdrop.className = 'pin-modal-backdrop'
-  const modal = document.createElement('div')
-  modal.className = 'pin-modal'
-  modal.innerHTML = '<h3>Epingler au moodboard</h3>'
-  const list = document.createElement('div')
-  list.className = 'pin-modal-list'
-  const data = loadMoodboards()
-  if (data.boards.length === 0) {
-    const hint = document.createElement('div')
-    hint.style.cssText = 'font-size:12px;color:#4a6280;padding:8px 0;'
-    hint.textContent = 'Aucun moodboard. Cree-en un !'
-    list.appendChild(hint)
-  } else {
-    data.boards.forEach(b => {
-      const item = document.createElement('div')
-      item.className = 'pin-modal-item'
-      const alreadyPinned = b.images.some(i => i.src === imageUrl)
-      item.innerHTML = '<span>' + b.name + (alreadyPinned ? ' \u2713' : '') + '</span><span class="pin-count">' + b.images.length + ' img</span>'
-      if (!alreadyPinned) {
-        item.onclick = () => {
-          addToBoard(b.name, imageUrl)
-          closePinModal()
-        }
-      } else {
-        item.style.opacity = '0.5'
-        item.style.cursor = 'default'
-      }
-      list.appendChild(item)
-    })
-  }
-  modal.appendChild(list)
-  // New moodboard row
-  const newRow = document.createElement('div')
-  newRow.className = 'pin-modal-new'
-  const input = document.createElement('input')
-  input.type = 'text'
-  input.placeholder = 'Nouveau moodboard\u2026'
-  const addBtn = document.createElement('button')
-  addBtn.textContent = 'Creer'
-  addBtn.onclick = () => {
-    const name = input.value.trim()
-    if (!name) return
-    if (createBoard(name) !== false) {
-      addToBoard(name, imageUrl)
-      closePinModal()
-    } else {
-      input.style.borderColor = '#e24b4a'
-    }
-  }
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addBtn.click() })
-  newRow.appendChild(input)
-  newRow.appendChild(addBtn)
-  modal.appendChild(newRow)
-  // Close button
-  const close = document.createElement('button')
-  close.className = 'pin-modal-close'
-  close.textContent = 'Annuler'
-  close.onclick = closePinModal
-  modal.appendChild(close)
-  backdrop.appendChild(modal)
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closePinModal() })
-  document.body.appendChild(backdrop)
-  _pinModalEl = backdrop
-  setTimeout(() => input.focus(), 50)
-}
-function closePinModal() {
-  if (_pinModalEl) { _pinModalEl.remove(); _pinModalEl = null }
-}
 
 function renderWeekBar() {
   if (!document.getElementById('week-streak')) return
