@@ -797,11 +797,20 @@ function filterByChallenge() {
   renderCommunity()
 }
 
+let _challengeSession = false
+
 function participateChallenge() {
   if (!_activeChallenges.length) return
-  // Switch to Poses config with the challenge ref loaded
-  switchMainMode('pose')
-  // TODO: could auto-load the challenge ref image in the session
+  const c = _activeChallenges[0]
+  if (!c.ref_image_url) return
+  // Build a single-image session with the challenge ref
+  sessionEntries = [{ type: 'image', path: c.ref_image_url, category: 'Challenge', isR2: true }]
+  currentIndex = 0; sessionLog = []; _challengeSession = true
+  imgCache.clear()
+  mainMode = 'pose'; currentSubMode = 'class'
+  document.getElementById('confirm-bar').style.display = 'none'
+  document.getElementById('controls').style.display = 'flex'
+  showScreen('screen-session'); loadAndShow(0)
 }
 
 // ── Upload from Community tab ──
@@ -1153,7 +1162,29 @@ async function renderCommunity() {
     // Load reactions
     await loadReactions(filtered.map(p => p.id))
 
-    filtered.forEach((post, i) => feed.appendChild(buildPostCard(post, i)))
+    // If active challenge and no filter, split into challenge/other sections
+    const activeChId = !_selectedChallengeFilter && _activeChallenges.length ? _activeChallenges[0].id : null
+    if (activeChId) {
+      const challengePosts = filtered.filter(p => p.challenge_id === activeChId)
+      const otherPosts = filtered.filter(p => p.challenge_id !== activeChId)
+      let idx = 0
+      if (challengePosts.length) {
+        const sep1 = document.createElement('div')
+        sep1.className = 'feed-separator'
+        sep1.innerHTML = '<span>Dessins du challenge · ' + challengePosts.length + ' participant' + (challengePosts.length > 1 ? 's' : '') + '</span>'
+        feed.appendChild(sep1)
+        challengePosts.forEach(p => feed.appendChild(buildPostCard(p, idx++)))
+      }
+      if (otherPosts.length) {
+        const sep2 = document.createElement('div')
+        sep2.className = 'feed-separator'
+        sep2.innerHTML = '<span>Autres dessins</span>'
+        feed.appendChild(sep2)
+        otherPosts.forEach(p => feed.appendChild(buildPostCard(p, idx++)))
+      }
+    } else {
+      filtered.forEach((post, i) => feed.appendChild(buildPostCard(post, i)))
+    }
   } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
 }
 
