@@ -695,96 +695,199 @@ function formatPostDate(ts) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
+// ── Share drawing (Recap screen) ──
+let _lastRefUrl = ''
+function setLastRefUrl(url) { _lastRefUrl = url }
+
+function openShareDrawing() {
+  document.getElementById('share-drawing-overlay').style.display = 'flex'
+  document.getElementById('share-preview-img').style.display = 'none'
+  document.getElementById('share-actions').style.display = 'none'
+  document.getElementById('share-status').style.display = 'none'
+  document.getElementById('share-upload-label').style.display = 'inline-flex'
+  document.getElementById('share-file-input').value = ''
+}
+
+function closeShareDrawing() {
+  document.getElementById('share-drawing-overlay').style.display = 'none'
+}
+
+let _shareBlob = null
+function handleShareFile(input) {
+  const file = input.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = function(e) {
+    const img = new Image()
+    img.onload = function() {
+      // Compress: max 1200px, JPEG 80%
+      const canvas = document.getElementById('share-preview-canvas')
+      const maxW = 1200
+      let w = img.width, h = img.height
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
+      canvas.width = w; canvas.height = h
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
+      canvas.toBlob(function(blob) {
+        _shareBlob = blob
+        const preview = document.getElementById('share-preview-img')
+        preview.src = URL.createObjectURL(blob)
+        preview.style.display = 'block'
+        document.getElementById('share-upload-label').style.display = 'none'
+        document.getElementById('share-actions').style.display = 'flex'
+      }, 'image/jpeg', 0.8)
+    }
+    img.src = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+async function confirmShareDrawing() {
+  if (!_shareBlob) return
+  const status = document.getElementById('share-status')
+  status.style.display = 'block'
+  status.textContent = 'Envoi en cours...'
+  document.getElementById('share-actions').style.display = 'none'
+  try {
+    const res = await window.electronAPI.submitCommunityPost({
+      refImageUrl: _lastRefUrl || null,
+      username: _communityEmail ? _communityEmail.split('@')[0] : 'anonyme',
+    })
+    if (res.error) throw new Error(res.error)
+    // Upload to R2 via presigned URL
+    await fetch(res.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: _shareBlob,
+    })
+    status.textContent = 'Publie ! Ton dessin est visible dans la Communaute.'
+    status.style.color = '#2ecc71'
+    setTimeout(closeShareDrawing, 2000)
+  } catch(e) {
+    status.textContent = 'Erreur : ' + (e.message || 'echec upload')
+    status.style.color = '#e74c3c'
+    document.getElementById('share-actions').style.display = 'flex'
+  }
+}
+
+function buildPostCard(post, i) {
+  const card = document.createElement('div')
+  card.className = 'community-post'
+  card.style.animationDelay = (i * 60) + 'ms'
+
+  // Image
+  const img = document.createElement('img')
+  img.className = 'community-post-img'
+  img.src = post.image_url || post.media_url
+  img.alt = post.username || 'Post'
+  img.loading = 'lazy'
+  if (post.permalink) {
+    img.onclick = () => window.electronAPI.openExternal(post.permalink)
+  }
+  card.appendChild(img)
+
+  // Badge
+  if (post.source === 'tagged' || post.source === 'community') {
+    const badge = document.createElement('div')
+    badge.className = 'community-post-badge'
+    badge.textContent = post.source === 'community' ? 'Dessin' : 'Community'
+    card.appendChild(badge)
+  }
+
+  // Info bar
+  const info = document.createElement('div')
+  info.className = 'community-post-info'
+
+  const header = document.createElement('div')
+  header.className = 'community-post-header'
+
+  const user = document.createElement('span')
+  user.className = 'community-post-user'
+  user.textContent = post.source === 'community' ? (post.username || 'anonyme') : ('@' + (post.username || 'gesturo.art'))
+  if (post.permalink) user.onclick = () => window.electronAPI.openExternal('https://www.instagram.com/' + (post.username || 'gesturo.art'))
+
+  const date = document.createElement('span')
+  date.className = 'community-post-date'
+  date.textContent = formatPostDate(post.timestamp || post.created_at)
+
+  header.appendChild(user)
+  header.appendChild(date)
+  info.appendChild(header)
+
+  // Likes (IG only)
+  if (post.like_count !== undefined) {
+    const likes = document.createElement('div')
+    likes.className = 'community-post-likes'
+    likes.textContent = '❤️ ' + (post.like_count || 0)
+    info.appendChild(likes)
+  }
+
+  card.appendChild(info)
+
+  // Emoji reactions
+  const reactions = document.createElement('div')
+  reactions.className = 'community-reactions'
+  reactions.dataset.post = post.id
+  const mine = myReactions[post.id] || []
+  const counts = reactionsCache[post.id] || {}
+  COMMUNITY_EMOJIS.forEach(em => {
+    const btn = document.createElement('button')
+    const count = counts[em] || 0
+    btn.className = 'community-reaction-btn' + (mine.includes(em) ? ' active' : '')
+    btn.dataset.emoji = em
+    btn.innerHTML = em + '<span class="count">' + (count || '') + '</span>'
+    btn.onclick = () => toggleReaction(post.id, em)
+    reactions.appendChild(btn)
+  })
+  card.appendChild(reactions)
+
+  return card
+}
+
 async function renderCommunity() {
   const feed = document.getElementById('community-feed')
   const empty = document.getElementById('community-empty')
   feed.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
   try {
-    const posts = await window.electronAPI.getInstagramPosts()
-    empty.style.display = 'none'
-    if (!posts || posts.length === 0) { empty.style.display = 'block'; empty.textContent = 'Aucune photo pour le moment.'; return }
+    // Fetch IG posts + community posts in parallel
+    const [igPosts, communityRes] = await Promise.all([
+      window.electronAPI.getInstagramPosts().catch(() => []),
+      window.electronAPI.getCommunityPosts().catch(() => ({ posts: [] })),
+    ])
 
-    // Filter + dedup
-    const validPosts = []
+    empty.style.display = 'none'
+
+    // Normalize IG posts
+    const allPosts = []
     const seen = new Set()
-    posts.forEach(post => {
+    ;(igPosts || []).forEach(post => {
       if (post.media_type !== 'IMAGE' && post.media_type !== 'CAROUSEL_ALBUM') return
       if (seen.has(post.id)) return; seen.add(post.id)
-      validPosts.push(post)
+      allPosts.push({ ...post, _sort: new Date(post.timestamp).getTime() })
     })
 
-    // Load reactions from Supabase
-    await loadReactions(validPosts.map(p => p.id))
-
-    validPosts.forEach((post, i) => {
-      const card = document.createElement('div')
-      card.className = 'community-post'
-      card.style.animationDelay = (i * 60) + 'ms'
-
-      // Image
-      const img = document.createElement('img')
-      img.className = 'community-post-img'
-      img.src = post.media_url
-      img.alt = post.username || 'Post'
-      img.loading = 'lazy'
-      img.onclick = () => window.electronAPI.openExternal(post.permalink)
-      card.appendChild(img)
-
-      // Source badge for tagged posts
-      if (post.source === 'tagged') {
-        const badge = document.createElement('div')
-        badge.className = 'community-post-badge'
-        badge.textContent = 'Community'
-        card.appendChild(badge)
-      }
-
-      // Info bar
-      const info = document.createElement('div')
-      info.className = 'community-post-info'
-
-      const header = document.createElement('div')
-      header.className = 'community-post-header'
-
-      const user = document.createElement('span')
-      user.className = 'community-post-user'
-      user.textContent = '@' + (post.username || 'gesturo.art')
-      user.onclick = () => window.electronAPI.openExternal('https://www.instagram.com/' + (post.username || 'gesturo.art'))
-
-      const date = document.createElement('span')
-      date.className = 'community-post-date'
-      date.textContent = formatPostDate(post.timestamp)
-
-      header.appendChild(user)
-      header.appendChild(date)
-      info.appendChild(header)
-
-      // Likes
-      const likes = document.createElement('div')
-      likes.className = 'community-post-likes'
-      likes.textContent = '❤️ ' + (post.like_count || 0)
-      info.appendChild(likes)
-
-      card.appendChild(info)
-
-      // Emoji reactions from Supabase
-      const reactions = document.createElement('div')
-      reactions.className = 'community-reactions'
-      reactions.dataset.post = post.id
-      const mine = myReactions[post.id] || []
-      const counts = reactionsCache[post.id] || {}
-      COMMUNITY_EMOJIS.forEach(em => {
-        const btn = document.createElement('button')
-        const count = counts[em] || 0
-        btn.className = 'community-reaction-btn' + (mine.includes(em) ? ' active' : '')
-        btn.dataset.emoji = em
-        btn.innerHTML = em + '<span class="count">' + (count || '') + '</span>'
-        btn.onclick = () => toggleReaction(post.id, em)
-        reactions.appendChild(btn)
+    // Normalize community posts
+    ;(communityRes.posts || []).forEach(post => {
+      allPosts.push({
+        id: post.id,
+        image_url: post.image_url,
+        username: post.username,
+        created_at: post.created_at,
+        ref_image_url: post.ref_image_url,
+        source: 'community',
+        _sort: new Date(post.created_at).getTime(),
       })
-      card.appendChild(reactions)
-
-      feed.appendChild(card)
     })
+
+    if (allPosts.length === 0) { empty.style.display = 'block'; empty.textContent = 'Aucune photo pour le moment.'; return }
+
+    // Sort by date descending
+    allPosts.sort((a, b) => b._sort - a._sort)
+
+    // Load reactions
+    await loadReactions(allPosts.map(p => p.id))
+
+    allPosts.forEach((post, i) => feed.appendChild(buildPostCard(post, i)))
   } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
 }
 
@@ -1283,6 +1386,8 @@ function finishSession() {
     item.addEventListener('click', () => { if (src) openLightbox(src, i, log.duration, log.rotation || 0) })
     grid.appendChild(item)
   })
+  // Store last ref for community share
+  if (logs.length > 0 && logs[logs.length - 1].thumbnail?.data) setLastRefUrl(logs[logs.length - 1].thumbnail.data)
   // Reset récap header
   document.getElementById('recap-title').textContent = 'Session terminée'
   document.getElementById('stat-poses-label').textContent = 'poses'

@@ -9,6 +9,22 @@
 .end-btn { border: 0.5px solid #1e2d40; border-radius: 8px; background: transparent; color: #6a8aaa; padding: 8px 18px; font-size: 13px; cursor: pointer; }
 .end-btn:hover { background: #162030; }
 .end-btn-primary:hover { background: #1a6fd4; }
+.end-btn-share { border-color: #2983eb44; color: #2983eb; }
+.end-btn-share:hover { background: #2983eb22; }
+
+/* Share drawing overlay */
+#share-drawing-overlay { position: fixed; inset: 0; background: rgba(5,10,18,0.9); z-index: 1100; display: flex; align-items: center; justify-content: center; }
+.share-drawing-box { background: #141e2a; border-radius: 14px; border: 0.5px solid #1e2d40; padding: 28px; max-width: 400px; width: 90%; position: relative; text-align: center; }
+.share-drawing-box h3 { font-size: 17px; color: #fff; margin: 0 0 6px; }
+.share-drawing-box p { font-size: 13px; color: #6a8aaa; margin: 0 0 16px; }
+.share-upload-label { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #0d1825; border: 1px dashed #2983eb44; border-radius: 10px; padding: 20px 28px; font-size: 14px; color: #2983eb; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.share-upload-label:hover { background: #162030; border-color: #2983eb; }
+.share-upload-label input[type="file"] { display: none; }
+#share-preview-img { max-width: 100%; max-height: 240px; border-radius: 8px; margin: 14px 0 0; object-fit: contain; }
+#share-status { font-size: 13px; color: #6a8aaa; margin-top: 10px; }
+.share-actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
+.share-close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: #4a6280; font-size: 22px; cursor: pointer; }
+.share-close:hover { color: #fff; }
 #recap-grid { padding: 24px 40px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
 .recap-item { position: relative; border-radius: 8px; overflow: hidden; background: #131f2e; aspect-ratio: 3/4; cursor: zoom-in; }
 .recap-item:hover { opacity: 0.85; }

@@ -404,6 +404,26 @@
     <div class="end-btns">
       <button class="end-btn end-btn-primary" id="btn-new-session" onclick="showScreen('screen-config'); if(mainMode==='cinema') switchMainMode('cinema')">Nouvelle session</button>
       <button class="end-btn" onclick="replaySession()">Recommencer</button>
+      <button class="end-btn end-btn-share" id="btn-share-drawing" onclick="openShareDrawing()">Partager mon dessin</button>
+    </div>
+    <!-- Upload overlay -->
+    <div id="share-drawing-overlay" style="display:none;">
+      <div class="share-drawing-box">
+        <h3>Partage ton dessin</h3>
+        <p>Prends en photo ton croquis pour le montrer a la communaute !</p>
+        <label class="share-upload-label" id="share-upload-label">
+          <input type="file" accept="image/jpeg,image/png" id="share-file-input" onchange="handleShareFile(this)">
+          Choisir une photo
+        </label>
+        <canvas id="share-preview-canvas" style="display:none;"></canvas>
+        <img id="share-preview-img" style="display:none;">
+        <div id="share-status" style="display:none;"></div>
+        <div class="share-actions" style="display:none;" id="share-actions">
+          <button class="end-btn end-btn-primary" onclick="confirmShareDrawing()">Publier</button>
+          <button class="end-btn" onclick="closeShareDrawing()">Annuler</button>
+        </div>
+        <button class="share-close" onclick="closeShareDrawing()">&times;</button>
+      </div>
     </div>
   </div>
   <div id="recap-grid"></div>

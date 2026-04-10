@@ -1,6 +1,8 @@
-// Single endpoint for user data: getStreak, saveSession, getFavorites, saveFavorites.
+// Single endpoint for user data: getStreak, saveSession, getFavorites, saveFavorites,
+// community posts, reactions.
 // Auth via Supabase JWT, DB writes via service role (bypasses RLS).
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { presignPut } from '../_shared/r2.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -106,6 +108,35 @@ if (action === 'getStreak') {
         );
       }
       return json({ ok: true });
+    }
+
+    // ── Community posts ──
+    if (action === 'submitCommunityPost') {
+      const { refImageUrl, username } = payload || {};
+      const key = `Community/${Date.now()}_${email.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+      const uploadUrl = await presignPut(key, 'image/jpeg', 600);
+      const { data: post, error } = await admin.from('community_posts').insert({
+        user_email: email,
+        username: username || email.split('@')[0],
+        image_key: key,
+        ref_image_url: refImageUrl || null,
+      }).select('id').single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ uploadUrl, postId: post.id, imageKey: key });
+    }
+
+    if (action === 'getCommunityPosts') {
+      const { data } = await admin
+        .from('community_posts').select('*')
+        .eq('approved', true)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
+      const posts = (data || []).map((p: any) => ({
+        ...p,
+        image_url: r2Public ? `${r2Public}/${p.image_key}` : '',
+      }));
+      return json({ posts });
     }
 
     // ── Community reactions (no profile needed, just email) ──

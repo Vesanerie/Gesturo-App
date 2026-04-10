@@ -708,6 +708,24 @@ ipcMain.handle('toggle-reaction', async (_e, postId, emoji) => {
   }
 })
 
+ipcMain.handle('submit-community-post', async (_e, data) => {
+  try {
+    return await callUserData('submitCommunityPost', data)
+  } catch (e) {
+    console.warn('[community] submit error:', e.message)
+    return { error: e.message }
+  }
+})
+
+ipcMain.handle('get-community-posts', async () => {
+  try {
+    return await callUserData('getCommunityPosts')
+  } catch (e) {
+    console.warn('[community] get error:', e.message)
+    return { posts: [] }
+  }
+})
+
 app.on('window-all-closed', () => {
   if (oauthServer) { try { oauthServer.close() } catch(e) {} oauthServer = null }
   if (process.platform !== 'darwin') app.quit()
