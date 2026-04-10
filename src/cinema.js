@@ -26,11 +26,13 @@ function initFilmGrid() {
   const grid = document.getElementById('film-grid')
   if (!grid || grid.children.length > 0) return
   grid.innerHTML = ''
+  const isPro = typeof currentUserIsPro !== 'undefined' && currentUserIsPro
   Object.entries(FILMS).forEach(([key, film]) => {
+    const locked = !isPro && key !== 'theshining'
     const card = document.createElement('div')
-    card.className = 'film-card'; card.dataset.key = key
-    card.innerHTML = `<div class="film-card-thumb-placeholder">${film.emoji}</div><div class="film-card-info"><div class="film-card-title">${film.title}</div><div class="film-card-frames">${film.frames.toLocaleString()} frames</div></div><div class="film-card-check">✓</div>`
-    card.onclick = () => selectFilm(key)
+    card.className = 'film-card' + (locked ? ' film-locked' : ''); card.dataset.key = key
+    card.innerHTML = `<div class="film-card-thumb-placeholder">${film.emoji}</div><div class="film-card-info"><div class="film-card-title">${film.title}</div><div class="film-card-frames">${locked ? '🔒 Pro' : film.frames.toLocaleString() + ' frames'}</div></div><div class="film-card-check">✓</div>`
+    card.onclick = () => { if (locked) { alert('Passe Pro pour d\u00e9bloquer ce film \u2b50'); return } selectFilm(key) }
     grid.appendChild(card)
   })
   document.querySelectorAll('#cinema-chips .chip').forEach(chip => {
