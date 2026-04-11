@@ -24,6 +24,112 @@
 .fav-remove { position: absolute; top: 6px; right: 6px; background: rgba(10,21,32,0.8); border: none; border-radius: 4px; color: #4a6280; font-size: 13px; cursor: pointer; padding: 3px 6px; opacity: 0; transition: opacity 0.15s, color 0.15s; }
 .fav-remove:hover { color: #E24B4A; }
 
+/* Pin + remove buttons on fav-item (inline styled in JS, .fav-remove-btn and .fav-pin-btn) */
+.fav-item .fav-remove-btn,
+.fav-item .fav-pin-btn {
+  position: absolute;
+  background: rgba(10,21,32,0.8);
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 7px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  z-index: 5;
+  line-height: 1;
+}
+.fav-item .fav-remove-btn { top: 6px; right: 6px; color: #4a6280; }
+.fav-item .fav-remove-btn:hover { color: #E24B4A; }
+.fav-item .fav-pin-btn { top: 6px; right: 36px; color: #8899aa; }
+.fav-item .fav-pin-btn:hover { color: #fff; background: rgba(41,131,235,0.3); }
+.fav-item .fav-pin-btn.pinned { color: #2983eb; opacity: 1; background: rgba(41,131,235,0.2); }
+.fav-item:hover .fav-remove-btn,
+.fav-item:hover .fav-pin-btn { opacity: 1; }
+
+@media (max-width: 767px) {
+  .fav-item .fav-remove-btn,
+  .fav-item .fav-pin-btn { opacity: 1; }
+}
+
+/* ══ PIN MOODBOARD MODAL ══ */
+.pin-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9500;
+}
+.pin-modal {
+  background: #141e2a;
+  border: 0.5px solid #1e2d40;
+  border-radius: 14px;
+  padding: 22px 20px;
+  width: 340px;
+  max-width: 92vw;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+}
+.pin-modal h3 {
+  font-size: 15px; font-weight: 600; color: #c8d6e5;
+  margin-bottom: 14px; text-align: center;
+}
+.pin-modal-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 50vh;
+}
+.pin-modal-hint {
+  font-size: 12px; color: #4a6280; text-align: center; padding: 12px 0;
+}
+.pin-modal-item {
+  display: flex; align-items: center; gap: 10px;
+  background: #0d1825;
+  border: 0.5px solid #1e2d40;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #c8d6e5;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pin-modal-item:hover {
+  background: #162030;
+  border-color: #2983eb;
+}
+.pin-modal-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.pin-modal-name {
+  flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-weight: 500;
+}
+.pin-modal-count {
+  font-size: 11px; color: #4a6280; flex-shrink: 0;
+}
+.pin-modal-new {
+  margin-top: 6px;
+  border-style: dashed;
+  color: #2983eb;
+  justify-content: center;
+}
+.pin-modal-plus {
+  font-size: 16px; font-weight: 600;
+}
+.pin-modal-close {
+  margin-top: 14px;
+  background: none;
+  border: 0.5px solid #1e2d40;
+  border-radius: 8px;
+  color: #4a6280;
+  padding: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pin-modal-close:hover { color: #c8d6e5; }
+
 #lb-fav-remove { position: fixed; bottom: 24px; right: 24px; background: rgba(80,20,20,0.85); border: 0.5px solid #5a1f1f; border-radius: 8px; color: #E24B4A; font-size: 13px; padding: 7px 14px; cursor: pointer; display: none; }
 #lb-fav-remove:hover { background: rgba(226,75,74,0.2); }
 

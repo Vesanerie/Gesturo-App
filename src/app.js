@@ -2229,6 +2229,122 @@ function renderFavsConfig() {
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;'
 }
 
+// ── Pin to moodboard ──
+let _moodboardPinCache = new Set()
+function isPinnedInMoodboard(src) { return _moodboardPinCache.has(src) }
+
+async function refreshMoodboardPinCache() {
+  _moodboardPinCache = new Set()
+  if (!window.electronAPI?.mbListProjects) return
+  try {
+    const projects = await window.electronAPI.mbListProjects()
+    for (const p of projects) {
+      const data = await window.electronAPI.mbLoadProject(p.file)
+      if (data?.photos) {
+        data.photos.forEach(ph => { if (ph.src) _moodboardPinCache.add(ph.src) })
+      }
+    }
+  } catch (e) { /* silent */ }
+}
+
+async function openPinMoodboardModal(src, label, triggerBtn) {
+  if (!window.electronAPI?.mbListProjects) { alert('Moodboard indisponible'); return }
+  let modal = document.getElementById('pin-moodboard-modal')
+  if (!modal) {
+    modal = document.createElement('div')
+    modal.id = 'pin-moodboard-modal'
+    modal.className = 'pin-modal-overlay'
+    modal.innerHTML = '<div class="pin-modal"><h3>Epingler dans un moodboard</h3><div id="pin-modal-list" class="pin-modal-list">Chargement...</div><button class="pin-modal-close" id="pin-modal-close">Annuler</button></div>'
+    document.body.appendChild(modal)
+    modal.addEventListener('click', (e) => { if (e.target === modal) closePinMoodboardModal() })
+    document.getElementById('pin-modal-close').addEventListener('click', closePinMoodboardModal)
+  }
+  modal.style.display = 'flex'
+  const list = document.getElementById('pin-modal-list')
+  list.innerHTML = 'Chargement...'
+  try {
+    const projects = await window.electronAPI.mbListProjects()
+    list.innerHTML = ''
+    if (projects.length === 0) {
+      const hint = document.createElement('div')
+      hint.className = 'pin-modal-hint'
+      hint.textContent = 'Aucun moodboard existant.'
+      list.appendChild(hint)
+    }
+    projects.forEach(p => {
+      const row = document.createElement('button')
+      row.className = 'pin-modal-item'
+      row.innerHTML = '<span class="pin-modal-dot"></span><span class="pin-modal-name"></span><span class="pin-modal-count">' + (p.photoCount || 0) + ' photo' + ((p.photoCount || 0) > 1 ? 's' : '') + '</span>'
+      row.querySelector('.pin-modal-dot').style.background = p.color || '#888'
+      row.querySelector('.pin-modal-name').textContent = p.name
+      row.onclick = async () => {
+        await pinImageToMoodboard(p.file, src, label)
+        closePinMoodboardModal()
+        await refreshMoodboardPinCache()
+        if (triggerBtn) triggerBtn.classList.add('pinned')
+      }
+      list.appendChild(row)
+    })
+    const newRow = document.createElement('button')
+    newRow.className = 'pin-modal-item pin-modal-new'
+    newRow.innerHTML = '<span class="pin-modal-plus">+</span><span class="pin-modal-name">Nouveau tableau</span>'
+    newRow.onclick = async () => {
+      const name = prompt('Nom du nouveau moodboard :')
+      if (!name || !name.trim()) return
+      try {
+        const proj = await window.electronAPI.mbCreateProject(name.trim())
+        await window.electronAPI.mbSaveProject(proj.file, {
+          name: proj.name,
+          description: '',
+          color: '#2983eb',
+          createdAt: Date.now(),
+          photos: [],
+          groups: [],
+        })
+        await pinImageToMoodboard(proj.file, src, label)
+        closePinMoodboardModal()
+        await refreshMoodboardPinCache()
+        if (triggerBtn) triggerBtn.classList.add('pinned')
+      } catch (e) { alert('Erreur : ' + e.message) }
+    }
+    list.appendChild(newRow)
+  } catch (e) {
+    list.innerHTML = '<div class="pin-modal-hint">Erreur : ' + e.message + '</div>'
+  }
+}
+
+function closePinMoodboardModal() {
+  const modal = document.getElementById('pin-moodboard-modal')
+  if (modal) modal.style.display = 'none'
+}
+
+async function pinImageToMoodboard(projectFile, src, label) {
+  try {
+    const data = await window.electronAPI.mbLoadProject(projectFile)
+    if (!data) return
+    const photos = data.photos || []
+    if (photos.some(ph => ph.src === src)) return
+    const maxId = photos.reduce((m, ph) => Math.max(m, ph.id || 0), 0)
+    const newPhoto = {
+      id: maxId + 1,
+      src,
+      name: label || 'Gesturo favori',
+      x: 200 + Math.random() * 300,
+      y: 200 + Math.random() * 300,
+      w: 240, h: 320,
+      rotation: (Math.random() - 0.5) * 8,
+      zIndex: maxId + 1,
+      flipped: false,
+    }
+    photos.push(newPhoto)
+    await window.electronAPI.mbSaveProject(projectFile, {
+      ...data,
+      photos,
+      updatedAt: Date.now(),
+    })
+  } catch (e) { console.warn('pinImageToMoodboard error:', e) }
+}
+
 let lbFavSrc = null
 function openLightboxFav(src, index) {
   lbFavSrc = src; const lb = document.getElementById('lightbox')
