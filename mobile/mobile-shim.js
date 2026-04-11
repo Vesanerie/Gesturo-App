@@ -242,6 +242,13 @@
         return data || { leaderboard: [] };
       } catch (e) { return { leaderboard: [] }; }
     },
+    getMyStats: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getMyStats' } });
+        return data || { postsCount: 0, reactionsGivenCount: 0, challengesCount: 0 };
+      } catch (e) { return { postsCount: 0, reactionsGivenCount: 0, challengesCount: 0 }; }
+    },
     getReactions: async (postIds) => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();
@@ -282,5 +289,9 @@
 
     // ── Moodboard webview path — N/A on mobile ──
     getMoodboardPreloadPath: async () => null,
+    mbListProjects: async () => [],
+    mbCreateProject: async () => null,
+    mbLoadProject: async () => null,
+    mbSaveProject: async () => false,
   };
 })();

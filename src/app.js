@@ -792,6 +792,9 @@ async function toggleReaction(postId, emoji) {
       reactionsCache[postId][emoji] = Math.max(0, (reactionsCache[postId][emoji] || 1) - 1)
     }
     renderReactionButtons(postId)
+    // Invalide le cache des stats pour déclencher la re-vérif des badges communauté
+    _communityStats = null
+    checkBadges()
   } catch(e) { /* silent */ }
 }
 
@@ -1002,6 +1005,7 @@ async function confirmCommunityUpload() {
     }
     status.textContent = 'Publié !'
     status.style.color = '#2ecc71'
+    _communityStats = null; checkBadges()
     setTimeout(() => { closeCommunityUpload(); renderCommunity() }, 1500)
   } catch(e) {
     status.textContent = 'Erreur : ' + (e.message || 'échec')
@@ -1089,12 +1093,80 @@ async function confirmShareDrawing() {
     }
     status.textContent = 'Publié ! Ton dessin est visible dans la Communauté.'
     status.style.color = '#2ecc71'
+    _communityStats = null; checkBadges()
     setTimeout(closeShareDrawing, 2000)
   } catch(e) {
     status.textContent = 'Erreur : ' + (e.message || 'échec upload')
     status.style.color = '#e74c3c'
     document.getElementById('share-actions').style.display = 'flex'
   }
+}
+
+// ── Community compare view (clic sur un post community) ──
+let _ccCurrentPost = null
+
+function openCommunityCompare(post) {
+  if (!post) return
+  _ccCurrentPost = post
+  const overlay = document.getElementById('community-compare')
+  if (!overlay) return
+  const drawingUrl = post.image_url || post.media_url
+  const refUrl = post.ref_image_url
+  document.getElementById('cc-drawing').src = drawingUrl || ''
+  const refImg = document.getElementById('cc-ref')
+  const refWrap = document.getElementById('cc-ref-wrap')
+  if (refUrl) {
+    refImg.src = refUrl
+    refWrap.style.display = ''
+    overlay.classList.remove('cc-single')
+  } else {
+    refImg.src = ''
+    refWrap.style.display = 'none'
+    overlay.classList.add('cc-single')
+  }
+  document.getElementById('cc-user').textContent = post.username || 'anonyme'
+  document.getElementById('cc-date').textContent = formatPostDate(post.timestamp || post.created_at)
+  // Reactions (visual only, clickable to toggle)
+  const reactionsEl = document.getElementById('cc-reactions')
+  reactionsEl.innerHTML = ''
+  reactionsEl.dataset.post = post.id
+  const mine = myReactions[post.id] || []
+  const counts = reactionsCache[post.id] || {}
+  COMMUNITY_EMOJIS.forEach(em => {
+    const btn = document.createElement('button')
+    const count = counts[em] || 0
+    btn.className = 'community-reaction-btn' + (mine.includes(em) ? ' active' : '')
+    btn.dataset.emoji = em
+    btn.innerHTML = em + '<span class="count">' + (count || '') + '</span>'
+    btn.onclick = () => toggleReaction(post.id, em)
+    reactionsEl.appendChild(btn)
+  })
+  // Show/hide draw button based on ref availability
+  document.getElementById('cc-draw-btn').style.display = refUrl ? 'block' : 'none'
+  overlay.style.display = 'flex'
+  document.addEventListener('keydown', _ccEscHandler)
+}
+
+function closeCommunityCompare() {
+  const overlay = document.getElementById('community-compare')
+  if (overlay) overlay.style.display = 'none'
+  document.removeEventListener('keydown', _ccEscHandler)
+  _ccCurrentPost = null
+}
+
+function _ccEscHandler(e) { if (e.key === 'Escape') closeCommunityCompare() }
+
+function drawFromCompare() {
+  if (!_ccCurrentPost || !_ccCurrentPost.ref_image_url) return
+  const refUrl = _ccCurrentPost.ref_image_url
+  // Same pattern as participateChallenge: single-image session with the ref
+  sessionEntries = [{ type: 'image', path: refUrl, category: 'Communauté', isR2: true }]
+  currentIndex = 0; sessionLog = []; _challengeSession = true
+  imgCache.clear()
+  mainMode = 'pose'; currentSubMode = 'class'
+  closeCommunityCompare()
+  document.getElementById('controls').style.display = 'flex'
+  showScreen('screen-session'); loadAndShow(0)
 }
 
 function buildPostCard(post, i) {
@@ -1108,7 +1180,9 @@ function buildPostCard(post, i) {
   img.src = post.image_url || post.media_url
   img.alt = post.username || 'Post'
   img.loading = 'lazy'
-  if (post.permalink) {
+  if (post.source === 'community') {
+    img.onclick = () => openCommunityCompare(post)
+  } else if (post.permalink) {
     img.onclick = () => window.electronAPI.openExternal(post.permalink)
   }
   card.appendChild(img)
@@ -2127,16 +2201,29 @@ function renderFavsConfig() {
   grid.innerHTML = ''
   if (favs.length === 0) { empty.style.display = 'block'; return }
   empty.style.display = 'none'
+  // Refresh moodboard pin cache in background, update buttons when done
+  refreshMoodboardPinCache().then(() => {
+    grid.querySelectorAll('.fav-pin-btn').forEach(btn => {
+      const src = btn.dataset.src
+      btn.classList.toggle('pinned', isPinnedInMoodboard(src))
+    })
+  })
   favs.forEach((fav, i) => {
     const item = document.createElement('div'); item.className = 'fav-item'; item.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;background:#242424;aspect-ratio:3/4;cursor:zoom-in;'
     const img = document.createElement('img'); img.src = fav.src; img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;'; item.appendChild(img)
     const lbl = document.createElement('div'); lbl.style.cssText = 'position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.7);border-radius:4px;padding:2px 6px;font-size:11px;color:#f0c040;'; lbl.textContent = '★ ' + (i + 1); item.appendChild(lbl)
-    const removeBtn = document.createElement('button'); removeBtn.textContent = '✕'; removeBtn.style.cssText = 'position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);border:none;border-radius:4px;color:#888;font-size:13px;cursor:pointer;padding:3px 6px;opacity:0;transition:opacity 0.15s,color 0.15s;'; removeBtn.title = 'Retirer des favoris'
+    // Pin moodboard button
+    const pinBtn = document.createElement('button')
+    pinBtn.className = 'fav-pin-btn' + (isPinnedInMoodboard(fav.src) ? ' pinned' : '')
+    pinBtn.dataset.src = fav.src
+    pinBtn.textContent = '📌'
+    pinBtn.title = 'Épingler dans un moodboard'
+    pinBtn.onclick = (e) => { e.stopPropagation(); openPinMoodboardModal(fav.src, fav.label || '', pinBtn) }
+    item.appendChild(pinBtn)
+    const removeBtn = document.createElement('button'); removeBtn.textContent = '✕'; removeBtn.className = 'fav-remove-btn'; removeBtn.title = 'Retirer des favoris'
     removeBtn.onclick = (e) => { e.stopPropagation(); removeFav(fav.src); renderFavsConfig() }
     item.appendChild(removeBtn)
     item.onclick = () => openLightboxFav(fav.src, i)
-    item.addEventListener('mouseenter', () => { removeBtn.style.opacity = '1' })
-    item.addEventListener('mouseleave', () => { removeBtn.style.opacity = '0' })
     grid.appendChild(item)
   })
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;'
@@ -2444,6 +2531,11 @@ function showOnboarding() {
       subtitle: 'Choisis tes categories, lance une session et progresse chaque jour',
     },
     {
+      icon: '\ud83c\udfac',
+      title: 'Etudie la composition',
+      subtitle: 'Les modes Animation et Cinema t\u2019aident a analyser les cadrages et les poses des meilleurs films',
+    },
+    {
       icon: '\ud83c\udf0d',
       title: 'Rejoins la communaute',
       subtitle: 'Partage tes dessins, participe aux challenges et decouvre les creations des autres',
@@ -2624,6 +2716,13 @@ const BADGES_DEF = [
   { id: 'early_bird', emoji: '🌅', name: 'Lève-tôt', desc: 'Faire une session avant 8h' },
   { id: 'explorer',       emoji: '🗺', name: 'Explorateur',       desc: 'Essayer Poses, Anim et Cinéma' },
   { id: 'poses_5000', emoji: '🔱', name: 'Légende', desc: '5000 poses dessinées' },
+  // ── Badges communauté ──
+  { id: 'first_share',    emoji: '📸', name: 'Premier partage',    desc: 'Partager un dessin dans la communauté' },
+  { id: 'shares_10',      emoji: '🖼', name: 'Artiste prolifique', desc: '10 dessins partagés' },
+  { id: 'first_reaction', emoji: '💬', name: 'Première réaction',  desc: 'Réagir à un dessin de la communauté' },
+  { id: 'reactions_50',   emoji: '🤝', name: 'Supporteur',         desc: '50 réactions données' },
+  { id: 'challenge_1',    emoji: '🏅', name: 'Challenger',         desc: 'Participer à un challenge' },
+  { id: 'challenge_10',   emoji: '🏆', name: 'Champion',           desc: '10 challenges complétés' },
 ]
 function loadBadges() { try { return JSON.parse(localStorage.getItem(BADGES_KEY) || '{}') } catch { return {} } }
 function saveBadges(b) { localStorage.setItem(BADGES_KEY, JSON.stringify(b)) }
@@ -2692,7 +2791,19 @@ function processNextBadge() {
   popup.onclick = dismiss
 }
 
-function checkBadges() {
+// Cache des stats communauté (évite de re-fetch à chaque checkBadges)
+let _communityStats = null
+async function fetchCommunityStats(force = false) {
+  if (_communityStats && !force) return _communityStats
+  try {
+    if (!window.electronAPI?.getMyStats) return null
+    const stats = await window.electronAPI.getMyStats()
+    _communityStats = stats || { postsCount: 0, reactionsGivenCount: 0, challengesCount: 0 }
+    return _communityStats
+  } catch { return null }
+}
+
+async function checkBadges() {
   const hist = loadHist()
   if (hist.length >= 1) unlockBadge('first_session')
   const streak = computeStreak(hist)
@@ -2714,6 +2825,16 @@ function checkBadges() {
   const earlySession = hist.some(s => new Date(s.ts).getHours() < 8)
   if (earlySession) unlockBadge('early_bird')
   if (totalPoses >= 5000) unlockBadge('poses_5000')
+
+  // ── Badges communauté (fetch distant) ──
+  const stats = await fetchCommunityStats()
+  if (!stats) return
+  if (stats.postsCount >= 1) unlockBadge('first_share')
+  if (stats.postsCount >= 10) unlockBadge('shares_10')
+  if (stats.reactionsGivenCount >= 1) unlockBadge('first_reaction')
+  if (stats.reactionsGivenCount >= 50) unlockBadge('reactions_50')
+  if (stats.challengesCount >= 1) unlockBadge('challenge_1')
+  if (stats.challengesCount >= 10) unlockBadge('challenge_10')
 }
 function renderBadges() {
   const grid = document.getElementById('badges-grid'); if (!grid) return

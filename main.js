@@ -798,6 +798,15 @@ ipcMain.handle('get-community-leaderboard', async () => {
   }
 })
 
+ipcMain.handle('get-my-stats', async () => {
+  try {
+    return await callUserData('getMyStats')
+  } catch (e) {
+    console.warn('[community] my-stats error:', e.message)
+    return { postsCount: 0, reactionsGivenCount: 0, challengesCount: 0 }
+  }
+})
+
 ipcMain.handle('delete-community-post', async (_e, postId) => {
   try {
     return await callUserData('deleteCommunityPost', { postId })

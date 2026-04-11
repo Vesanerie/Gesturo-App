@@ -50,10 +50,15 @@ getFavorites: () => ipcRenderer.invoke('get-favorites'),
   getCommunityPosts: () => ipcRenderer.invoke('get-community-posts'),
   deleteCommunityPost: (id) => ipcRenderer.invoke('delete-community-post', id),
   getCommunityLeaderboard: () => ipcRenderer.invoke('get-community-leaderboard'),
+  getMyStats: () => ipcRenderer.invoke('get-my-stats'),
   getChallenges: () => ipcRenderer.invoke('get-challenges'),
   tagPostToChallenge: (postId, challengeId) => ipcRenderer.invoke('tag-post-to-challenge', postId, challengeId),
   triggerDailyChallenge: () => ipcRenderer.invoke('trigger-daily-challenge'),
 
   // ── Gesturo Moodboard (in-app via webview) ──
   getMoodboardPreloadPath: () => ipcRenderer.invoke('mb:get-preload-path'),
+  mbListProjects: () => ipcRenderer.invoke('mb:list-projects'),
+  mbCreateProject: (name) => ipcRenderer.invoke('mb:create-project', name),
+  mbLoadProject: (file) => ipcRenderer.invoke('mb:load-project', file),
+  mbSaveProject: (file, data) => ipcRenderer.invoke('mb:save-project', file, data),
 })

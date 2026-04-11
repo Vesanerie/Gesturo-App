@@ -295,6 +295,26 @@ if (action === 'getStreak') {
       return json({ leaderboard });
     }
 
+    // ── My community stats (for badges) ──
+    if (action === 'getMyStats') {
+      // Posts count (own posts)
+      const { data: myPosts } = await admin
+        .from('community_posts')
+        .select('id, challenge_id')
+        .eq('user_email', email);
+      const postsCount = (myPosts || []).length;
+      const challengesCount = (myPosts || []).filter((p: any) => p.challenge_id).length;
+
+      // Reactions given count
+      const { data: myReactions } = await admin
+        .from('post_reactions')
+        .select('id')
+        .eq('user_email', email);
+      const reactionsGivenCount = (myReactions || []).length;
+
+      return json({ postsCount, reactionsGivenCount, challengesCount });
+    }
+
     return json({ error: 'unknown action' }, 400);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

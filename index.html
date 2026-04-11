@@ -535,6 +535,31 @@
   <button id="lb-fav-remove" onclick="event.stopPropagation(); removeFavFromLightbox()">✕ Retirer des favoris</button>
 </div>
 
+<!-- COMMUNITY COMPARE OVERLAY -->
+<div id="community-compare" class="community-compare" style="display:none;">
+  <button class="cc-close" onclick="closeCommunityCompare()">✕</button>
+  <div class="cc-content">
+    <div class="cc-images">
+      <figure class="cc-image-wrap">
+        <img id="cc-drawing" alt="Dessin de l'utilisateur">
+        <figcaption>Dessin</figcaption>
+      </figure>
+      <figure class="cc-image-wrap" id="cc-ref-wrap">
+        <img id="cc-ref" alt="Image de référence">
+        <figcaption>Référence</figcaption>
+      </figure>
+    </div>
+    <div class="cc-meta">
+      <div class="cc-meta-row">
+        <span class="cc-user" id="cc-user"></span>
+        <span class="cc-date" id="cc-date"></span>
+      </div>
+      <div class="cc-reactions" id="cc-reactions"></div>
+    </div>
+    <button id="cc-draw-btn" class="cc-draw-btn" onclick="drawFromCompare()">🎨 Dessiner cette ref</button>
+  </div>
+</div>
+
 <div id="about-modal">
   <div class="about-box">
     <h3>À propos</h3>
