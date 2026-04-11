@@ -1161,17 +1161,22 @@ function closeCommunityCompare() {
 
 function _ccEscHandler(e) { if (e.key === 'Escape') closeCommunityCompare() }
 
-function drawFromCompare() {
-  if (!_ccCurrentPost || !_ccCurrentPost.ref_image_url) return
-  const refUrl = _ccCurrentPost.ref_image_url
+function drawFromRefUrl(refUrl) {
+  if (!refUrl) return
   // Same pattern as participateChallenge: single-image session with the ref
   sessionEntries = [{ type: 'image', path: refUrl, category: 'Communauté', isR2: true }]
   currentIndex = 0; sessionLog = []; _challengeSession = true
   imgCache.clear()
   mainMode = 'pose'; currentSubMode = 'class'
-  closeCommunityCompare()
+  closeEndConfirm()
   document.getElementById('controls').style.display = 'flex'
   showScreen('screen-session'); loadAndShow(0)
+}
+
+function drawFromCompare() {
+  if (!_ccCurrentPost || !_ccCurrentPost.ref_image_url) return
+  closeCommunityCompare()
+  drawFromRefUrl(_ccCurrentPost.ref_image_url)
 }
 
 function buildPostCard(post, i) {
@@ -1246,7 +1251,7 @@ function buildPostCard(post, i) {
     const refBtn = document.createElement('button')
     refBtn.className = 'community-ref-btn'
     refBtn.textContent = 'Dessiner cette ref'
-    refBtn.onclick = (e) => { e.stopPropagation(); switchMainMode('pose') }
+    refBtn.onclick = (e) => { e.stopPropagation(); drawFromRefUrl(post.ref_image_url) }
     refRow.appendChild(refBtn)
     card.appendChild(refRow)
   }
