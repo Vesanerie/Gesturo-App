@@ -2247,20 +2247,47 @@ async function refreshMoodboardPinCache() {
   } catch (e) { /* silent */ }
 }
 
+function showPinToast(message, kind) {
+  let toast = document.getElementById('pin-toast')
+  if (!toast) {
+    toast = document.createElement('div')
+    toast.id = 'pin-toast'
+    toast.className = 'pin-toast'
+    document.body.appendChild(toast)
+  }
+  toast.textContent = message
+  toast.className = 'pin-toast show' + (kind ? ' ' + kind : '')
+  clearTimeout(toast._hideTimer)
+  toast._hideTimer = setTimeout(() => { toast.className = 'pin-toast' }, 2800)
+}
+
 async function openPinMoodboardModal(src, label, triggerBtn) {
-  if (!window.electronAPI?.mbListProjects) { alert('Moodboard indisponible'); return }
+  if (!window.electronAPI?.mbListProjects) { showPinToast('Moodboard indisponible', 'err'); return }
   let modal = document.getElementById('pin-moodboard-modal')
   if (!modal) {
     modal = document.createElement('div')
     modal.id = 'pin-moodboard-modal'
     modal.className = 'pin-modal-overlay'
-    modal.innerHTML = '<div class="pin-modal"><h3>Epingler dans un moodboard</h3><div id="pin-modal-list" class="pin-modal-list">Chargement...</div><button class="pin-modal-close" id="pin-modal-close">Annuler</button></div>'
+    modal.innerHTML = '<div class="pin-modal">'
+      + '<h3>Epingler dans un moodboard</h3>'
+      + '<div id="pin-modal-list" class="pin-modal-list">Chargement...</div>'
+      + '<div id="pin-modal-new-form" class="pin-modal-new-form" style="display:none;">'
+      + '  <input id="pin-modal-new-input" type="text" placeholder="Nom du nouveau tableau" maxlength="60">'
+      + '  <div class="pin-modal-new-actions">'
+      + '    <button id="pin-modal-new-cancel" class="pin-modal-close">Annuler</button>'
+      + '    <button id="pin-modal-new-ok" class="pin-modal-new-confirm">Créer</button>'
+      + '  </div>'
+      + '</div>'
+      + '<button class="pin-modal-close" id="pin-modal-close">Fermer</button>'
+      + '</div>'
     document.body.appendChild(modal)
     modal.addEventListener('click', (e) => { if (e.target === modal) closePinMoodboardModal() })
     document.getElementById('pin-modal-close').addEventListener('click', closePinMoodboardModal)
   }
   modal.style.display = 'flex'
+  document.getElementById('pin-modal-new-form').style.display = 'none'
   const list = document.getElementById('pin-modal-list')
+  list.style.display = ''
   list.innerHTML = 'Chargement...'
   try {
     const projects = await window.electronAPI.mbListProjects()
@@ -2278,36 +2305,52 @@ async function openPinMoodboardModal(src, label, triggerBtn) {
       row.querySelector('.pin-modal-dot').style.background = p.color || '#888'
       row.querySelector('.pin-modal-name').textContent = p.name
       row.onclick = async () => {
-        await pinImageToMoodboard(p.file, src, label)
+        const added = await pinImageToMoodboard(p.file, src, label)
         closePinMoodboardModal()
         await refreshMoodboardPinCache()
         if (triggerBtn) triggerBtn.classList.add('pinned')
+        showPinToast(added ? '✓ Ajoutée à "' + p.name + '"' : 'Déjà dans "' + p.name + '"', added ? 'ok' : 'info')
       }
       list.appendChild(row)
     })
     const newRow = document.createElement('button')
     newRow.className = 'pin-modal-item pin-modal-new'
     newRow.innerHTML = '<span class="pin-modal-plus">+</span><span class="pin-modal-name">Nouveau tableau</span>'
-    newRow.onclick = async () => {
-      const name = prompt('Nom du nouveau moodboard :')
-      if (!name || !name.trim()) return
+    newRow.onclick = () => {
+      list.style.display = 'none'
+      const form = document.getElementById('pin-modal-new-form')
+      form.style.display = ''
+      const input = document.getElementById('pin-modal-new-input')
+      input.value = ''
+      setTimeout(() => input.focus(), 10)
+    }
+    list.appendChild(newRow)
+
+    // Wire up the new-form buttons (idempotent — re-bind on each open)
+    const okBtn = document.getElementById('pin-modal-new-ok')
+    const cancelBtn = document.getElementById('pin-modal-new-cancel')
+    const input = document.getElementById('pin-modal-new-input')
+    const createHandler = async () => {
+      const name = input.value.trim()
+      if (!name) { input.focus(); return }
       try {
-        const proj = await window.electronAPI.mbCreateProject(name.trim())
-        await window.electronAPI.mbSaveProject(proj.file, {
-          name: proj.name,
-          description: '',
-          color: '#2983eb',
-          createdAt: Date.now(),
-          photos: [],
-          groups: [],
-        })
-        await pinImageToMoodboard(proj.file, src, label)
+        const proj = await window.electronAPI.mbCreateProject(name)
+        if (!proj || !proj.file) throw new Error('Création échouée')
+        const added = await pinImageToMoodboard(proj.file, src, label)
         closePinMoodboardModal()
         await refreshMoodboardPinCache()
         if (triggerBtn) triggerBtn.classList.add('pinned')
-      } catch (e) { alert('Erreur : ' + e.message) }
+        showPinToast(added ? '✓ Tableau "' + (proj.name || name) + '" créé + image ajoutée' : '✓ Tableau créé', 'ok')
+      } catch (e) {
+        showPinToast('Erreur : ' + e.message, 'err')
+      }
     }
-    list.appendChild(newRow)
+    okBtn.onclick = createHandler
+    cancelBtn.onclick = () => {
+      document.getElementById('pin-modal-new-form').style.display = 'none'
+      list.style.display = ''
+    }
+    input.onkeydown = (e) => { if (e.key === 'Enter') createHandler() }
   } catch (e) {
     list.innerHTML = '<div class="pin-modal-hint">Erreur : ' + e.message + '</div>'
   }
@@ -2321,9 +2364,9 @@ function closePinMoodboardModal() {
 async function pinImageToMoodboard(projectFile, src, label) {
   try {
     const data = await window.electronAPI.mbLoadProject(projectFile)
-    if (!data) return
+    if (!data) return false
     const photos = data.photos || []
-    if (photos.some(ph => ph.src === src)) return
+    if (photos.some(ph => ph.src === src)) return false
     const maxId = photos.reduce((m, ph) => Math.max(m, ph.id || 0), 0)
     const newPhoto = {
       id: maxId + 1,
@@ -2342,7 +2385,8 @@ async function pinImageToMoodboard(projectFile, src, label) {
       photos,
       updatedAt: Date.now(),
     })
-  } catch (e) { console.warn('pinImageToMoodboard error:', e) }
+    return true
+  } catch (e) { console.warn('pinImageToMoodboard error:', e); return false }
 }
 
 let lbFavSrc = null
