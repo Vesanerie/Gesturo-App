@@ -358,6 +358,7 @@ async function loadFolder(folder) {
   document.getElementById('btn-start').disabled = false
 }
 
+const FREE_PHOTO_LIMIT = 150
 async function loadR2(isPro) {
   document.getElementById('folder-path').textContent = isPro ? '☁️ Gesturo Pro — R2' : '☁️ Gesturo — R2'
   document.getElementById('file-count').textContent = 'Chargement depuis le cloud...'
@@ -365,10 +366,21 @@ async function loadR2(isPro) {
   allEntries = []; categories = {}; sequences = {}
   imgCache.clear()
   try {
-    const [photos, anims] = await Promise.all([
+    let [photos, anims] = await Promise.all([
       window.electronAPI.listR2Photos({ isPro }),
       window.electronAPI.listR2Animations({ isPro })
     ])
+    // FREE users : limiter à 150 photos aleatoires — pas de cherry-picking.
+    // On shuffle + slice AVANT de reconstruire les categories pour que
+    // celles-ci refletent uniquement le sous-ensemble tire.
+    if (!isPro && Array.isArray(photos) && photos.length > FREE_PHOTO_LIMIT) {
+      const shuffled = photos.slice()
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+      }
+      photos = shuffled.slice(0, FREE_PHOTO_LIMIT)
+    }
     for (const info of photos) {
       const fp = info.path, cat = info.category, sub = info.subcategory
       const e = { type: 'image', path: fp, category: cat, subcategory: sub, isR2: true }
