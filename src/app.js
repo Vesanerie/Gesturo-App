@@ -2439,31 +2439,33 @@ function showOnboarding() {
   overlay.id = 'onboarding-overlay'
   overlay.className = 'onboarding-overlay'
   overlay.innerHTML = `
-    <button class="onboarding-skip" id="onboarding-skip">Passer</button>
-    <div class="onboarding-viewport">
-      <div class="onboarding-track" id="onboarding-track">
-        ${slides.map(s => `
-          <div class="onboarding-slide">
-            ${s.logo
-              ? '<div class="onboarding-logo">Gesturo<span class="onboarding-logo-dot">.</span></div>'
-              : '<div class="onboarding-icon">' + s.icon + '</div>'}
-            <h2 class="onboarding-title">${s.title}</h2>
-            <p class="onboarding-subtitle">${s.subtitle}</p>
-            ${s.cta ? '<button class="onboarding-start-btn" id="onboarding-start">' + s.cta + '</button>' : ''}
-          </div>
-        `).join('')}
+    <div class="onboarding-card">
+      <button class="onboarding-skip" id="onboarding-skip">Passer</button>
+      <div class="onboarding-viewport">
+        <div class="onboarding-track" id="onboarding-track">
+          ${slides.map(s => `
+            <div class="onboarding-slide">
+              ${s.logo
+                ? '<div class="onboarding-logo">Gesturo<span class="onboarding-logo-dot">.</span></div>'
+                : '<div class="onboarding-icon">' + s.icon + '</div>'}
+              <h2 class="onboarding-title">${s.title}</h2>
+              <p class="onboarding-subtitle">${s.subtitle}</p>
+              ${s.cta ? '<button class="onboarding-start-btn" id="onboarding-start">' + s.cta + '</button>' : ''}
+            </div>
+          `).join('')}
+        </div>
       </div>
-    </div>
-    <div class="onboarding-nav">
-      <button class="onboarding-arrow" id="onboarding-prev" aria-label="Precedent">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <div class="onboarding-dots" id="onboarding-dots">
-        ${slides.map((_, i) => `<button class="onboarding-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="Slide ${i+1}"></button>`).join('')}
+      <div class="onboarding-nav">
+        <button class="onboarding-arrow" id="onboarding-prev" aria-label="Precedent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="onboarding-dots" id="onboarding-dots">
+          ${slides.map((_, i) => `<button class="onboarding-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="Slide ${i+1}"></button>`).join('')}
+        </div>
+        <button class="onboarding-arrow" id="onboarding-next" aria-label="Suivant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
       </div>
-      <button class="onboarding-arrow" id="onboarding-next" aria-label="Suivant">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
     </div>
   `
   document.body.appendChild(overlay)
