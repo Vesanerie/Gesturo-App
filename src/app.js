@@ -86,7 +86,7 @@ window.addEventListener('DOMContentLoaded', () => {
       div.className = 'auth-screen'
       div.innerHTML = `
         <div class="auth-card">
-          <div class="auth-logo"><span class="auth-logo-text">Gesturo<span class="auth-logo-dot">.</span></span></div>
+          <div class="auth-logo"><span class="auth-logo-text">Gestur<span class="gesturo-o">o</span><span class="auth-logo-dot">.</span></span></div>
           <div class="auth-subtitle">Entrainement au dessin de poses</div>
           <div id="auth-login-form" class="auth-form">
             <div class="auth-input-wrap">
@@ -536,7 +536,7 @@ function showUpgradeModal() {
   const modal = document.createElement('div')
   modal.id = 'upgrade-modal'
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;'
-  modal.innerHTML = `<div style="background:#1e1e1e;border:0.5px solid #333;border-radius:16px;padding:32px;width:360px;text-align:center;"><div style="font-size:28px;margin-bottom:12px;">⭐</div><h2 style="color:#fff;font-size:20px;margin-bottom:8px;">Gesturo Pro</h2><p style="color:#555;font-size:14px;line-height:1.6;margin-bottom:24px;">Accède à toutes les catégories, les animations et les poses de nudité académique.</p><button onclick="window.electronAPI.openExternal('https://gesturo.art')" style="width:100%;padding:13px;background:#fff;color:#111;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;">Découvrir Pro</button><button onclick="document.getElementById('upgrade-modal').remove()" style="width:100%;padding:10px;background:transparent;color:#555;border:none;font-size:14px;cursor:pointer;">Pas maintenant</button></div>`
+  modal.innerHTML = `<div style="background:#1e1e1e;border:0.5px solid #333;border-radius:16px;padding:32px;width:360px;text-align:center;"><div style="font-size:28px;margin-bottom:12px;">⭐</div><h2 style="color:#fff;font-size:20px;margin-bottom:8px;">Gestur<span class="gesturo-o">o</span> Pro</h2><p style="color:#555;font-size:14px;line-height:1.6;margin-bottom:24px;">Accède à toutes les catégories, les animations et les poses de nudité académique.</p><button onclick="window.electronAPI.openExternal('https://gesturo.art')" style="width:100%;padding:13px;background:#fff;color:#111;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;">Découvrir Pro</button><button onclick="document.getElementById('upgrade-modal').remove()" style="width:100%;padding:10px;background:transparent;color:#555;border:none;font-size:14px;cursor:pointer;">Pas maintenant</button></div>`
   document.body.appendChild(modal)
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove() })
 }
@@ -2696,7 +2696,7 @@ function showOnboarding() {
   const slides = [
     {
       logo: true,
-      title: 'Bienvenue sur Gesturo',
+      title: 'Bienvenue sur Gestur<span class="gesturo-o">o</span>',
       subtitle: 'Ton compagnon d\u2019entrainement au dessin de poses',
     },
     {
@@ -2739,7 +2739,7 @@ function showOnboarding() {
           ${slides.map(s => `
             <div class="onboarding-slide">
               ${s.logo
-                ? '<div class="onboarding-logo">Gesturo<span class="onboarding-logo-dot">.</span></div>'
+                ? '<div class="onboarding-logo">Gestur<span class="gesturo-o">o</span><span class="onboarding-logo-dot">.</span></div>'
                 : '<div class="onboarding-icon">' + s.icon + '</div>'}
               <h2 class="onboarding-title">${s.title}</h2>
               <p class="onboarding-subtitle">${s.subtitle}</p>

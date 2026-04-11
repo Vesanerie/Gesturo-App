@@ -1,5 +1,17 @@
+:root {
+  /* Or chaud Gesturo — utilisé pour les titres, favoris, streaks, highlights */
+  --warm: #f0c040;
+  --warm-halo: rgba(240, 192, 64, 0.3);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 ::-webkit-scrollbar { display: none; }
+
+/* Gesturo brand : le "o" final des titres en or chaud avec halo */
+.gesturo-o {
+  color: var(--warm);
+  text-shadow: 0 0 8px var(--warm-halo);
+}
 
 /* Mobile polish : supprimer le flash gris/bleu des taps sur Android WebView
    + iOS Safari. Zéro impact desktop (la propriété est -webkit- only). */

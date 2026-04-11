@@ -9,7 +9,10 @@
   --accent: #2983eb;
   --accent-hover: #4499f5;
   --danger: #e24b4a;
+  --warm: #f0c040;
+  --warm-halo: rgba(240, 192, 64, 0.3);
 }
+.gesturo-o { color: var(--warm); text-shadow: 0 0 8px var(--warm-halo); }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; }
 body { display: flex; flex-direction: column; }
