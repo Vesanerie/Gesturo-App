@@ -125,7 +125,7 @@
 
 /* Modes principaux */
 .mode-tabs { display: flex; gap: 0; border: 0.5px solid #1e2d40; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
-.mode-tab { flex: 1; padding: 12px 8px; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; background: #0f1923; color: #3a5570; border: none; line-height: 1; height: 52px; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+.mode-tab { flex: 1 1 0; min-width: 0; padding: 12px 8px; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; background: #0f1923; color: #3a5570; border: none; line-height: 1; height: 52px; display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mode-tab:hover { background: #131f2e; }
 .mode-tab.active { background: #2983eb; color: #fff; font-weight: 500; }
 
