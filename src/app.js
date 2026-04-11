@@ -2136,24 +2136,29 @@ function removeFavFromLightbox() { if (!lbFavSrc) return; removeFav(lbFavSrc); l
 function renderWeekBar() {
   if (!document.getElementById('week-streak')) return
   const all = loadHist(); const days = document.querySelectorAll('.week-day')
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const sessionDays = new Set(all.map(s => { const d = new Date(s.ts); d.setHours(0, 0, 0, 0); return d.getTime() }))
+  // Normalize "today" to UTC midnight so day comparisons are timezone-independent
+  const now = new Date()
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const sessionDays = new Set(all.map(s => utcDayKey(s.ts)))
   let windowStart
-  if (all.length === 0) { windowStart = new Date(today) }
+  if (all.length === 0) { windowStart = new Date(todayUtc) }
   else {
     const firstTs = Math.min(...all.map(s => s.ts))
-    const firstDay = new Date(firstTs); firstDay.setHours(0, 0, 0, 0)
-    const daysSinceFirst = Math.floor((today - firstDay) / 86400000)
+    const firstDate = new Date(firstTs)
+    const firstDay = new Date(Date.UTC(firstDate.getUTCFullYear(), firstDate.getUTCMonth(), firstDate.getUTCDate()))
+    const daysSinceFirst = Math.floor((todayUtc - firstDay) / 86400000)
     const blockOffset = Math.floor(daysSinceFirst / 7) * 7
-    windowStart = new Date(firstDay); windowStart.setDate(firstDay.getDate() + blockOffset)
+    windowStart = new Date(firstDay); windowStart.setUTCDate(firstDay.getUTCDate() + blockOffset)
   }
   days.forEach((el, i) => {
-    const d = new Date(windowStart); d.setDate(windowStart.getDate() + i)
-    const isToday = d.getTime() === today.getTime(); const isFuture = d > today; const done = sessionDays.has(d.getTime())
+    const d = new Date(windowStart); d.setUTCDate(windowStart.getUTCDate() + i)
+    const key = d.toISOString().split('T')[0]
+    const todayKey = todayUtc.toISOString().split('T')[0]
+    const isToday = key === todayKey; const isFuture = d > todayUtc; const done = sessionDays.has(key)
     el.className = 'week-day'
     if (isFuture) el.classList.add('future'); else if (done) el.classList.add('done')
     if (isToday) el.classList.add('today')
-    el.title = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    el.title = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
   })
   const streak = computeStreak(all); const streakEl = document.getElementById('week-streak')
   streakEl.textContent = streak + ' j'; streakEl.className = streak === 0 ? 'zero' : ''
@@ -2182,14 +2187,22 @@ function setHistPeriod(p) {
 
 function renderHist() {
   const all = loadHist(); const localStreak = computeStreak(all)
-  document.getElementById('hist-streak').textContent = localStreak
+  // Show a placeholder while fetching server streak — avoids showing 0
+  // on a fresh install where localStorage is empty
+  const histStreakEl = document.getElementById('hist-streak')
+  histStreakEl.textContent = all.length === 0 ? '…' : localStreak
   if (window.electronAPI?.getStreak) {
     window.electronAPI.getStreak().then(r => {
       const streak = Math.max(r.streak || 0, localStreak)
-      document.getElementById('hist-streak').textContent = streak
+      histStreakEl.textContent = streak
       const streakEl = document.getElementById('week-streak')
       if (streakEl) { streakEl.textContent = streak + ' j'; streakEl.className = streak === 0 ? 'zero' : '' }
-    }).catch(() => {})
+    }).catch(() => {
+      // Fallback: show local streak if server fetch fails
+      histStreakEl.textContent = localStreak
+    })
+  } else {
+    histStreakEl.textContent = localStreak
   }
   document.getElementById('hist-total-sessions').textContent = all.length
   document.getElementById('hist-total-mins').textContent = all.reduce((a, s) => a + (s.minutes || 0), 0)
@@ -2257,12 +2270,19 @@ function formatHistDate(ts) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + hm
 }
 
+function utcDayKey(ts) { return new Date(ts).toISOString().split('T')[0] }
+
 function computeStreak(hist) {
   if (hist.length === 0) return 0
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const days = new Set(hist.map(s => new Date(s.ts).toDateString()))
-  let streak = 0, cur = new Date(today)
-  while (days.has(cur.toDateString())) { streak++; cur.setDate(cur.getDate() - 1) }
+  const days = new Set(hist.map(s => utcDayKey(s.ts)))
+  let streak = 0
+  const cur = new Date()
+  for (let i = 0; i < 365; i++) {
+    const key = cur.toISOString().split('T')[0]
+    if (days.has(key)) streak++
+    else if (i > 0) break
+    cur.setUTCDate(cur.getUTCDate() - 1)
+  }
   return streak
 }
 
