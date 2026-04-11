@@ -49,6 +49,7 @@
       "src/**/*",
       "supabase.js",
       "config.js",
+      "blocked-usernames.js",
       "package.json"
     ],
     "mac": {

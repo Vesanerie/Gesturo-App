@@ -1,5 +1,6 @@
 try { require('dotenv').config() } catch (e) {}
 const { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, clearAuthStorage } = require('./supabase')
+const { isUsernameBlocked } = require('./blocked-usernames')
 const { app, BrowserWindow, ipcMain, dialog, protocol } = require('electron')
 const path = require('path')
 const fs = require('fs')
@@ -347,6 +348,9 @@ ipcMain.handle('auth-google', async () => {
 
 ipcMain.handle('auth-signup', async (_e, { email, password, username }) => {
   try {
+    if (username && isUsernameBlocked(username)) {
+      return { success: false, message: 'Ce pseudo n\u2019est pas autorisé' }
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

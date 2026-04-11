@@ -39,6 +39,146 @@ async function profileId(email: string): Promise<string | null> {
   return data?.id ?? null;
 }
 
+// ── Blocked usernames filter ───────────────────────────────────────────────
+// Case-insensitive substring match. Any username containing one of these
+// words (or its leetspeak variant) is rejected.
+const BLOCKED_USERNAMES: Set<string> = new Set([
+  // ── Insultes françaises ──
+  'con', 'conne', 'connard', 'connasse', 'cons', 'connards',
+  'pute', 'putes', 'putain', 'putains', 'putin',
+  'salope', 'salopes', 'salopard', 'salaud', 'salauds',
+  'encule', 'enculer', 'encules', 'enculer', 'enculade',
+  'nique', 'niquer', 'niquez', 'nik', 'niké', 'niker',
+  'ntm', 'nm', 'nmsj', 'fdp', 'fdpd', 'tg', 'ta gueule', 'tagueule',
+  'pd', 'pede', 'pédé', 'pedé', 'pedale', 'pédale',
+  'gouine', 'tapette', 'tarlouze', 'tarlouse',
+  'merde', 'merdeux', 'merdique', 'emmerde', 'emmerder',
+  'bordel', 'bordelique',
+  'batard', 'bâtard', 'bastard', 'batards',
+  'couille', 'couilles', 'couillon', 'couillonne',
+  'bite', 'bites', 'biteuse', 'biatch',
+  'chatte', 'chattes', 'cul', 'trou du cul', 'troudu',
+  'cretin', 'crétin', 'debile', 'débile', 'taré', 'tare',
+  'clodo', 'clochard', 'clodos',
+  'salopette',
+  'gros con', 'grosse conne', 'sale con', 'sale pute',
+  'suce', 'sucer', 'suceur', 'suceuse',
+  'branleur', 'branleuse', 'branler', 'branle',
+  'fiotte', 'fiottes',
+  'ordure', 'charogne', 'raclure',
+  // ── Insultes anglaises ──
+  'fuck', 'fucker', 'fucking', 'fucked', 'fuckoff', 'motherfucker', 'mf',
+  'shit', 'shits', 'shitty', 'bullshit', 'piece of shit',
+  'ass', 'arse', 'asshole', 'arsehole', 'asshat',
+  'bitch', 'bitches', 'bitching', 'biatch',
+  'dick', 'dickhead', 'dicks', 'cock', 'cocks', 'cocksucker',
+  'pussy', 'pussies',
+  'cunt', 'cunts',
+  'whore', 'whores', 'slut', 'sluts', 'slutty',
+  'bastard', 'bastards',
+  'damn', 'goddamn',
+  'crap', 'crappy',
+  'twat', 'wanker', 'wank',
+  'prick', 'pricks',
+  'bollocks',
+  'jerk', 'jerkoff',
+  'douche', 'douchebag',
+  'idiot', 'idiots', 'moron', 'morons', 'imbecile', 'stupid',
+  'retard', 'retarded', 'tard',
+  'loser', 'losers',
+  'scumbag',
+  // ── Termes racistes / haineux ──
+  'nigger', 'niggers', 'nigga', 'niggas',
+  'chink', 'chinks', 'gook', 'gooks',
+  'spic', 'spics', 'wetback',
+  'kike', 'kikes',
+  'towelhead', 'sandnigger',
+  'faggot', 'faggots', 'fag', 'fags',
+  'dyke', 'tranny', 'trannies',
+  'nazi', 'nazis', 'hitler', 'heilhitler', 'heil',
+  'isis', 'jihad', 'jihadi', 'terrorist',
+  'kkk', 'klan', 'klansman',
+  'whitepower', 'blackpower',
+  'holocaust',
+  'genocide',
+  'rapist', 'rape', 'raper',
+  'pedo', 'pedophile', 'pedophil', 'pedobear',
+  // ── Usurpation / système ──
+  'admin', 'administrator', 'administrateur',
+  'moderator', 'moderateur', 'modérateur', 'mod',
+  'gesturo', 'gesturoart', 'gesturo_art', 'gesturoofficial', 'officiel',
+  'support', 'helpdesk', 'staff', 'team', 'equipe',
+  'system', 'systeme', 'système', 'sysadmin',
+  'root', 'superuser', 'su',
+  'null', 'undefined', 'nan', 'void', 'none',
+  'anonymous', 'anonyme', 'anon',
+  'bot', 'robot', 'ai', 'gpt', 'chatgpt', 'openai',
+  'owner', 'founder', 'ceo',
+  'official', 'verified',
+  'test', 'testuser', 'testtest',
+  // ── Sexuel explicite ──
+  'porn', 'porno', 'pornhub', 'xxx', 'xxxx', 'sex', 'sexe', 'sexy',
+  'nude', 'nudes', 'nudity',
+  'boobs', 'boob', 'tits', 'titties', 'titty',
+  'penis', 'vagina', 'anal',
+  'blowjob', 'blow', 'handjob', 'jerkoff',
+  'orgasm', 'orgy',
+  'hentai', 'loli', 'lolicon', 'shota',
+  'masturbation', 'masturbate', 'masturbator',
+  'fetish', 'bdsm',
+  'camgirl', 'escort', 'hooker',
+  'horny', 'thot',
+  'cumshot', 'cumslut', 'cum',
+  'milf', 'dilf',
+  'rimjob', 'ballsack', 'testicle',
+  // ── Leetspeak / variantes chiffrées ──
+  'f4ck', 'fuk', 'fuq', 'phuck', 'phuk',
+  'sh1t', 'sh!t', '5hit', 'shyt',
+  'b1tch', 'b!tch', 'biatch', 'biotch',
+  'a55', 'a$$', '@ss', '@$$',
+  'd1ck', 'd!ck', 'dik',
+  'pu55y', 'pu$$y', 'pu55i',
+  'cun7', 'kunt',
+  'n1gger', 'n1gga', 'n!gger', 'nigg3r',
+  'f4g', 'f4ggot', 'f@g',
+  'wh0re', 'h0e', 'hoe', 'hoes',
+  '5lut', '$lut',
+  'c0ck', 'c0k',
+  'k1ll', 'k!ll', 'k1ller',
+  'n4zi', 'n@zi',
+  'h1tler', 'h!tler',
+  '4dmin', '@dmin', 'adm1n',
+  'm0d', 'm0derator',
+  'r00t', 'r0ot',
+  'n00b', 'noob',
+  'p0rn', 'pr0n',
+  's3x', '5ex',
+  'pen1s', 'p3nis',
+  'vag1na', 'v4gina',
+  // ── Spam / bait ──
+  'freemoney', 'bitcoin', 'crypto', 'casino', 'onlyfans',
+  'clickhere', 'buynow',
+]);
+
+function isUsernameBlocked(username: string): boolean {
+  if (!username) return false;
+  // Normalize: lowercase, strip diacritics, collapse non-letters
+  const raw = username.toLowerCase();
+  const normalized = raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+  for (const bad of BLOCKED_USERNAMES) {
+    const badNorm = bad
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+    if (!badNorm) continue;
+    if (raw.includes(bad) || normalized.includes(badNorm)) return true;
+  }
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
@@ -114,6 +254,7 @@ if (action === 'getStreak') {
       const { username } = payload || {};
       if (!username || typeof username !== 'string' || username.trim().length < 1) return json({ error: 'invalid username' }, 400);
       const clean = username.trim().slice(0, 30);
+      if (isUsernameBlocked(clean)) return json({ error: 'Ce pseudo n\u2019est pas autorisé' }, 400);
       const { error } = await admin.from('profiles').update({ username: clean }).eq('email', email);
       if (error) return json({ error: error.message }, 500);
       return json({ ok: true, username: clean });
