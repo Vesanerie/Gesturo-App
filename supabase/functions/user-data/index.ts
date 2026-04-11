@@ -250,6 +250,20 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    if (action === 'getProfile') {
+      const { data } = await admin
+        .from('profiles')
+        .select('username, plan')
+        .eq('email', email)
+        .maybeSingle();
+      return json({
+        ok: true,
+        email,
+        username: data?.username || null,
+        plan: data?.plan || 'free',
+      });
+    }
+
     if (action === 'updateUsername') {
       const { username } = payload || {};
       if (!username || typeof username !== 'string' || username.trim().length < 1) return json({ error: 'invalid username' }, 400);

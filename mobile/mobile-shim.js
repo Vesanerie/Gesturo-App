@@ -150,6 +150,13 @@
         return data || { error: 'failed' };
       } catch (e) { return { error: e.message }; }
     },
+    getProfile: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getProfile' } });
+        return data || { error: 'failed' };
+      } catch (e) { return { error: e.message }; }
+    },
     saveSession: async (sessionData) => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();

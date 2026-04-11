@@ -71,8 +71,70 @@
 }
 .profile-logout-btn:hover { background: #1a1520; }
 
+/* ═══ CHOOSE USERNAME MODAL (post-Google signup) ═══ */
+.username-modal-overlay {
+  position: fixed; inset: 0; z-index: 10001;
+  background: rgba(5, 12, 20, 0.85);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  animation: username-modal-fade-in 0.3s ease;
+}
+@keyframes username-modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.username-modal-card {
+  background: #141e2a; border: 0.5px solid #1e2d40; border-radius: 16px;
+  padding: 36px 32px; width: 400px; max-width: 100%;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  text-align: center;
+  animation: username-modal-in 0.35s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes username-modal-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.username-modal-emoji { font-size: 52px; line-height: 1; margin-bottom: 16px; }
+.username-modal-title {
+  font-size: 22px; font-weight: 700; color: #fff;
+  margin: 0 0 8px; letter-spacing: -0.3px;
+}
+.username-modal-subtitle {
+  font-size: 14px; color: #8899aa;
+  margin: 0 0 24px; line-height: 1.5;
+}
+.username-modal-input {
+  width: 100%; box-sizing: border-box;
+  background: #0d1825; border: 0.5px solid #1e2d40; border-radius: 10px;
+  color: #fff; padding: 14px 16px; font-size: 15px;
+  outline: none; transition: border-color 0.15s;
+  font-family: inherit; text-align: center;
+}
+.username-modal-input:focus { border-color: #2983eb; }
+.username-modal-input::placeholder { color: #4a6280; }
+.username-modal-msg {
+  font-size: 13px; color: #e24b4a; min-height: 18px;
+  margin: 10px 0 4px;
+}
+.username-modal-confirm {
+  width: 100%; margin-top: 16px;
+  background: #2983eb; color: #fff; border: none;
+  border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, transform 0.1s;
+  font-family: inherit;
+  box-shadow: 0 8px 24px rgba(41,131,235,0.25);
+}
+.username-modal-confirm:hover { background: #4499f5; }
+.username-modal-confirm:active { transform: scale(0.98); }
+.username-modal-confirm:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
 /* ── Mobile ── */
 @media (max-width: 767px) {
   #profile-btn { display: none !important; }
   .profile-card { width: 92vw; }
+  .username-modal-card { padding: 32px 24px; }
+  .username-modal-title { font-size: 20px; }
+  .username-modal-emoji { font-size: 44px; }
 }

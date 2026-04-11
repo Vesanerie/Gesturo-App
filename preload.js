@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 getFavorites: () => ipcRenderer.invoke('get-favorites'),
 
   updateUsername: (username) => ipcRenderer.invoke('update-username', username),
+  getProfile: () => ipcRenderer.invoke('get-profile'),
 
   // ── Utilitaires ──
   openExternal: (url) => ipcRenderer.invoke('open-external', url),

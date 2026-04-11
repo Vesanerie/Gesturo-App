@@ -410,7 +410,18 @@ ipcMain.handle('auth-logout', async () => {
 
 ipcMain.handle('update-username', async (_e, username) => {
   try {
+    if (username && isUsernameBlocked(username)) {
+      return { error: 'Ce pseudo n\u2019est pas autorisé' }
+    }
     return await callUserData('updateUsername', { username })
+  } catch (e) {
+    return { error: e.message }
+  }
+})
+
+ipcMain.handle('get-profile', async () => {
+  try {
+    return await callUserData('getProfile')
   } catch (e) {
     return { error: e.message }
   }

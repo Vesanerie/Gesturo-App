@@ -56,6 +56,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (result.email) _communityEmail = result.email
         if (result.username) _communityUsername = result.username
         maybeShowOnboarding()
+        maybeAskForUsername()
       }
     })
   }
@@ -71,6 +72,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (user.email) _communityEmail = user.email
         if (user.username) _communityUsername = user.username
         maybeShowOnboarding()
+        maybeAskForUsername()
       })
     }
     window.electronAPI.onAuthRequired(() => {
@@ -2829,6 +2831,94 @@ function closeOnboarding() {
   overlay.style.opacity = '0'
   setTimeout(() => overlay.remove(), 250)
   localStorage.setItem(ONBOARDING_KEY, '1')
+}
+
+// ══ CHOOSE USERNAME (post-signup) ══
+const USERNAME_SET_KEY = 'gd4_username_set'
+let _usernameAskInFlight = false
+
+async function maybeAskForUsername() {
+  if (_usernameAskInFlight) return
+  if (localStorage.getItem(USERNAME_SET_KEY) === '1') return
+  if (!window.electronAPI?.getProfile) return
+  _usernameAskInFlight = true
+  try {
+    const profile = await window.electronAPI.getProfile()
+    if (!profile || profile.error) return
+    // Update local state from server truth
+    if (profile.username) _communityUsername = profile.username
+    const emailPrefix = (_communityEmail || '').split('@')[0]
+    const currentUsername = (profile.username || '').trim()
+    // Needs prompt if: no username OR username is just the email prefix (default/fallback)
+    const needsPrompt = !currentUsername || currentUsername === emailPrefix
+    if (!needsPrompt) {
+      localStorage.setItem(USERNAME_SET_KEY, '1')
+      return
+    }
+    showUsernameModal()
+  } catch (e) {
+    console.warn('[username] getProfile failed', e)
+  } finally {
+    _usernameAskInFlight = false
+  }
+}
+
+function showUsernameModal() {
+  if (document.getElementById('username-modal-overlay')) return
+  const overlay = document.createElement('div')
+  overlay.id = 'username-modal-overlay'
+  overlay.className = 'username-modal-overlay'
+  const emailPrefix = (_communityEmail || '').split('@')[0]
+  overlay.innerHTML = `
+    <div class="username-modal-card">
+      <div class="username-modal-emoji">\u{1F44B}</div>
+      <h2 class="username-modal-title">Choisis ton pseudo</h2>
+      <p class="username-modal-subtitle">C'est le nom que les autres verront dans la communaute. Tu pourras le changer plus tard.</p>
+      <input id="username-modal-input" class="username-modal-input" type="text" maxlength="30" placeholder="Ton pseudo" value="${emailPrefix.replace(/"/g, '&quot;')}">
+      <div id="username-modal-msg" class="username-modal-msg"></div>
+      <button id="username-modal-confirm" class="username-modal-confirm">Confirmer</button>
+    </div>
+  `
+  document.body.appendChild(overlay)
+  const input = document.getElementById('username-modal-input')
+  const msg = document.getElementById('username-modal-msg')
+  const btn = document.getElementById('username-modal-confirm')
+  setTimeout(() => { input.focus(); input.select() }, 80)
+
+  const submit = async () => {
+    const name = input.value.trim()
+    if (!name) { msg.textContent = 'Le pseudo ne peut pas etre vide'; return }
+    if (name.length < 2) { msg.textContent = 'Pseudo trop court (2 car. min)'; return }
+    msg.textContent = 'Enregistrement...'; msg.style.color = '#4a6280'
+    btn.disabled = true
+    try {
+      const res = await window.electronAPI.updateUsername(name)
+      if (res && res.ok) {
+        _communityUsername = res.username || name
+        localStorage.setItem(USERNAME_SET_KEY, '1')
+        closeUsernameModal()
+      } else {
+        msg.textContent = (res && res.error) || 'Erreur'
+        msg.style.color = '#e24b4a'
+        btn.disabled = false
+      }
+    } catch (e) {
+      msg.textContent = e.message || 'Erreur reseau'
+      msg.style.color = '#e24b4a'
+      btn.disabled = false
+    }
+  }
+
+  btn.addEventListener('click', submit)
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit() })
+}
+
+function closeUsernameModal() {
+  const overlay = document.getElementById('username-modal-overlay')
+  if (!overlay) return
+  overlay.style.transition = 'opacity 0.25s ease'
+  overlay.style.opacity = '0'
+  setTimeout(() => overlay.remove(), 250)
 }
 
 // ══ RACCOURCIS CLAVIER ══
