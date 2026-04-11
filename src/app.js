@@ -379,16 +379,17 @@ async function loadR2(isPro) {
       sequences[seq].paths.push(info.path)
     }
     if (!isPro) {
-      allEntries.sort(() => Math.random() - 0.5)
-      allEntries = allEntries.slice(0, 150)
-      categories = {}
-      for (const e of allEntries) {
-        if (!categories[e.category]) categories[e.category] = { entries: [], subcategories: {} }
-        categories[e.category].entries.push(e)
-        if (e.subcategory) {
-          if (!categories[e.category].subcategories[e.subcategory]) categories[e.category].subcategories[e.subcategory] = []
-          categories[e.category].subcategories[e.subcategory].push(e)
+      // FREE users : injecter les catégories Pro comme "teasers" lockés
+      // (le backend ne les renvoie pas aux FREE, donc on les ajoute ici en placeholder)
+      for (const proCat of PRO_CATEGORIES) {
+        if (!categories[proCat]) {
+          categories[proCat] = { entries: [], subcategories: {}, locked: true }
         }
+      }
+    } else {
+      // PRO users : masquer les catégories FREE_ONLY (actuellement vide)
+      for (const freeCat of FREE_ONLY_CATEGORIES) {
+        delete categories[freeCat]
       }
     }
     renderCategories(); renderSequences()
@@ -426,11 +427,21 @@ function getCatIcon(cat) { return CAT_ICONS[cat.toLowerCase()] || '📁' }
 function getCatLabel(cat) { const labels = { 'animals': 'Animaux', 'jambes-pieds': 'Jambes & Pieds', 'mains': 'Mains', 'nudite': 'Nudité', 'poses-dynamiques': 'Poses Dynamiques', 'visage': 'Visage' }; return labels[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, ' ') }
 const NUDITY_KW = ['nudité', 'nudite', 'nu ', 'nude', 'nsfw']
 function isNudity(n) { return NUDITY_KW.some(k => n.toLowerCase().includes(k)) }
+// Catégories visibles uniquement par les users Pro (lockées pour les FREE)
+const PRO_CATEGORIES = ['nudite']
+// Catégories visibles uniquement par les users FREE (masquées pour les PRO)
+// Vide pour l'instant — prêt à être rempli quand le catalogue aura un vrai split free/pro
+const FREE_ONLY_CATEGORIES = []
+function isProCategory(cat) { return PRO_CATEGORIES.includes(cat.toLowerCase()) }
+function isFreeOnlyCategory(cat) { return FREE_ONLY_CATEGORIES.includes(cat.toLowerCase()) }
 
-function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity = false) {
+function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity = false, locked = false) {
   const card = document.createElement('div')
   card.dataset.cat = key
-  card.style.cssText = `position:relative;border-radius:10px;overflow:hidden;cursor:pointer;border:1.5px solid ${isSelected ? (nudity ? '#E24B4A' : '#2983eb') : '#1e2d40'};background:#131f2e;aspect-ratio:4/3;transition:border-color 0.15s,transform 0.15s;`
+  if (locked) card.classList.add('cat-locked')
+  const borderColor = locked ? '#3a5570' : (isSelected ? (nudity ? '#E24B4A' : '#2983eb') : '#1e2d40')
+  const borderStyle = locked ? 'dashed' : 'solid'
+  card.style.cssText = `position:relative;border-radius:10px;overflow:hidden;cursor:${locked ? 'not-allowed' : 'pointer'};border:1.5px ${borderStyle} ${borderColor};background:#131f2e;aspect-ratio:4/3;transition:border-color 0.15s,transform 0.15s;${locked ? 'opacity:0.5;' : ''}`
   if (previewUrl) {
     const img = document.createElement('img')
     img.src = previewUrl; img.loading = 'lazy'
@@ -442,27 +453,27 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
   const overlay = document.createElement('div')
   overlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to top, rgba(5,10,18,0.95) 0%, rgba(5,10,18,0.3) 60%, transparent 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:10px;'
   overlay.appendChild(Object.assign(document.createElement('div'), { textContent: getCatIcon(cat), style: 'font-size:18px;margin-bottom:4px;' }))
-  overlay.appendChild(Object.assign(document.createElement('div'), { textContent: getCatLabel(cat), style: 'font-size:12px;font-weight:600;color:#fff;line-height:1.2;' }))
-  overlay.appendChild(Object.assign(document.createElement('div'), { textContent: count + ' poses', style: 'font-size:11px;color:#4a6280;margin-top:2px;' }))
+  const labelText = getCatLabel(cat) + (locked ? ' 🔒' : '')
+  overlay.appendChild(Object.assign(document.createElement('div'), { textContent: labelText, style: 'font-size:12px;font-weight:600;color:#fff;line-height:1.2;' }))
+  const subText = locked ? 'Pro' : (count + ' poses')
+  overlay.appendChild(Object.assign(document.createElement('div'), { textContent: subText, style: 'font-size:11px;color:#4a6280;margin-top:2px;' }))
   card.appendChild(overlay)
-  if (!hasSubs) {
+  if (!hasSubs && !locked) {
     const badge = document.createElement('div')
     badge.style.cssText = `position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:${nudity ? '#E24B4A' : '#2983eb'};display:${isSelected ? 'flex' : 'none'};align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;`
     badge.textContent = '✓'
     card.appendChild(badge)
   }
-  card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-2px)' })
-  card.addEventListener('mouseleave', () => { card.style.transform = '' })
+  if (!locked) {
+    card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-2px)' })
+    card.addEventListener('mouseleave', () => { card.style.transform = '' })
+  }
   return card
 }
 
 function renderCategories(parentCat = null) {
   const wrap = document.getElementById('categories-wrap')
   wrap.innerHTML = ''
-  if (!currentUserIsPro && isR2Mode) {
-    wrap.innerHTML = `<div class="free-random-block"><div class="frb-icon">🎲</div><div class="frb-title">150 poses aléatoires</div><div class="frb-sub">Passe Pro pour choisir tes catégories</div><button onclick="showUpgradeModal()" class="frb-cta">Découvrir Pro ⭐</button></div>`
-    selectedCats = new Set(Object.keys(categories)); return
-  }
   const cats = Object.keys(categories).sort()
   if (cats.length === 0) { selectedCats = new Set(['Sans catégorie']); return }
   const header = document.createElement('div')
@@ -494,8 +505,14 @@ function renderCategories(parentCat = null) {
       const subs = Array.isArray(catData) ? {} : (catData.subcategories || {})
       const hasSubs = Object.keys(subs).length > 0
       const isSelected = selectedCats.has(cat)
-      const card = buildCatCard(cat, cat, entries.length, entries[0]?.path || null, isSelected, hasSubs, nudity)
-      if (hasSubs) {
+      // Une catégorie est lockée si explicitement marquée, ou si c'est une Pro cat pour un user FREE
+      const locked = (!Array.isArray(catData) && catData.locked) || (!currentUserIsPro && isProCategory(cat))
+      // Deselect locked categories pour éviter qu'elles soient dans selectedCats
+      if (locked && selectedCats.has(cat)) selectedCats.delete(cat)
+      const card = buildCatCard(cat, cat, entries.length, entries[0]?.path || null, isSelected && !locked, hasSubs, nudity, locked)
+      if (locked) {
+        card.onclick = () => showUpgradeModal()
+      } else if (hasSubs) {
         card.onclick = () => renderCategories(cat)
         const arrow = document.createElement('div')
         arrow.style.cssText = 'position:absolute;top:8px;left:8px;background:rgba(5,10,18,0.7);border-radius:4px;padding:2px 6px;font-size:10px;color:#8aaccc;'
@@ -577,6 +594,8 @@ function renderSequences(parentPath = null) {
   wrap.appendChild(grid)
   const folders = new Map(); const leafSequences = []
   for (const [seq, data] of Object.entries(sequences)) {
+    // PRO users : masquer complètement les séquences du dossier free/
+    if (currentUserIsPro && isR2Mode && seq.startsWith('current/free')) continue
     const seqParts = seq.split('/')
     if (parentPath) {
       const parentParts = parentPath.split('/')
@@ -2399,11 +2418,14 @@ document.addEventListener('click', (e) => {
 
 // ══ ONBOARDING ══
 const ONBOARDING_KEY = 'gd4_onboarding_done'
+// DEV : mettre à false pour revenir au comportement normal
+// (affichage uniquement à la première connexion).
+const DEV_ALWAYS_SHOW_ONBOARDING = true
 let _onboardingShown = false
 
 function maybeShowOnboarding() {
   if (_onboardingShown) return
-  if (localStorage.getItem(ONBOARDING_KEY) === '1') return
+  if (!DEV_ALWAYS_SHOW_ONBOARDING && localStorage.getItem(ONBOARDING_KEY) === '1') return
   _onboardingShown = true
   showOnboarding()
 }

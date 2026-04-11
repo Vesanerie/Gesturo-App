@@ -46,6 +46,19 @@
 .free-random-block .frb-cta:hover { background: #1a6fd4; }
 .free-random-block .frb-cta:active { transform: scale(0.97); }
 
+/* ── Catégorie lockée (réservée Pro, visible en mode teaser) ── */
+.cat-locked {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  border-style: dashed !important;
+  border-color: #3a5570 !important;
+  transition: opacity 0.15s !important;
+}
+.cat-locked:hover {
+  opacity: 0.75;
+  border-color: #5b9bd5 !important;
+}
+
 /* ── Bloc free-tier (Catégories pour utilisateur non-Pro) ── */
 .free-preview-block { padding: 6px 0 4px; }
 .free-mosaic {
