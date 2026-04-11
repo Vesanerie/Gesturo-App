@@ -29,6 +29,9 @@ let animInterval = null
 let animStudyMode = false
 let isR2Mode = false
 let currentUserIsPro = false
+// Seule séquence animation accessible aux users FREE (la première alphabétiquement
+// parmi les current/free/*). Tout le reste est locké. Pro = accès complet.
+let _freeAllowedSeq = null
 let studyTimeLeft = 30, studyDuration = 30, studyTicker = null
 
 // ══ AUDIO ══
@@ -385,6 +388,15 @@ async function loadR2(isPro) {
       if (!sequences[seq]) sequences[seq] = { paths: [], animCategory: info.animCategory || null }
       sequences[seq].paths.push(info.path)
     }
+    // Determine la seule sequence animation accessible aux users FREE :
+    // la premiere current/free/* alphabetiquement. Deterministe → meme choix
+    // entre runs. Pour PRO on laisse null (pas de restriction).
+    if (!isPro) {
+      const freeSeqs = Object.keys(sequences).filter(s => s.startsWith('current/free')).sort()
+      _freeAllowedSeq = freeSeqs[0] || null
+    } else {
+      _freeAllowedSeq = null
+    }
     if (!isPro) {
       // FREE users : injecter les catégories Pro comme "teasers" lockés
       // (le backend ne les renvoie pas aux FREE, donc on les ajoute ici en placeholder)
@@ -628,7 +640,8 @@ function renderSequences(parentPath = null) {
   })
   leafSequences.forEach(seq => {
     const data = sequences[seq]
-    const isLocked = !currentUserIsPro && isR2Mode && !seq.startsWith('current/free')
+    // FREE : seule _freeAllowedSeq est unlocked. Tout le reste = lock + upgrade modal.
+    const isLocked = !currentUserIsPro && isR2Mode && seq !== _freeAllowedSeq
     const isSelected = selectedSeq === seq
     const previewUrl = isR2Mode ? data.paths[0] : 'file://' + data.paths[0]
     const label = seq.split('/').pop()
@@ -640,7 +653,7 @@ function renderSequences(parentPath = null) {
     grid.appendChild(card)
   })
   if (leafSequences.length > 0 && !selectedSeq) {
-    const first = leafSequences.find(s => !(!currentUserIsPro && isR2Mode && !s.startsWith('current/free'))) || leafSequences[0]
+    const first = leafSequences.find(s => !(!currentUserIsPro && isR2Mode && s !== _freeAllowedSeq)) || leafSequences[0]
     selectedSeq = first; selectSeqPreload(first)
   }
 }
