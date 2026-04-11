@@ -234,6 +234,7 @@ window.addEventListener('resize', () => { if (gridMode > 0) positionGridOverlay(
 
 // ══ MOODBOARD (in-app via webview) ══
 let moodboardLoaded = false
+let moodboardNeedsRefresh = false
 async function openMoodboard() {
   if (window.matchMedia && window.matchMedia('(max-width: 1199px)').matches) {
     showScreen('screen-config'); return
@@ -246,6 +247,10 @@ async function openMoodboard() {
     } catch (e) { console.warn('moodboard preload path failed', e) }
     wv.setAttribute('src', 'moodboard/index.html')
     moodboardLoaded = true
+  } else if (moodboardNeedsRefresh) {
+    // A project was created/modified from outside the webview — reload it
+    try { wv.reload() } catch (e) { console.warn('moodboard reload failed', e) }
+    moodboardNeedsRefresh = false
   }
   showScreen('screen-moodboard')
 }
@@ -2306,6 +2311,7 @@ async function openPinMoodboardModal(src, label, triggerBtn) {
       row.querySelector('.pin-modal-name').textContent = p.name
       row.onclick = async () => {
         const added = await pinImageToMoodboard(p.file, src, label)
+        if (added) moodboardNeedsRefresh = true
         closePinMoodboardModal()
         await refreshMoodboardPinCache()
         if (triggerBtn) triggerBtn.classList.add('pinned')
@@ -2337,6 +2343,7 @@ async function openPinMoodboardModal(src, label, triggerBtn) {
         const proj = await window.electronAPI.mbCreateProject(name)
         if (!proj || !proj.file) throw new Error('Création échouée')
         const added = await pinImageToMoodboard(proj.file, src, label)
+        moodboardNeedsRefresh = true
         closePinMoodboardModal()
         await refreshMoodboardPinCache()
         if (triggerBtn) triggerBtn.classList.add('pinned')
@@ -2693,7 +2700,12 @@ function showOnboarding() {
     {
       icon: '\ud83c\udfac',
       title: 'Etudie la composition',
-      subtitle: 'Les modes Animation et Cinema t\u2019aident a analyser les cadrages et les poses des meilleurs films',
+      subtitle: 'Le mode Cinema te permet d\u2019analyser les cadrages et les plans des meilleurs films',
+    },
+    {
+      icon: '\ud83c\udfde\ufe0f',
+      title: 'Decompose le mouvement',
+      subtitle: 'Le mode Animation t\u2019apprend a decomposer et comprendre le mouvement image par image',
     },
     {
       icon: '\ud83c\udf0d',
