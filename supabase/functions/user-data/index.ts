@@ -160,21 +160,41 @@ const BLOCKED_USERNAMES: Set<string> = new Set([
   'clickhere', 'buynow',
 ]);
 
+// Words that must be blocked even as substrings (usurpation + worst slurs)
+const ALWAYS_SUBSTRING = new Set([
+  'admin', 'gesturo', 'moderator', 'moderateur', 'support', 'system', 'root',
+  'nigger', 'nigga', 'faggot', 'pedophil', 'pedo', 'nazi', 'hitler',
+]);
+
 function isUsernameBlocked(username: string): boolean {
   if (!username) return false;
-  // Normalize: lowercase, strip diacritics, collapse non-letters
-  const raw = username.toLowerCase();
+  const raw = username.toLowerCase().trim();
   const normalized = raw
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
+
+  // Split into words for word-boundary matching
+  const words = raw.split(/[\s_\-\.]+/);
+  const wordsNorm = normalized.match(/[a-z0-9]+/g) || [normalized];
+
   for (const bad of BLOCKED_USERNAMES) {
     const badNorm = bad
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]/g, '');
     if (!badNorm) continue;
-    if (raw.includes(bad) || normalized.includes(badNorm)) return true;
+
+    // Usurpation + worst slurs: substring match (strict)
+    if (ALWAYS_SUBSTRING.has(bad)) {
+      if (normalized.includes(badNorm)) return true;
+      continue;
+    }
+
+    // Everything else: exact word match only
+    if (words.includes(bad) || wordsNorm.includes(badNorm)) return true;
+    // Also block if the ENTIRE username is the bad word
+    if (normalized === badNorm) return true;
   }
   return false;
 }
