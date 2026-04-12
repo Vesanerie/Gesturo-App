@@ -354,7 +354,10 @@ ipcMain.handle('auth-signup', async (_e, { email, password, username }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username } },
+      options: {
+        data: { username },
+        emailRedirectTo: 'https://gesturo.fr/confirm',
+      },
     })
     if (error) return { success: false, message: error.message }
     const user = data?.user
@@ -392,7 +395,9 @@ ipcMain.handle('auth-email', async (_e, { email, password }) => {
 
 ipcMain.handle('auth-reset-password', async (_e, email) => {
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://gesturo.fr/reset-password'
+    })
     if (error) return { success: false, message: error.message }
     return { success: true }
   } catch (e) {

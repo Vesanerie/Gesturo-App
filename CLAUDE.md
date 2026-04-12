@@ -79,11 +79,6 @@ supabase/functions/
   user-data/                 favoris/sessions/streak/refreshProStatus +
                              community posts (CRUD, reactions, feed).
                              Auth via JWT, écriture via service role.
-                             ⚠ DÉPLOYER AVEC --no-verify-jwt — la fonction
-                             fait sa propre vérif via getEmail() (appel
-                             /auth/v1/user). Le gateway JWT verify plante
-                             avec les clés sb_publishable_ → 401 sur
-                             toutes les requêtes.
   stripe-webhook/            (existant, pas touché récemment)
   admin-r2/                  Admin-only (requireAdmin). Multi-action via
                              body.action: 'browse' (1 niveau), 'list' (récursif),
@@ -397,6 +392,18 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 
 ## Commits récents importants
 
+- `e2313c5` feat(animation): free users get only ONE animation sequence
+- `6aae398` revert: remove 150 photo cap on free Poses mode
+- `987ca81` feat(free): restore 150 random photos cap for free users
+- `5f6aff2` feat(brand): unified warm gold (#f0c040) + highlighted "o" in Gesturo
+- `e41958a` feat(auth): ask for username after first login (Google or email)
+- `42b1733` fix(community): "Dessiner cette ref" button now starts a session
+- `f64869d` fix(moodboard): reload webview after creating project from pin modal
+- `ec4870b` fix(favs): pin modal - replace broken prompt() with inline form + toast
+- `4aff7ae` fix(ui): center share preview image in share overlay
+- `8a1b9c3` docs: note user-data must be deployed with --no-verify-jwt
+- `71fff66` fix(ui): mode-tabs desktop widths equal
+- `27c65e7` feat(favs): pin button to send favorite to moodboard
 - `d94a149` feat(auth): server-side blocked usernames filter
 - `b25daee` fix(ui): add emojis to Poses and Animation mode tabs
 - `d90e433` feat(community): compare view when clicking a community drawing
@@ -404,7 +411,7 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - `23c17d1` refactor(onboarding): big centered card instead of fullscreen
 - `f258ca1` fix(streak): use UTC dates in computeStreak and renderWeekBar
 - `16953fb` feat: onboarding 4-slide tour for new users
-- `865171a` perf(session): preload first 15 images before starting, batch rest in background
+- `865171a` perf(session): preload first 15 images before starting
 - `b73dc7b` refactor(ui): unified end-session confirm modal for all 3 modes
 - `74e202f` fix(challenge): durée illimitée pour les sessions challenge
 - `3d5c130` fix(moodboard): restore webview, remove native boards + pin system
@@ -412,7 +419,7 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - `273cfe0` feat(cinema): lock all films except The Shining for free users
 - `04ec260` fix(ui): plan-badge position — no longer overlaps profile button
 - `7934165` fix(auth): link auth.css + use Syne/DM Sans fonts from gesturo.fr
-- `924932a` fix(i18n): derniers accents manquants — échec, Communauté, Réf utilisée
+- `924932a` fix(i18n): derniers accents manquants
 - `d3fcb9d` fix(i18n): "Frame" → "Image" dans l'écran animation
 - `dc974b6` fix(ui): z-index overlays sous la texture noise + boutons CTA
 - `0d53906` fix(i18n): accents français manquants + tab "Feed" → "Fil"

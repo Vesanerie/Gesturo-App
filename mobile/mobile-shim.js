@@ -103,7 +103,14 @@
       if (!window.__gesturoAuth) return { success: false, message: 'auth not loaded' };
       try {
         const sb = await window.__gesturoAuth.getSupabase();
-        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { username } } });
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { username },
+            emailRedirectTo: 'https://gesturo.fr/confirm'
+          }
+        });
         if (error) return { success: false, message: error.message };
         if (!data.session) return { success: true, needsConfirmation: true };
         return { success: true, authenticated: true, email, username: username || email.split('@')[0] };
@@ -124,7 +131,9 @@
       if (!window.__gesturoAuth) return { success: false, message: 'auth not loaded' };
       try {
         const sb = await window.__gesturoAuth.getSupabase();
-        const { error } = await sb.auth.resetPasswordForEmail(email);
+        const { error } = await sb.auth.resetPasswordForEmail(email, {
+          redirectTo: 'https://gesturo.fr/reset-password'
+        });
         if (error) return { success: false, message: error.message };
         return { success: true };
       } catch (e) { return { success: false, message: e.message }; }
