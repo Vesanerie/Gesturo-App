@@ -392,6 +392,10 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 
 ## Commits récents importants
 
+- `d128580` fix(responsive): disable zoom + extend tablet breakpoint to 1400px
+- `4267af3` fix(mobile): add viewport meta tag for proper responsive on iPad/iPhone
+- `d9c3d27` fix(ios): add URL scheme deep link for OAuth callback
+- `b85362c` fix(auth): redirect signup confirm + reset password to gesturo.fr
 - `e2313c5` feat(animation): free users get only ONE animation sequence
 - `6aae398` revert: remove 150 photo cap on free Poses mode
 - `987ca81` feat(free): restore 150 random photos cap for free users
