@@ -124,3 +124,142 @@ body::after {
 }
 
 /* Auth styles moved to styles/components/auth.css */
+
+/* ══════════════════════════════════════════════════════════════
+   TABLET (768-1399px) — global touch adaptations for iPad
+   All interactive elements: min 44px tap targets (Apple HIG),
+   larger fonts, no-select on buttons, comfortable spacing.
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) and (max-width: 1399px) {
+  /* Prevent text selection on interactive elements */
+  button, .bottom-tab, .s-btn, .transform-btn, .mode-tab, .chip, .cat-chip {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* ── All .s-btn: 44px min tap targets ── */
+  .s-btn {
+    min-height: 44px;
+    padding: 11px 18px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .s-btn-blue {
+    min-height: 44px;
+    padding: 11px 20px;
+    font-size: 14px;
+  }
+  .s-btn-danger, .s-btn-danger-solid {
+    min-height: 44px;
+    padding: 11px 18px;
+    font-size: 14px;
+  }
+
+  /* ── Inputs & selects: larger, no zoom on iOS ── */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 11px 14px;
+    border-radius: 10px;
+  }
+
+  /* ── Range sliders: taller track, bigger thumb ── */
+  input[type="range"] {
+    height: 36px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: #1e2d40;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #2983eb;
+    border: 2px solid #0f1923;
+    margin-top: -11px;
+    cursor: pointer;
+  }
+
+  /* ── Global buttons in header: 44px ── */
+  #options-btn, #discord-btn, #profile-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  /* ── End confirm modal: bigger buttons ── */
+  #end-confirm-modal .s-btn,
+  #end-confirm-modal .s-btn-danger-solid {
+    min-height: 48px;
+    padding: 13px 24px;
+    font-size: 15px;
+  }
+
+  /* ── Chips (duration, FPS): 44px ── */
+  .chip {
+    min-height: 44px;
+    padding: 11px 20px;
+    font-size: 14px;
+  }
+
+  /* ── Cat chips: comfortable tap zones ── */
+  .cat-chip {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  /* ── Sub-mode cards: generous padding ── */
+  .sub-mode-card {
+    min-height: 70px;
+    padding: 16px 18px;
+  }
+  .sub-mode-card .t { font-size: 15px; }
+  .sub-mode-card .d { font-size: 13px; }
+
+  /* ── Lightbox close: bigger tap zone ── */
+  #lightbox-close {
+    width: 48px;
+    height: 48px;
+    font-size: 32px;
+  }
+
+  /* ── Share overlay buttons ── */
+  .share-upload-label {
+    min-height: 52px;
+    padding: 16px 28px;
+    font-size: 15px;
+  }
+  .share-actions .end-btn {
+    min-height: 48px;
+    padding: 13px 24px;
+    font-size: 15px;
+  }
+
+  /* ── Community reaction buttons ── */
+  .community-reaction-btn {
+    min-height: 44px;
+    padding: 8px 14px;
+    font-size: 16px;
+  }
+
+  /* ── Community tabs ── */
+  .community-tab {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}
