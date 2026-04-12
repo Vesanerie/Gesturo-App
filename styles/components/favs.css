@@ -52,6 +52,11 @@
   .fav-item .fav-pin-btn { opacity: 1; }
 }
 
+/* Hide pin button on mobile/tablet — moodboard webview doesn't exist there */
+@media (max-width: 1399px) {
+  .fav-item .fav-pin-btn { display: none !important; }
+}
+
 /* ══ PIN MOODBOARD MODAL ══ */
 .pin-modal-overlay {
   position: fixed; inset: 0;
