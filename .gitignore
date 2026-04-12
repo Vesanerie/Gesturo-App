@@ -24,3 +24,4 @@ android/capacitor.settings.gradle
 .claude/
 !.claude/agents/
 !.claude/skills/
+scripts/verify-features.js
