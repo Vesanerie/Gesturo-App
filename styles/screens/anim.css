@@ -226,7 +226,7 @@
    timeline + controls), mais avec des thumbs plus grands et des
    controls XL adaptés à la surface tactile tablet.
    ───────────────────────────────────────────────────────────────────── */
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1399px) {
   #screen-anim { position: relative; }
 
   /* Bar flottante en bas avec backdrop blur, plus large */

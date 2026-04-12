@@ -286,7 +286,7 @@
 
    ⚠ Aucune règle ici ne doit fuiter sur le desktop ni sur le mobile.
    ───────────────────────────────────────────────────────────────────── */
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1399px) {
   #screen-session { position: relative; }
 
   /* Le calque container : couvre tout, ne capte pas les clics par défaut. */

@@ -179,7 +179,7 @@
    Les deux sont dans le même #screen-cinema, l'un cache l'autre via
    display none/block piloté par JS. On optimise les deux.
    ───────────────────────────────────────────────────────────────────── */
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1399px) {
   #screen-cinema { position: relative; }
 
   /* Mode liste de films : grille plus dense en tablet, cards plus grandes */

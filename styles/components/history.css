@@ -73,7 +73,7 @@
    4 stat cards en une rangée (comme desktop) mais avec tailles
    plus généreuses. Liste des sessions plus aérée.
    ══════════════════════════════════════════════════════════════ */
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1399px) {
   #hist-summary {
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;

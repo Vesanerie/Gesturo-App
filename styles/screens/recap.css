@@ -28,7 +28,7 @@
 .share-close:hover { color: #fff; }
 .share-upload-text-mobile { display: none; }
 .share-upload-text-desktop { display: inline; }
-@media (max-width: 1199px) {
+@media (max-width: 1399px) {
   .share-upload-text-mobile { display: inline; }
   .share-upload-text-desktop { display: none; }
 }
@@ -167,7 +167,7 @@
    adapté. Pas de sidebar ici (écran de résultats, on garde l'espace
    max pour la grille de poses).
    ══════════════════════════════════════════════════════════════ */
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1399px) {
   .end-header {
     padding: calc(env(safe-area-inset-top, 0px) + 24px) 40px 20px;
   }

@@ -241,7 +241,7 @@ window.addEventListener('resize', () => { if (gridMode > 0) positionGridOverlay(
 let moodboardLoaded = false
 let moodboardNeedsRefresh = false
 async function openMoodboard() {
-  if (window.matchMedia && window.matchMedia('(max-width: 1199px)').matches) {
+  if (window.matchMedia && window.matchMedia('(max-width: 1399px)').matches) {
     showScreen('screen-config'); return
   }
   const wv = document.getElementById('moodboard-webview')
@@ -3172,7 +3172,7 @@ function toggleBadgesPanel() {
   if (!photoArea || !sessionEl) return
   let hintShown = false
   photoArea.addEventListener('click', (e) => {
-    if (window.innerWidth > 1199) return
+    if (window.innerWidth > 1399) return
     if (e.target.closest('button')) return
     const willHide = !sessionEl.classList.contains('controls-hidden')
     sessionEl.classList.toggle('controls-hidden')
