@@ -60,6 +60,15 @@ function onLoggedIn(session) {
   loadGrid();
   // Stats globales : auto-load après un petit délai pour ne pas bloquer le premier render.
   setTimeout(loadGlobalStats, 800);
+  // Moderation badge: fetch pending count
+  setTimeout(async () => {
+    try {
+      const data = await callUserData('adminListPosts', { filter: 'pending', limit: 1 });
+      const badge = $('mod-badge');
+      if (data.pendingCount > 0) { badge.textContent = data.pendingCount; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    } catch {}
+  }, 1200);
 }
 
 async function loadGlobalStats() {
@@ -1391,6 +1400,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-' + panel));
       if (panel === 'challenges') loadChallengeList();
+      if (panel === 'moderation') loadModerationPosts();
     });
   });
 });
@@ -1605,6 +1615,122 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       setMsg(msg, 'Erreur : ' + e.message, 'err');
     }
+  });
+});
+
+// ── Moderation panel ──────────────────────────────────────────────────────
+let _modFilter = 'pending';
+let _modSelected = new Set();
+
+async function loadModerationPosts() {
+  const grid = $('mod-grid');
+  grid.innerHTML = '<div class="mod-empty">Chargement…</div>';
+  _modSelected.clear();
+  updateModButtons();
+  try {
+    const data = await callUserData('adminListPosts', { filter: _modFilter, limit: 100 });
+    const posts = data.posts || [];
+    // Update badge
+    const badge = $('mod-badge');
+    if (data.pendingCount > 0) {
+      badge.textContent = data.pendingCount;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+    grid.innerHTML = '';
+    if (posts.length === 0) {
+      grid.innerHTML = '<div class="mod-empty">' +
+        (_modFilter === 'pending' ? 'Aucun post en attente 👍' : 'Aucun post.') + '</div>';
+      return;
+    }
+    posts.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'mod-card';
+      card.dataset.id = p.id;
+      const dt = new Date(p.created_at);
+      const dateStr = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      card.innerHTML =
+        '<div class="mod-check" title="Sélectionner">✓</div>' +
+        '<img class="mod-card-img" loading="lazy" src="' + thumbUrl(p.image_url, 400) + '" alt="">' +
+        '<div class="mod-card-body">' +
+          '<div class="mod-card-user">' + escapeHtml(p.username || '—') + '</div>' +
+          '<div class="mod-card-email">' + escapeHtml(p.user_email) + '</div>' +
+          '<div class="mod-card-date">' + dateStr + '</div>' +
+          '<span class="mod-card-status ' + (p.approved ? 'approved' : 'pending') + '">' + (p.approved ? 'Approuvé' : 'En attente') + '</span>' +
+          (p.ref_image_url ? '<a class="mod-ref-link" href="' + escapeHtml(p.ref_image_url) + '" target="_blank">Voir image de ref ↗</a>' : '') +
+        '</div>' +
+        '<div class="mod-card-actions">' +
+          (p.approved
+            ? '<button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>'
+            : '<button class="mod-btn-approve" data-act="approve">✓ Approuver</button><button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>') +
+        '</div>';
+      // Click image → lightbox
+      card.querySelector('.mod-card-img').addEventListener('click', () => {
+        $('lightbox-img').src = p.image_url;
+        $('lightbox').classList.remove('hidden');
+      });
+      // Click check → toggle selection
+      card.querySelector('.mod-check').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (_modSelected.has(p.id)) { _modSelected.delete(p.id); card.classList.remove('selected'); }
+        else { _modSelected.add(p.id); card.classList.add('selected'); }
+        updateModButtons();
+      });
+      // Single approve/reject
+      card.querySelectorAll('.mod-card-actions button').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const act = btn.dataset.act;
+          if (act === 'reject' && !confirm('Rejeter et supprimer définitivement ce post ?')) return;
+          try {
+            await callUserData(act === 'approve' ? 'adminApprovePost' : 'adminRejectPost', { postId: p.id });
+            toast(act === 'approve' ? 'Post approuvé' : 'Post rejeté et supprimé', 'ok');
+            loadModerationPosts();
+          } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+        });
+      });
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = '<div class="mod-empty">Erreur : ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function updateModButtons() {
+  const n = _modSelected.size;
+  $('mod-approve-all').disabled = n === 0;
+  $('mod-reject-all').disabled = n === 0;
+  $('mod-approve-all').textContent = n > 0 ? `✓ Approuver (${n})` : '✓ Approuver la sélection';
+  $('mod-reject-all').textContent = n > 0 ? `✕ Rejeter (${n})` : '✕ Rejeter la sélection';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Filter buttons
+  document.querySelectorAll('.mod-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _modFilter = btn.dataset.filter;
+      document.querySelectorAll('.mod-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      loadModerationPosts();
+    });
+  });
+  // Batch approve
+  $('mod-approve-all').addEventListener('click', async () => {
+    if (_modSelected.size === 0) return;
+    try {
+      await callUserData('adminApprovePost', { postIds: [..._modSelected] });
+      toast(`${_modSelected.size} post(s) approuvé(s)`, 'ok');
+      loadModerationPosts();
+    } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+  });
+  // Batch reject
+  $('mod-reject-all').addEventListener('click', async () => {
+    if (_modSelected.size === 0) return;
+    if (!confirm(`Rejeter et supprimer définitivement ${_modSelected.size} post(s) ?\nLes images seront supprimées de R2.`)) return;
+    try {
+      await callUserData('adminRejectPost', { postIds: [..._modSelected] });
+      toast(`${_modSelected.size} post(s) rejeté(s) et supprimé(s)`, 'ok');
+      loadModerationPosts();
+    } catch (e) { toast('Erreur : ' + e.message, 'err'); }
   });
 });
 

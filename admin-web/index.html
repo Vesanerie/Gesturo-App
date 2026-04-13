@@ -29,6 +29,7 @@
       <div class="admin-nav">
         <button class="admin-nav-btn active" data-panel="files">📂 Fichiers</button>
         <button class="admin-nav-btn" data-panel="challenges">🏆 Challenges</button>
+        <button class="admin-nav-btn" data-panel="moderation">🛡️ Modération <span id="mod-badge" class="mod-badge hidden">0</span></button>
       </div>
       <div id="global-stats" class="global-stats muted" title="Cliquer pour rafraîchir">📊 Calcul…</div>
       <div class="user">
@@ -144,6 +145,22 @@
         </div>
       </div>
     </div><!-- /panel-challenges -->
+
+    <!-- ═ MODERATION PANEL ═ -->
+    <div id="panel-moderation" class="admin-panel hidden">
+      <div class="mod-toolbar">
+        <div class="mod-filters">
+          <button class="mod-filter-btn active" data-filter="pending">En attente</button>
+          <button class="mod-filter-btn" data-filter="approved">Approuvés</button>
+          <button class="mod-filter-btn" data-filter="all">Tous</button>
+        </div>
+        <div class="mod-actions-global">
+          <button id="mod-approve-all" class="add-btn" disabled>✓ Approuver la sélection</button>
+          <button id="mod-reject-all" class="btn-danger" disabled>✕ Rejeter la sélection</button>
+        </div>
+      </div>
+      <div id="mod-grid" class="mod-grid"></div>
+    </div><!-- /panel-moderation -->
 
   </section>
 

@@ -262,7 +262,46 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .ref-picker-grid .ref-pickable { border: 2px solid transparent; transition: border-color 0.15s, transform 0.15s; }
 .ref-picker-grid .ref-pickable:hover { border-color: var(--accent); transform: scale(1.03); }
 
+/* ═══ Moderation panel ═══ */
+.mod-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+.mod-filters { display: flex; gap: 4px; }
+.mod-filter-btn { background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.mod-filter-btn:hover { color: var(--text); border-color: var(--accent); }
+.mod-filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mod-actions-global { display: flex; gap: 8px; }
+.mod-actions-global button:disabled { opacity: 0.4; cursor: not-allowed; }
+.mod-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--danger); color: #fff; font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px; margin-left: 6px; vertical-align: middle; }
+.mod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; padding: 16px 24px; }
+.mod-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; position: relative; transition: border-color 0.15s; }
+.mod-card:hover { border-color: var(--accent); }
+.mod-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.mod-card .mod-check { position: absolute; top: 8px; left: 8px; width: 24px; height: 24px; border-radius: 50%; background: rgba(5,10,18,0.8); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; color: transparent; font-size: 14px; font-weight: 700; cursor: pointer; z-index: 2; }
+.mod-card.selected .mod-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mod-card-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; cursor: pointer; }
+.mod-card-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.mod-card-user { font-size: 13px; font-weight: 600; color: var(--text); }
+.mod-card-email { font-size: 11px; color: var(--muted); word-break: break-all; }
+.mod-card-date { font-size: 11px; color: var(--dim); }
+.mod-card-status { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.mod-card-status.pending { color: #e6a341; background: rgba(230,163,65,0.15); }
+.mod-card-status.approved { color: #5fcf7f; background: rgba(95,207,127,0.15); }
+.mod-card-actions { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--border); }
+.mod-card-actions button { flex: 1; padding: 7px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: none; }
+.mod-btn-approve { background: rgba(95,207,127,0.15); color: #5fcf7f; }
+.mod-btn-approve:hover { background: rgba(95,207,127,0.3); }
+.mod-btn-reject { background: rgba(226,75,74,0.15); color: var(--danger); }
+.mod-btn-reject:hover { background: rgba(226,75,74,0.3); }
+.mod-empty { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+.mod-ref-link { display: inline-block; margin-top: 4px; font-size: 11px; color: var(--accent); text-decoration: none; }
+.mod-ref-link:hover { text-decoration: underline; }
+
 @media (max-width: 800px) {
   .challenges-layout { grid-template-columns: 1fr; }
   .ref-picker-modal { width: 95vw; }
+  .mod-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px 14px; }
+  .mod-toolbar { padding: 10px 14px; }
+  .mod-filter-btn { min-height: 44px; flex: 1; text-align: center; }
+  .mod-actions-global { width: 100%; }
+  .mod-actions-global button { flex: 1; min-height: 44px; }
+  .mod-card-actions button { min-height: 44px; }
 }
