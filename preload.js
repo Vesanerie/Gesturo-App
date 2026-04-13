@@ -56,6 +56,9 @@ getFavorites: () => ipcRenderer.invoke('get-favorites'),
   tagPostToChallenge: (postId, challengeId) => ipcRenderer.invoke('tag-post-to-challenge', postId, challengeId),
   triggerDailyChallenge: () => ipcRenderer.invoke('trigger-daily-challenge'),
 
+  // ── Camera (mobile only — no-op on desktop) ──
+  capturePhoto: async () => null,
+
   // ── Gesturo Moodboard (in-app via webview) ──
   getMoodboardPreloadPath: () => ipcRenderer.invoke('mb:get-preload-path'),
   mbListProjects: () => ipcRenderer.invoke('mb:list-projects'),

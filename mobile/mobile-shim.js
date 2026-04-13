@@ -303,6 +303,26 @@
       } catch (e) { return { ok: false }; }
     },
 
+    // ── Camera (Capacitor plugin, better quality than <input capture>) ──
+    // Returns { dataUrl, format } or null if cancelled.
+    // Falls back to null if plugin not available (caller should use <input> fallback).
+    capturePhoto: async () => {
+      const Camera = plugins.Camera;
+      if (!Camera || !Camera.getPhoto) return null;
+      try {
+        const photo = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: 'dataUrl',    // CameraResultType.DataUrl
+          source: 'PROMPT',         // CameraSource.Prompt — lets user pick camera or gallery
+        });
+        return { dataUrl: photo.dataUrl, format: photo.format || 'jpeg' };
+      } catch (e) {
+        // User cancelled or permission denied
+        return null;
+      }
+    },
+
     // ── Moodboard webview path — N/A on mobile ──
     getMoodboardPreloadPath: async () => null,
     mbListProjects: async () => [],
