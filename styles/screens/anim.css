@@ -212,6 +212,70 @@
   /* Big play button reste centré, juste un poil plus petit */
   #screen-anim .anim-big-btn { width: 72px; height: 72px; font-size: 28px; }
 
+  /* ── Tap-to-toggle : cacher les controls sauf le timer ── */
+  #screen-anim.controls-hidden #anim-bar {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  #screen-anim:not(.controls-hidden) #anim-bar {
+    transition: opacity 0.25s ease;
+  }
+  #screen-anim.controls-hidden #anim-mode-badge,
+  #screen-anim.controls-hidden #anim-frame-info,
+  #screen-anim.controls-hidden #anim-photo-area .fav-star-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  #screen-anim:not(.controls-hidden) #anim-mode-badge,
+  #screen-anim:not(.controls-hidden) #anim-frame-info,
+  #screen-anim:not(.controls-hidden) #anim-photo-area .fav-star-btn {
+    transition: opacity 0.25s ease;
+  }
+  /* Timer flottant visible même quand controls cachés */
+  #screen-anim.controls-hidden #anim-float-timer {
+    display: flex;
+  }
+  #anim-float-timer {
+    display: none;
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+    gap: 10px;
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 99px;
+    padding: 8px 18px;
+    z-index: 25;
+  }
+  #anim-float-timer .float-timer-text {
+    font-size: 22px;
+    font-weight: 300;
+    color: #fff;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+  }
+  #anim-float-timer .float-timer-text.warning { color: #E24B4A; }
+  #anim-float-timer .float-timer-prog {
+    width: 60px;
+    height: 2px;
+    background: #1e2d40;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  #anim-float-timer .float-timer-bar {
+    height: 2px;
+    background: #2983eb;
+    border-radius: 99px;
+    width: 100%;
+    transition: width 0.5s linear;
+  }
+
   /* Cacher les boutons globaux sur Anim (chevauchent la mode badge centre) */
   body:has(#screen-anim.active) #options-btn,
   body:has(#screen-anim.active) #discord-btn {
@@ -345,6 +409,69 @@
 
   /* Big play button plus imposant */
   #screen-anim .anim-big-btn { width: 104px; height: 104px; font-size: 40px; }
+
+  /* ── Tap-to-toggle : cacher les controls sauf le timer ── */
+  #screen-anim.controls-hidden #anim-bar {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  #screen-anim:not(.controls-hidden) #anim-bar {
+    transition: opacity 0.25s ease;
+  }
+  #screen-anim.controls-hidden #anim-mode-badge,
+  #screen-anim.controls-hidden #anim-frame-info,
+  #screen-anim.controls-hidden #anim-photo-area .fav-star-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  #screen-anim:not(.controls-hidden) #anim-mode-badge,
+  #screen-anim:not(.controls-hidden) #anim-frame-info,
+  #screen-anim:not(.controls-hidden) #anim-photo-area .fav-star-btn {
+    transition: opacity 0.25s ease;
+  }
+  #screen-anim.controls-hidden #anim-float-timer {
+    display: flex;
+  }
+  #anim-float-timer {
+    display: none;
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+    gap: 12px;
+    background: rgba(10, 21, 32, 0.62);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 99px;
+    padding: 10px 22px;
+    z-index: 25;
+  }
+  #anim-float-timer .float-timer-text {
+    font-size: 26px;
+    font-weight: 300;
+    color: #fff;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+  }
+  #anim-float-timer .float-timer-text.warning { color: #E24B4A; }
+  #anim-float-timer .float-timer-prog {
+    width: 80px;
+    height: 2px;
+    background: #1e2d40;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  #anim-float-timer .float-timer-bar {
+    height: 2px;
+    background: #2983eb;
+    border-radius: 99px;
+    width: 100%;
+    transition: width 0.5s linear;
+  }
 
   /* Cacher les boutons globaux sur Anim */
   body:has(#screen-anim.active) #options-btn,

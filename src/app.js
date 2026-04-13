@@ -1921,6 +1921,8 @@ function getLoopTarget() { return loopCountVal }
 
 async function startAnimSession() {
   if (!selectedSeq || !sequences[selectedSeq]) return
+  const animScreen = document.getElementById('screen-anim')
+  if (animScreen) animScreen.classList.remove('controls-hidden')
   const paths = sequences[selectedSeq].paths
   const btn = document.getElementById('btn-start'); btn.disabled = true
   animFrames = paths.map(p => ({ path: p, dataUrl: isR2Mode ? p : 'file://' + p }))
@@ -2064,10 +2066,17 @@ function resumeStudyTimer() {
 function updateStudyTimer() {
   const m = Math.floor(studyTimeLeft / 60), s = studyTimeLeft % 60
   const el = document.getElementById('study-timer')
-  el.textContent = m + ':' + String(s).padStart(2, '0')
-  el.className = (studyTimeLeft <= 5 && studyTimeLeft > 0) ? 'warning' : ''
+  const timeStr = m + ':' + String(s).padStart(2, '0')
+  el.textContent = timeStr
+  const isWarning = studyTimeLeft <= 5 && studyTimeLeft > 0
+  el.className = isWarning ? 'warning' : ''
   const pct = studyDuration > 0 ? Math.round((studyTimeLeft / studyDuration) * 100) : 0
   document.getElementById('study-prog-bar').style.width = pct + '%'
+  // Sync floating timer (mobile/tablet)
+  const ft = document.getElementById('anim-float-timer-text')
+  const fb = document.getElementById('anim-float-timer-bar')
+  if (ft) { ft.textContent = timeStr; ft.className = 'float-timer-text' + (isWarning ? ' warning' : '') }
+  if (fb) fb.style.width = pct + '%'
 }
 
 function animNextFrame() {
@@ -3287,6 +3296,24 @@ function toggleBadgesPanel() {
       return _origStartSession.apply(this, arguments)
     }
   }
+})()
+
+// ─── MOBILE + TABLET — tap-to-toggle des controls sur Animation ─────────
+// Même logique que Session : tap sur la photo toggle .controls-hidden.
+// Le timer d'étude reste visible via #anim-float-timer (synced dans
+// updateStudyTimer). L'overlay play n'est pas affecté.
+;(function () {
+  const photoArea = document.getElementById('anim-photo-area')
+  const animEl = document.getElementById('screen-anim')
+  if (!photoArea || !animEl) return
+  photoArea.addEventListener('click', (e) => {
+    if (window.innerWidth > 1399) return
+    if (e.target.closest('button') || e.target.closest('.anim-big-btn')) return
+    // Ne pas toggle si l'overlay play est visible
+    const overlay = document.getElementById('anim-overlay')
+    if (overlay && !overlay.classList.contains('hidden')) return
+    animEl.classList.toggle('controls-hidden')
+  })
 })()
 
 // ─── MOBILE — Accordion sur les cards de l'écran Config ─────────────────
