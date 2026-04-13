@@ -209,7 +209,20 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
    ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
    ───────────────────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
-  #screen-config { padding: calc(env(safe-area-inset-top, 0px) + 20px) 14px 20px; }
+  #screen-config { padding: calc(env(safe-area-inset-top, 0px) + 20px) 14px 20px; position: relative; }
+  /* Fond opaque sous la status bar iOS — reste fixe quand on scroll */
+  #screen-config::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(env(safe-area-inset-top, 0px));
+    margin: calc(-1 * (env(safe-area-inset-top, 0px) + 20px)) -14px 20px;
+    background: #0f1923;
+    z-index: 50;
+    flex-shrink: 0;
+  }
   .config-inner {
     width: 100%;
     max-width: 100%;
@@ -483,8 +496,21 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
 
   /* ── Zone principale décalée de la largeur de la sidebar ── */
   #screen-config {
-    padding: 40px 32px 40px calc(var(--tablet-sidebar-width) + 40px);
+    padding: calc(env(safe-area-inset-top, 0px) + 40px) 32px 40px calc(var(--tablet-sidebar-width) + 40px);
     align-items: flex-start;
+    position: relative;
+  }
+  #screen-config::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(env(safe-area-inset-top, 0px));
+    margin: calc(-1 * (env(safe-area-inset-top, 0px) + 40px)) -32px 40px;
+    background: #0f1923;
+    z-index: 50;
+    flex-shrink: 0;
   }
   .config-inner {
     width: 100%;
