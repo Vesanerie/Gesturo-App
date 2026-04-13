@@ -56,8 +56,8 @@
     right: 8px;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
     background: rgba(10, 21, 32, 0.62);
-    -webkit-backdrop-filter: blur(18px);
-            backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+            backdrop-filter: blur(var(--blur-lg));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     border-top: 0.5px solid rgba(255, 255, 255, 0.08);
     border-radius: 18px;
@@ -114,8 +114,8 @@
     top: calc(env(safe-area-inset-top, 0px) + 14px);
     left: 14px;
     background: rgba(10, 21, 32, 0.6);
-    -webkit-backdrop-filter: blur(14px);
-            backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(var(--blur-md));
+            backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     border-radius: 99px;
     padding: 7px 14px;
@@ -135,8 +135,8 @@
     width: 44px;
     height: 44px;
     background: rgba(10, 21, 32, 0.55);
-    -webkit-backdrop-filter: blur(14px);
-            backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(var(--blur-md));
+            backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.85);
     font-size: 16px;
@@ -152,8 +152,8 @@
     width: 44px;
     height: 44px;
     background: rgba(10, 21, 32, 0.62);
-    -webkit-backdrop-filter: blur(14px);
-            backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(var(--blur-md));
+            backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     border-radius: 50%;
     font-size: 18px;
@@ -201,8 +201,8 @@
     right: 40px;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
     background: rgba(10, 21, 32, 0.62);
-    -webkit-backdrop-filter: blur(20px);
-            backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+            backdrop-filter: blur(var(--blur-lg));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     border-top: 0.5px solid rgba(255, 255, 255, 0.08);
     border-radius: 22px;
@@ -262,8 +262,8 @@
     top: calc(env(safe-area-inset-top, 0px) + 20px);
     left: 24px;
     background: rgba(10, 21, 32, 0.62);
-    -webkit-backdrop-filter: blur(16px);
-            backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(var(--blur-md));
+            backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     border-radius: 99px;
     padding: 9px 18px;
@@ -284,8 +284,8 @@
     width: 52px;
     height: 52px;
     background: rgba(10, 21, 32, 0.6);
-    -webkit-backdrop-filter: blur(16px);
-            backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(var(--blur-md));
+            backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.9);
     font-size: 20px;
@@ -301,8 +301,8 @@
     width: 52px;
     height: 52px;
     background: rgba(10, 21, 32, 0.62);
-    -webkit-backdrop-filter: blur(16px);
-            backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(var(--blur-md));
+            backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     border-radius: 50%;
     font-size: 22px;

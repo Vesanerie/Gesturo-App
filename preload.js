@@ -48,6 +48,7 @@ getFavorites: () => ipcRenderer.invoke('get-favorites'),
   getReactions: (postIds) => ipcRenderer.invoke('get-reactions', postIds),
   toggleReaction: (postId, emoji) => ipcRenderer.invoke('toggle-reaction', postId, emoji),
   submitCommunityPost: (data) => ipcRenderer.invoke('submit-community-post', data),
+  moderateCommunityPost: (postId) => ipcRenderer.invoke('moderate-community-post', postId),
   getCommunityPosts: () => ipcRenderer.invoke('get-community-posts'),
   deleteCommunityPost: (id) => ipcRenderer.invoke('delete-community-post', id),
   getCommunityLeaderboard: () => ipcRenderer.invoke('get-community-leaderboard'),
@@ -55,6 +56,9 @@ getFavorites: () => ipcRenderer.invoke('get-favorites'),
   getChallenges: () => ipcRenderer.invoke('get-challenges'),
   tagPostToChallenge: (postId, challengeId) => ipcRenderer.invoke('tag-post-to-challenge', postId, challengeId),
   triggerDailyChallenge: () => ipcRenderer.invoke('trigger-daily-challenge'),
+
+  // ── Camera (mobile only — no-op on desktop) ──
+  capturePhoto: async () => null,
 
   // ── Gesturo Moodboard (in-app via webview) ──
   getMoodboardPreloadPath: () => ipcRenderer.invoke('mb:get-preload-path'),

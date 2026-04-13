@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gesturo">
+  <meta name="theme-color" content="#0a1520">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -30,16 +34,16 @@
 
 <!-- ══ BOUTON OPTIONS ══ -->
 <div id="plan-badge"></div>
-<a id="discord-btn" href="#" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')"
+<a id="discord-btn" href="#" aria-label="Discord" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')"
   style="position:fixed;top:14px;right:54px;background:#131f2e;border:0.5px solid #1e2d40;border-radius:8px;color:#3a5570;width:32px;height:32px;display:none;align-items:center;justify-content:center;z-index:200;text-decoration:none;"
   onmouseover="this.style.borderColor='#5865F2';this.style.color='#5865F2';this.style.background='#162030'"
   onmouseout="this.style.borderColor='#1e2d40';this.style.color='#3a5570';this.style.background='#131f2e'">
   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
 </a>
-<button id="profile-btn" onclick="openProfile()">
+<button id="profile-btn" aria-label="Profil" onclick="openProfile()">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
 </button>
-<button id="options-btn" onclick="toggleOptions()">⋯</button>
+<button id="options-btn" aria-label="Options" onclick="toggleOptions()">⋯</button>
 <div id="options-dropdown">
   <div class="opt-item" onclick="toggleOptions(); switchMainMode('hist')">📈 Historique</div>
   <div class="opt-item" onclick="handleLogout()">🚪 Se déconnecter</div>
@@ -271,20 +275,7 @@
       </div>
 
       <!-- Challenge banner -->
-      <div id="challenge-banner" style="display:none;">
-        <div class="challenge-card">
-          <div class="challenge-ref">
-            <img id="challenge-ref-img" src="" alt="Ref">
-          </div>
-          <div class="challenge-info">
-            <div class="challenge-label">CHALLENGE</div>
-            <h3 id="challenge-title"></h3>
-            <div id="challenge-deadline" class="challenge-deadline"></div>
-            <div id="challenge-participants" class="challenge-participants"></div>
-            <button class="end-btn end-btn-share" onclick="participateChallenge()">Participer</button>
-          </div>
-        </div>
-      </div>
+      <div id="challenge-banner" style="display:none;"></div>
 
       <!-- Challenge filter -->
       <div id="challenge-filter" style="display:none;">
@@ -303,7 +294,7 @@
       <div id="community-empty" style="font-size:13px;color:#556;text-align:center;padding:30px 0;display:none;">Chargement...</div>
 
       <!-- Upload overlay (from community tab) -->
-      <div id="community-upload-overlay" style="display:none;">
+      <div id="community-upload-overlay" style="display:none;" onclick="if(event.target===this)closeCommunityUpload()">
         <div class="share-drawing-box">
           <h3>Partage ton dessin</h3>
           <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
@@ -378,13 +369,13 @@
       </svg>
     </div>
     <div id="transform-controls">
-      <button class="transform-btn" id="grid-btn" onclick="cycleGrid()" title="Grille de composition">⊞</button>
-      <button class="transform-btn" id="bw-btn" onclick="toggleBW()" title="Noir et blanc">◑</button>
-      <button class="transform-btn" onclick="flipH()" title="Miroir horizontal">⇆</button>
-      <button class="transform-btn" onclick="rotateLeft()" title="Rotation gauche">↺</button>
-      <button class="transform-btn" onclick="rotateRight()" title="Rotation droite">↻</button>
+      <button class="transform-btn" id="grid-btn" onclick="cycleGrid()" aria-label="Grille de composition" title="Grille de composition">⊞</button>
+      <button class="transform-btn" id="bw-btn" onclick="toggleBW()" aria-label="Noir et blanc" title="Noir et blanc">◑</button>
+      <button class="transform-btn" onclick="flipH()" aria-label="Miroir horizontal" title="Miroir horizontal">⇆</button>
+      <button class="transform-btn" onclick="rotateLeft()" aria-label="Rotation gauche" title="Rotation gauche">↺</button>
+      <button class="transform-btn" onclick="rotateRight()" aria-label="Rotation droite" title="Rotation droite">↻</button>
     </div>
-    <button class="fav-star-btn" id="pose-fav-btn" onclick="toggleFavPose()" title="Ajouter aux favoris">☆</button>
+    <button class="fav-star-btn" id="pose-fav-btn" onclick="toggleFavPose()" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
   </div>
   <div id="session-bar">
     <svg id="countdown-circle" viewBox="0 0 48 48">
@@ -410,14 +401,18 @@
 
 <!-- ══ MODE ANIMATION ══ -->
 <div class="screen" id="screen-anim">
+  <div id="anim-float-timer">
+    <span class="float-timer-text" id="anim-float-timer-text"></span>
+    <div class="float-timer-prog"><div class="float-timer-bar" id="anim-float-timer-bar"></div></div>
+  </div>
   <div id="anim-photo-area">
     <img id="anim-img" src="" alt="frame">
     <div id="anim-overlay">
-      <div class="anim-big-btn" id="anim-play-btn" onclick="toggleAnimLoop()">▶</div>
+      <div class="anim-big-btn" id="anim-play-btn" role="button" aria-label="Lecture" onclick="toggleAnimLoop()">▶</div>
     </div>
     <div id="anim-mode-badge" class="loop">Boucle</div>
     <div id="anim-frame-info">Image 1 / 1</div>
-    <button class="fav-star-btn" id="anim-fav-btn" onclick="toggleFavAnim()" title="Ajouter aux favoris">☆</button>
+    <button class="fav-star-btn" id="anim-fav-btn" onclick="toggleFavAnim()" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
   </div>
   <div id="anim-bar">
     <div id="timeline-wrap">
@@ -440,7 +435,7 @@
 </div>
 
 <!-- Modale confirm Terminer — commune aux 3 modes -->
-<div id="end-confirm-modal">
+<div id="end-confirm-modal" onclick="if(event.target===this)closeEndConfirm()">
   <span>Terminer la session ?</span>
   <button class="s-btn s-btn-danger-solid" id="end-confirm-yes">Oui, terminer</button>
   <button class="s-btn" id="end-confirm-cancel">Annuler</button>
@@ -462,7 +457,7 @@
       <button class="end-btn end-btn-share" id="btn-share-drawing" onclick="openShareDrawing()">Partager mon dessin</button>
     </div>
     <!-- Upload overlay -->
-    <div id="share-drawing-overlay" style="display:none;">
+    <div id="share-drawing-overlay" style="display:none;" onclick="if(event.target===this)closeShareDrawing()">
       <div class="share-drawing-box">
         <h3>Partage ton dessin</h3>
         <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
@@ -502,12 +497,12 @@
       </svg>
     </div>
     <div id="cinema-transform-controls">
-      <button class="transform-btn" id="cinema-grid-btn" onclick="event.stopPropagation(); toggleCinemaGrid()" title="Grille">⊞</button>
-      <button class="transform-btn" id="cinema-bw-btn" onclick="event.stopPropagation(); toggleCinemaBW()" title="N&B">◑</button>
-      <button class="transform-btn" onclick="event.stopPropagation(); flipCinemaH()" title="Miroir">⇆</button>
+      <button class="transform-btn" id="cinema-grid-btn" onclick="event.stopPropagation(); toggleCinemaGrid()" aria-label="Grille" title="Grille">⊞</button>
+      <button class="transform-btn" id="cinema-bw-btn" onclick="event.stopPropagation(); toggleCinemaBW()" aria-label="N&B" title="N&B">◑</button>
+      <button class="transform-btn" onclick="event.stopPropagation(); flipCinemaH()" aria-label="Miroir" title="Miroir">⇆</button>
     </div>
     <!-- PATCH 1 : bouton favori cinéma -->
-    <button class="fav-star-btn" id="cinema-fav-btn" onclick="event.stopPropagation(); toggleFavCinema()" title="Ajouter aux favoris">☆</button>
+    <button class="fav-star-btn" id="cinema-fav-btn" onclick="event.stopPropagation(); toggleFavCinema()" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
   </div>
   <div id="cinema-bar">
     <span id="cinema-frame-counter">0 / 0</span>
@@ -537,7 +532,7 @@
 </div>
 
 <!-- COMMUNITY COMPARE OVERLAY -->
-<div id="community-compare" class="community-compare" style="display:none;">
+<div id="community-compare" class="community-compare" style="display:none;" onclick="if(event.target===this)closeCommunityCompare()">
   <button class="cc-close" onclick="closeCommunityCompare()">✕</button>
   <div class="cc-content">
     <div class="cc-images">
@@ -557,11 +552,14 @@
       </div>
       <div class="cc-reactions" id="cc-reactions"></div>
     </div>
-    <button id="cc-draw-btn" class="cc-draw-btn" onclick="drawFromCompare()">🎨 Dessiner cette ref</button>
+    <div class="cc-actions">
+      <button id="cc-draw-btn" class="cc-draw-btn" onclick="drawFromCompare()">🎨 Dessiner cette ref</button>
+      <button id="cc-share-btn" class="cc-share-btn" onclick="shareFromCompare()">📤 Partager</button>
+    </div>
   </div>
 </div>
 
-<div id="about-modal">
+<div id="about-modal" onclick="if(event.target===this)closeAbout()">
   <div class="about-box">
     <h3>À propos</h3>
     <div class="about-row"><span class="label">Version</span><span class="value" id="about-version">—</span></div>
@@ -604,13 +602,13 @@
       <div class="profile-value" id="profile-email">—</div>
     </div>
     <div class="profile-field">
-      <label>Plan</label>
+      <label>Abonnement</label>
       <div class="profile-value" id="profile-plan">Free</div>
     </div>
     <div class="profile-stats">
       <div class="profile-stat">
         <div class="profile-stat-value" id="profile-streak">0</div>
-        <div class="profile-stat-label">Streak</div>
+        <div class="profile-stat-label">Série</div>
       </div>
       <div class="profile-stat">
         <div class="profile-stat-value" id="profile-poses">0</div>

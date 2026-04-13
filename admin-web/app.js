@@ -60,6 +60,15 @@ function onLoggedIn(session) {
   loadGrid();
   // Stats globales : auto-load après un petit délai pour ne pas bloquer le premier render.
   setTimeout(loadGlobalStats, 800);
+  // Moderation badge: fetch pending count
+  setTimeout(async () => {
+    try {
+      const data = await callUserData('adminListPosts', { filter: 'pending', limit: 1 });
+      const badge = $('mod-badge');
+      if (data.pendingCount > 0) { badge.textContent = data.pendingCount; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    } catch {}
+  }, 1200);
 }
 
 async function loadGlobalStats() {
@@ -1391,6 +1400,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-' + panel));
       if (panel === 'challenges') loadChallengeList();
+      if (panel === 'moderation') { loadModerationPosts(); loadModerationStats(); }
     });
   });
 });
@@ -1605,6 +1615,559 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       setMsg(msg, 'Erreur : ' + e.message, 'err');
     }
+  });
+});
+
+// ── Moderation panel ──────────────────────────────────────────────────────
+let _modFilter = 'pending';
+let _modSearch = '';
+let _modSelected = new Set();
+let _modPosts = []; // current loaded posts for keyboard nav
+let _modFocusIdx = -1;
+let _modSearchTimer = null;
+
+async function loadModerationStats() {
+  const el = $('mod-stats');
+  try {
+    const data = await callUserData('adminModerationStats');
+    el.innerHTML =
+      '<div class="mod-stat"><span>En attente</span> <span class="mod-stat-value warn">' + data.pending + '</span></div>' +
+      '<div class="mod-stat"><span>Approuvés aujourd\'hui</span> <span class="mod-stat-value ok">' + data.approvedToday + '</span></div>' +
+      '<div class="mod-stat"><span>Total approuvés</span> <span class="mod-stat-value">' + data.totalApproved + '</span></div>' +
+      '<div class="mod-stat"><span>Total posts</span> <span class="mod-stat-value">' + data.totalPosts + '</span></div>';
+  } catch { el.innerHTML = ''; }
+}
+
+async function loadModerationPosts() {
+  const grid = $('mod-grid');
+  grid.innerHTML = '<div class="mod-empty">Chargement…</div>';
+  _modSelected.clear();
+  _modPosts = [];
+  _modFocusIdx = -1;
+  updateModButtons();
+  try {
+    const data = await callUserData('adminListPosts', { filter: _modFilter, search: _modSearch, limit: 100 });
+    const posts = data.posts || [];
+    _modPosts = posts;
+    // Update badge
+    const badge = $('mod-badge');
+    if (data.pendingCount > 0) {
+      badge.textContent = data.pendingCount;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+    grid.innerHTML = '';
+    if (posts.length === 0) {
+      grid.innerHTML = '<div class="mod-empty">' +
+        (_modSearch ? 'Aucun résultat pour « ' + escapeHtml(_modSearch) + ' »' :
+        _modFilter === 'pending' ? 'Aucun post en attente 👍' : 'Aucun post.') + '</div>';
+      return;
+    }
+    posts.forEach((p, idx) => {
+      const card = document.createElement('div');
+      card.className = 'mod-card';
+      card.dataset.id = p.id;
+      card.dataset.idx = idx;
+      const dt = new Date(p.created_at);
+      const dateStr = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      card.innerHTML =
+        '<div class="mod-check" title="Sélectionner (Espace)">✓</div>' +
+        '<img class="mod-card-img" loading="lazy" src="' + thumbUrl(p.image_url, 400) + '" alt="">' +
+        '<div class="mod-card-body">' +
+          '<div class="mod-card-user">' + escapeHtml(p.username || '—') + '</div>' +
+          '<div class="mod-card-email">' + escapeHtml(p.user_email) + '</div>' +
+          '<div class="mod-card-date">' + dateStr + '</div>' +
+          '<span class="mod-card-status ' + (p.approved ? 'approved' : 'pending') + '">' + (p.approved ? 'Approuvé' : 'En attente') + '</span>' +
+        '</div>' +
+        '<div class="mod-card-actions">' +
+          (p.approved
+            ? '<button class="mod-btn-ban" data-act="ban" title="Bloquer cet utilisateur">🚫 Bloquer</button>' +
+              '<button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>'
+            : '<button class="mod-btn-approve" data-act="approve">✓ Approuver</button>' +
+              '<button class="mod-btn-ban" data-act="ban" title="Bloquer cet utilisateur">🚫</button>' +
+              '<button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>') +
+        '</div>';
+      // Click image → lightbox with comparison if ref exists
+      card.querySelector('.mod-card-img').addEventListener('click', () => {
+        openModLightbox(p);
+      });
+      // Click username → user profile
+      card.querySelector('.mod-card-user').style.cursor = 'pointer';
+      card.querySelector('.mod-card-user').addEventListener('click', () => openUserProfile(p.user_email));
+      // Click check → toggle selection
+      card.querySelector('.mod-check').addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleModSelect(p.id, card);
+      });
+      // Action buttons
+      card.querySelectorAll('.mod-card-actions button').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const act = btn.dataset.act;
+          if (act === 'ban') {
+            if (!confirm('Bloquer l\'utilisateur ' + p.user_email + ' ?\nIl ne pourra plus publier.')) return;
+            try {
+              await callUserData('adminBanUser', { email: p.user_email });
+              toast('Utilisateur bloqué : ' + p.user_email, 'ok');
+            } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+            return;
+          }
+          if (act === 'approve') {
+            try {
+              await callUserData('adminApprovePost', { postId: p.id });
+              toast('Post approuvé', 'ok');
+              loadModerationPosts(); loadModerationStats();
+            } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+            return;
+          }
+          if (act === 'reject') {
+            openRejectReasonModal([p.id]);
+            return;
+          }
+        });
+      });
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = '<div class="mod-empty">Erreur : ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function toggleModSelect(id, card) {
+  if (_modSelected.has(id)) { _modSelected.delete(id); card.classList.remove('selected'); }
+  else { _modSelected.add(id); card.classList.add('selected'); }
+  updateModButtons();
+}
+
+function updateModButtons() {
+  const n = _modSelected.size;
+  $('mod-approve-all').disabled = n === 0;
+  $('mod-reject-all').disabled = n === 0;
+  $('mod-approve-all').textContent = n > 0 ? `✓ Approuver (${n})` : '✓ Approuver la sélection';
+  $('mod-reject-all').textContent = n > 0 ? `✕ Rejeter (${n})` : '✕ Rejeter la sélection';
+}
+
+// ── Feature 1: Lightbox with ref comparison ──
+function openModLightbox(post) {
+  const lb = $('lightbox');
+  const img = $('lightbox-img');
+  if (post.ref_image_url) {
+    // Side-by-side comparison
+    img.style.display = 'none';
+    let compare = lb.querySelector('.lightbox-compare');
+    if (!compare) {
+      compare = document.createElement('div');
+      compare.className = 'lightbox-compare';
+      lb.appendChild(compare);
+    }
+    compare.innerHTML =
+      '<div class="lightbox-compare-wrap">' +
+        '<img src="' + escapeHtml(post.ref_image_url) + '" alt="Référence">' +
+        '<div class="lightbox-compare-label">Référence</div>' +
+      '</div>' +
+      '<div class="lightbox-compare-wrap">' +
+        '<img src="' + escapeHtml(post.image_url) + '" alt="Dessin">' +
+        '<div class="lightbox-compare-label">Dessin de ' + escapeHtml(post.username || '?') + '</div>' +
+      '</div>';
+    compare.style.display = '';
+  } else {
+    img.src = post.image_url;
+    img.style.display = '';
+    const compare = lb.querySelector('.lightbox-compare');
+    if (compare) compare.style.display = 'none';
+  }
+  lb.classList.remove('hidden');
+}
+
+// Clean up compare view when lightbox closes
+(function () {
+  const origClose = $('lightbox-close');
+  origClose.addEventListener('click', () => {
+    const compare = $('lightbox').querySelector('.lightbox-compare');
+    if (compare) compare.style.display = 'none';
+    $('lightbox-img').style.display = '';
+  });
+})();
+
+// ── Feature 5: Keyboard shortcuts ──
+function modSetFocus(idx) {
+  if (_modPosts.length === 0) return;
+  // Clamp
+  if (idx < 0) idx = _modPosts.length - 1;
+  if (idx >= _modPosts.length) idx = 0;
+  _modFocusIdx = idx;
+  // Update visual
+  document.querySelectorAll('.mod-card.focused').forEach(c => c.classList.remove('focused'));
+  const card = $('mod-grid').querySelector(`.mod-card[data-idx="${idx}"]`);
+  if (card) {
+    card.classList.add('focused');
+    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  // Only active when moderation panel is visible
+  if ($('panel-moderation').classList.contains('hidden')) return;
+  // Don't intercept when typing in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    modSetFocus(_modFocusIdx + 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    modSetFocus(_modFocusIdx - 1);
+  } else if ((e.key === 'a' || e.key === 'A') && _modFocusIdx >= 0) {
+    e.preventDefault();
+    const p = _modPosts[_modFocusIdx];
+    if (p && !p.approved) {
+      callUserData('adminApprovePost', { postId: p.id })
+        .then(() => { toast('Post approuvé', 'ok'); loadModerationPosts(); loadModerationStats(); })
+        .catch(err => toast('Erreur : ' + err.message, 'err'));
+    }
+  } else if ((e.key === 'r' || e.key === 'R') && _modFocusIdx >= 0) {
+    e.preventDefault();
+    const p = _modPosts[_modFocusIdx];
+    if (p && confirm('Rejeter et supprimer ce post ?')) {
+      callUserData('adminRejectPost', { postId: p.id })
+        .then(() => { toast('Post rejeté', 'ok'); loadModerationPosts(); loadModerationStats(); })
+        .catch(err => toast('Erreur : ' + err.message, 'err'));
+    }
+  } else if (e.key === ' ' && _modFocusIdx >= 0) {
+    e.preventDefault();
+    const p = _modPosts[_modFocusIdx];
+    const card = $('mod-grid').querySelector(`.mod-card[data-idx="${_modFocusIdx}"]`);
+    if (p && card) toggleModSelect(p.id, card);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Filter buttons
+  document.querySelectorAll('.mod-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _modFilter = btn.dataset.filter;
+      document.querySelectorAll('.mod-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+      loadModerationPosts();
+    });
+  });
+  // Search input with debounce
+  $('mod-search').addEventListener('input', () => {
+    clearTimeout(_modSearchTimer);
+    _modSearchTimer = setTimeout(() => {
+      _modSearch = $('mod-search').value.trim();
+      loadModerationPosts();
+    }, 400);
+  });
+  // Batch approve
+  $('mod-approve-all').addEventListener('click', async () => {
+    if (_modSelected.size === 0) return;
+    try {
+      await callUserData('adminApprovePost', { postIds: [..._modSelected] });
+      toast(`${_modSelected.size} post(s) approuvé(s)`, 'ok');
+      loadModerationPosts();
+      loadModerationStats();
+    } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+  });
+  // Batch reject — now with reason modal
+  $('mod-reject-all').addEventListener('click', () => {
+    if (_modSelected.size === 0) return;
+    openRejectReasonModal([..._modSelected]);
+  });
+  // Speed review button
+  $('mod-speed-btn').addEventListener('click', openSpeedReview);
+  // Moderation log button
+  $('mod-log-btn').addEventListener('click', openModerationLog);
+  // Banned users button
+  $('mod-banned-btn').addEventListener('click', openBannedList);
+});
+
+// ── Feature 2: Speed Review ──────────────────────────────────────────────
+let _speedIdx = 0;
+let _speedPosts = [];
+
+function openSpeedReview() {
+  // Get pending posts only
+  _speedPosts = _modPosts.filter(p => !p.approved);
+  if (_speedPosts.length === 0) { toast('Aucun post en attente', 'err'); return; }
+  _speedIdx = 0;
+  renderSpeedReview();
+  $('speed-review').classList.remove('hidden');
+}
+
+function renderSpeedReview() {
+  const p = _speedPosts[_speedIdx];
+  if (!p) { closeSpeedReview(); return; }
+  $('speed-counter').textContent = (_speedIdx + 1) + ' / ' + _speedPosts.length;
+  $('speed-img').src = p.image_url;
+  $('speed-user').textContent = p.username || '—';
+  $('speed-user').onclick = () => { closeSpeedReview(); openUserProfile(p.user_email); };
+  $('speed-email').textContent = p.user_email;
+  $('speed-date').textContent = new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  if (p.ref_image_url) {
+    $('speed-ref').classList.remove('hidden');
+    $('speed-ref-img').src = thumbUrl(p.ref_image_url, 160);
+  } else {
+    $('speed-ref').classList.add('hidden');
+  }
+}
+
+function closeSpeedReview() {
+  $('speed-review').classList.add('hidden');
+  loadModerationPosts();
+  loadModerationStats();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('speed-close').addEventListener('click', closeSpeedReview);
+  $('speed-approve').addEventListener('click', async () => {
+    const p = _speedPosts[_speedIdx];
+    if (!p) return;
+    try {
+      await callUserData('adminApprovePost', { postId: p.id });
+      toast('Approuvé', 'ok');
+      _speedPosts.splice(_speedIdx, 1);
+      if (_speedIdx >= _speedPosts.length) _speedIdx = Math.max(0, _speedPosts.length - 1);
+      if (_speedPosts.length === 0) { closeSpeedReview(); toast('Tous les posts traités !', 'ok'); }
+      else renderSpeedReview();
+    } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+  });
+  $('speed-reject').addEventListener('click', () => {
+    const p = _speedPosts[_speedIdx];
+    if (!p) return;
+    openRejectReasonModal([p.id], true);
+  });
+});
+
+// Speed review keyboard (A/R) — handled in the existing keydown listener via speed-review visibility
+const _origKeydown = document.addEventListener;
+document.addEventListener('keydown', (e) => {
+  if ($('speed-review').classList.contains('hidden')) return;
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'a' || e.key === 'A') { e.preventDefault(); $('speed-approve').click(); }
+  else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); $('speed-reject').click(); }
+  else if (e.key === 'Escape') { e.preventDefault(); closeSpeedReview(); }
+});
+
+// ── Feature 4: User Profile modal ────────────────────────────────────────
+async function openUserProfile(targetEmail) {
+  $('user-profile-modal').classList.remove('hidden');
+  $('up-title').textContent = 'Chargement…';
+  $('up-info').innerHTML = '';
+  $('up-actions').innerHTML = '';
+  $('up-grid').innerHTML = '';
+  $('up-logs').innerHTML = '';
+  $('up-post-count').textContent = '…';
+  try {
+    const data = await callUserData('adminGetUserProfile', { email: targetEmail });
+    const p = data.profile || {};
+    $('up-title').textContent = p.username || targetEmail;
+    // Info badges
+    let infoHtml = '<span class="up-info-item"><strong>' + escapeHtml(targetEmail) + '</strong></span>';
+    if (p.banned) infoHtml += '<span class="up-tag banned">Banni</span>';
+    if (data.trusted) infoHtml += '<span class="up-tag trusted">Confiance</span>';
+    infoHtml += '<span class="up-tag ' + (p.plan === 'pro' ? 'pro' : 'free') + '">' + (p.plan === 'pro' ? 'Pro' : 'Free') + '</span>';
+    infoHtml += '<span class="up-info-item">' + data.approvedCount + ' post(s) approuvé(s)</span>';
+    $('up-info').innerHTML = infoHtml;
+    // Actions
+    let actHtml = '';
+    if (p.banned) {
+      actHtml += '<button class="btn-secondary" id="up-unban">Débloquer</button>';
+    } else {
+      actHtml += '<button class="mod-btn-ban btn-secondary" id="up-ban" style="border:1px solid var(--border);padding:8px 16px;">🚫 Bloquer</button>';
+    }
+    $('up-actions').innerHTML = actHtml;
+    if (p.banned) {
+      $('up-unban').addEventListener('click', async () => {
+        try {
+          await callUserData('adminUnbanUser', { email: targetEmail });
+          toast('Utilisateur débloqué', 'ok');
+          openUserProfile(targetEmail);
+        } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      });
+    } else {
+      $('up-ban').addEventListener('click', async () => {
+        if (!confirm('Bloquer ' + targetEmail + ' ?')) return;
+        try {
+          await callUserData('adminBanUser', { email: targetEmail });
+          toast('Utilisateur bloqué', 'ok');
+          openUserProfile(targetEmail);
+        } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      });
+    }
+    // Posts grid
+    $('up-post-count').textContent = (data.posts || []).length;
+    const grid = $('up-grid');
+    grid.innerHTML = '';
+    (data.posts || []).forEach(post => {
+      const card = document.createElement('div');
+      card.className = 'grid-item';
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.src = thumbUrl(post.image_url, 200);
+      card.appendChild(img);
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.innerHTML = '<span class="mod-card-status ' + (post.approved ? 'approved' : 'pending') + '">' + (post.approved ? '✓' : '⏳') + '</span>';
+      card.appendChild(label);
+      card.addEventListener('click', () => {
+        $('lightbox-img').src = post.image_url;
+        $('lightbox-img').style.display = '';
+        const compare = $('lightbox').querySelector('.lightbox-compare');
+        if (compare) compare.style.display = 'none';
+        $('lightbox').classList.remove('hidden');
+      });
+      grid.appendChild(card);
+    });
+    if ((data.posts || []).length === 0) grid.innerHTML = '<div class="mod-empty">Aucun post.</div>';
+    // Logs
+    const logs = $('up-logs');
+    logs.innerHTML = '';
+    (data.logs || []).forEach(l => {
+      const row = document.createElement('div');
+      row.className = 'up-log-row';
+      const dt = new Date(l.created_at);
+      row.innerHTML =
+        '<span class="up-log-action ' + l.action + '">' + l.action.toUpperCase() + '</span>' +
+        (l.reason ? '<span class="up-log-reason">' + escapeHtml(l.reason) + '</span>' : '') +
+        '<span class="up-log-date">' + dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</span>';
+      logs.appendChild(row);
+    });
+    if ((data.logs || []).length === 0) logs.innerHTML = '<div class="mod-empty" style="padding:12px;">Aucun historique.</div>';
+  } catch (e) {
+    $('up-title').textContent = 'Erreur';
+    $('up-info').textContent = e.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('up-close').addEventListener('click', () => $('user-profile-modal').classList.add('hidden'));
+});
+
+// ── Feature 3: Moderation Log ────────────────────────────────────────────
+async function openModerationLog() {
+  $('mod-log-modal').classList.remove('hidden');
+  const list = $('mod-log-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('adminGetModerationLog', { limit: 100 });
+    const logs = data.logs || [];
+    list.innerHTML = '';
+    if (logs.length === 0) { list.innerHTML = '<div class="audit-empty">Aucune action enregistrée.</div>'; return; }
+    logs.forEach(l => {
+      const row = document.createElement('div');
+      row.className = 'mod-log-row';
+      const dt = new Date(l.created_at);
+      row.innerHTML =
+        '<span class="mod-log-action ' + l.action + '">' + l.action.toUpperCase() + '</span>' +
+        '<span class="mod-log-target">' + escapeHtml(l.target_email || '—') + '</span>' +
+        (l.reason ? '<span class="mod-log-reason">' + escapeHtml(l.reason) + '</span>' : '<span class="mod-log-reason"></span>') +
+        '<span class="mod-log-date">' + dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</span>';
+      // Click target email → open user profile
+      row.querySelector('.mod-log-target').addEventListener('click', () => {
+        if (l.target_email) { $('mod-log-modal').classList.add('hidden'); openUserProfile(l.target_email); }
+      });
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = 'Erreur : ' + e.message; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('mod-log-close').addEventListener('click', () => $('mod-log-modal').classList.add('hidden'));
+});
+
+// ── Banned users list ─────────────────────────────────────────────────────
+async function openBannedList() {
+  $('banned-modal').classList.remove('hidden');
+  const list = $('banned-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('adminListBannedUsers');
+    const users = data.users || [];
+    list.innerHTML = '';
+    if (users.length === 0) { list.innerHTML = '<div class="audit-empty">Aucun utilisateur banni.</div>'; return; }
+    users.forEach(u => {
+      const row = document.createElement('div');
+      row.className = 'banned-row';
+      row.innerHTML =
+        '<div class="banned-info">' +
+          '<div class="banned-username">' + escapeHtml(u.username || '—') + '</div>' +
+          '<div class="banned-email">' + escapeHtml(u.email) + '</div>' +
+        '</div>';
+      const btn = document.createElement('button');
+      btn.className = 'btn-secondary';
+      btn.textContent = 'Débloquer';
+      btn.addEventListener('click', async () => {
+        if (!confirm('Débloquer ' + u.email + ' ?')) return;
+        try {
+          await callUserData('adminUnbanUser', { email: u.email });
+          toast('Utilisateur débloqué : ' + u.email, 'ok');
+          openBannedList();
+        } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      });
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = 'Erreur : ' + e.message; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('banned-close').addEventListener('click', () => $('banned-modal').classList.add('hidden'));
+});
+
+// ── Feature 6: Reject reason modal ───────────────────────────────────────
+let _rejectPostIds = [];
+let _rejectFromSpeed = false;
+
+function openRejectReasonModal(postIds, fromSpeed = false) {
+  _rejectPostIds = postIds;
+  _rejectFromSpeed = fromSpeed;
+  $('reject-reason-input').value = '';
+  document.querySelectorAll('.reject-tag').forEach(t => t.classList.remove('active'));
+  $('reject-reason-modal').classList.remove('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('reject-reason-cancel').addEventListener('click', () => {
+    $('reject-reason-modal').classList.add('hidden');
+  });
+  $('reject-reason-ok').addEventListener('click', async () => {
+    const reason = $('reject-reason-input').value.trim() || null;
+    $('reject-reason-modal').classList.add('hidden');
+    try {
+      if (_rejectPostIds.length === 1) {
+        await callUserData('adminRejectPost', { postId: _rejectPostIds[0], reason });
+      } else {
+        await callUserData('adminRejectPost', { postIds: _rejectPostIds, reason });
+      }
+      toast(_rejectPostIds.length + ' post(s) rejeté(s)', 'ok');
+      if (_rejectFromSpeed) {
+        // Remove from speed list and continue
+        const idx = _speedPosts.findIndex(p => p.id === _rejectPostIds[0]);
+        if (idx >= 0) _speedPosts.splice(idx, 1);
+        if (_speedIdx >= _speedPosts.length) _speedIdx = Math.max(0, _speedPosts.length - 1);
+        if (_speedPosts.length === 0) { closeSpeedReview(); toast('Tous les posts traités !', 'ok'); }
+        else renderSpeedReview();
+      } else {
+        loadModerationPosts();
+        loadModerationStats();
+      }
+    } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+  });
+  // Enter to confirm
+  $('reject-reason-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $('reject-reason-ok').click(); }
+  });
+  // Tag clicks → fill input + toggle active
+  document.querySelectorAll('.reject-tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      document.querySelectorAll('.reject-tag').forEach(t => t.classList.remove('active'));
+      tag.classList.add('active');
+      $('reject-reason-input').value = tag.dataset.reason;
+    });
+  });
+  // Typing in input clears active tag
+  $('reject-reason-input').addEventListener('input', () => {
+    document.querySelectorAll('.reject-tag').forEach(t => t.classList.remove('active'));
   });
 });
 

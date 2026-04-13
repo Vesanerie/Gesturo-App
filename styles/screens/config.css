@@ -123,6 +123,35 @@
 .cat-chip.anim-cat.selected { background: #5b9bd5; color: #111; border-color: #5b9bd5; }
 .cat-count { font-size: 11px; opacity: 0.6; }
 
+/* Bouton retour catégories/séquences */
+.cat-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #0d1825;
+  border: 0.5px solid #1e2d40;
+  border-radius: 8px;
+  color: #5b9bd5;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px 7px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.cat-back-btn:hover {
+  background: #162030;
+  border-color: #2983eb;
+}
+.cat-back-btn:active {
+  transform: scale(0.97);
+}
+.cat-back-arrow {
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1;
+  color: #2983eb;
+}
+
 /* Modes principaux */
 .mode-tabs { display: flex; gap: 0; border: 0.5px solid #1e2d40; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
 .mode-tab { flex: 1 1 0; min-width: 0; padding: 12px 8px; text-align: center; font-size: 13px; font-weight: 500; cursor: pointer; background: #0f1923; color: #3a5570; border: none; line-height: 1; height: 52px; display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -180,7 +209,20 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
    ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
    ───────────────────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
-  #screen-config { padding: 20px 14px; }
+  #screen-config { padding: calc(env(safe-area-inset-top, 0px) + 20px) 14px 20px; position: relative; }
+  /* Fond opaque sous la status bar iOS — reste fixe quand on scroll */
+  #screen-config::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(env(safe-area-inset-top, 0px));
+    margin: calc(-1 * (env(safe-area-inset-top, 0px) + 20px)) -14px 20px;
+    background: #0f1923;
+    z-index: 50;
+    flex-shrink: 0;
+  }
   .config-inner {
     width: 100%;
     max-width: 100%;
@@ -302,6 +344,15 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     padding-bottom: 0;
   }
 
+  /* Bouton retour catégories : plus gros, tap zone 44px */
+  .cat-back-btn {
+    min-height: 44px;
+    padding: 10px 16px 10px 12px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .cat-back-arrow { font-size: 20px; }
+
   /* Tap zones ≥44px sur les contrôles Pose/Anim */
   #screen-config .cat-chip {
     min-height: 44px;
@@ -392,6 +443,34 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
 }
 
 /* ─────────────────────────────────────────────────────────────────────
+   LANDSCAPE PHONE — Config (hauteur ≤500px, orientation paysage)
+
+   Sur téléphone en paysage, la hauteur est très limitée (~320-400px).
+   On réduit paddings et on force le scroll pour que tout reste accessible.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+  #screen-config { padding: 12px 14px; }
+  .config-inner {
+    padding-bottom: 80px;
+  }
+  .config-inner h1 { font-size: 28px; margin-bottom: 4px; }
+  .config-inner .subtitle { font-size: 11px; margin-bottom: 10px; }
+
+  .card { margin-bottom: 8px; }
+  #screen-config .card h3 { padding: 12px 18px; min-height: 36px; }
+  #screen-config .card .card-body { padding: 0 18px 12px; }
+
+  .mode-tabs { margin-bottom: 8px; }
+  .mode-tab { height: 40px; font-size: 12px; }
+
+  #start-bar {
+    bottom: 0;
+    padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  }
+  #start-bar .btn-start { min-height: 44px; font-size: 14px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
    TABLET — Config (768-1199px, iPad portrait/landscape + Android tablets)
 
    Philosophie C : UI tablet repensée pour l'écran + le doigt.
@@ -417,8 +496,21 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
 
   /* ── Zone principale décalée de la largeur de la sidebar ── */
   #screen-config {
-    padding: 40px 32px 40px calc(var(--tablet-sidebar-width) + 40px);
+    padding: calc(env(safe-area-inset-top, 0px) + 40px) 32px 40px calc(var(--tablet-sidebar-width) + 40px);
     align-items: flex-start;
+    position: relative;
+  }
+  #screen-config::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(env(safe-area-inset-top, 0px));
+    margin: calc(-1 * (env(safe-area-inset-top, 0px) + 40px)) -32px 40px;
+    background: #0f1923;
+    z-index: 50;
+    flex-shrink: 0;
   }
   .config-inner {
     width: 100%;

@@ -6,10 +6,10 @@
   border-left: 3px solid #f0c040;
   border-radius: 10px;
   padding: 12px 16px;
-  z-index: 9999;
+  z-index: 1050;
   display: flex; align-items: center; gap: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--blur-md));
   animation: badge-slide-in 0.35s cubic-bezier(0.22,1,0.36,1);
   min-width: 240px; max-width: 300px;
   cursor: pointer;
@@ -45,8 +45,8 @@
 
 /* ── BADGE DETAIL OVERLAY ── */
 #badge-detail-overlay {
-  position: fixed; inset: 0; z-index: 10000;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  position: fixed; inset: 0; z-index: 1100;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(var(--blur-sm)); -webkit-backdrop-filter: blur(var(--blur-sm));
   display: flex; align-items: center; justify-content: center;
 }
 .badge-detail-card {

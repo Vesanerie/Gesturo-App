@@ -3,9 +3,9 @@
   position: fixed;
   inset: 0;
   background: rgba(5, 10, 18, 0.95);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 9998;
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,8 +116,13 @@
   justify-content: center;
 }
 
-.cc-draw-btn {
-  background: #2983eb;
+.cc-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.cc-draw-btn, .cc-share-btn {
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -127,8 +132,11 @@
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
 }
+.cc-draw-btn { background: #2983eb; }
 .cc-draw-btn:hover { background: #4499f5; }
-.cc-draw-btn:active { transform: scale(0.97); }
+.cc-share-btn { background: #1a2738; border: 0.5px solid #1e2d40; color: #c8d6e5; }
+.cc-share-btn:hover { background: #243448; }
+.cc-draw-btn:active, .cc-share-btn:active { transform: scale(0.97); }
 
 /* ── Mobile : stack images vertically ── */
 @media (max-width: 767px) {
@@ -136,8 +144,9 @@
   .cc-images { flex-direction: column; gap: 14px; }
   .cc-image-wrap img { max-height: 40vh; }
   .community-compare.cc-single .cc-image-wrap img { max-height: 70vh; }
-  .cc-close { top: 10px; right: 10px; }
-  .cc-draw-btn { min-height: 48px; width: 100%; max-width: 320px; }
+  .cc-close { top: calc(env(safe-area-inset-top, 0px) + 10px); right: 10px; width: 44px; height: 44px; font-size: 20px; }
+  .cc-actions { flex-direction: column; align-items: center; }
+  .cc-draw-btn, .cc-share-btn { min-height: 48px; width: 100%; max-width: 320px; }
 }
 
 /* ═══ COMMUNITY FEED ═══ */
@@ -172,7 +181,25 @@
 
 /* ═══ CHALLENGE ═══ */
 #challenge-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+/* Cartes compactes (2e challenge et suivants) */
+.challenge-card-compact {
+  border-color: #1e2d4088;
+}
+.challenge-card-compact .challenge-ref {
+  width: 72px;
+  height: 72px;
+}
+.challenge-card-compact .challenge-info h3 {
+  font-size: 13px;
+}
+.challenge-card-compact .challenge-label {
+  font-size: 9px;
 }
 .challenge-card {
   display: flex;
@@ -358,8 +385,8 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.15s;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
 }
 .community-post:hover .community-post-delete {
   opacity: 1;
@@ -442,8 +469,8 @@
   border-radius: 10px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
 }
 
 /* Ref row (community posts with reference image) */
@@ -488,7 +515,7 @@
   position: fixed;
   inset: 0;
   background: rgba(5,10,18,0.9);
-  z-index: 9999;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -609,8 +636,8 @@
   text-overflow: ellipsis;
   pointer-events: none;
   z-index: 10;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
   border: 0.5px solid #1e2d40;
 }
 .community-reaction-btn:hover .reaction-tooltip {
@@ -635,18 +662,63 @@
 @media (max-width: 767px) {
   #community-feed, #community-mine {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
+  }
+  .community-post {
+    border-radius: 8px;
+  }
+  .community-post-info {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .community-reactions {
+    padding: 2px 8px 6px;
+    gap: 2px;
   }
   .community-reaction-btn {
     min-height: 44px;
-    padding: 6px 12px;
-    font-size: 16px;
+    padding: 4px 10px;
+    font-size: 15px;
   }
   .community-tab {
     min-height: 44px;
     font-size: 14px;
   }
   .community-post-delete { opacity: 1; }
+  .community-post-ref {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .community-cta {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+  .my-posts-stats {
+    padding: 8px 10px;
+    gap: 10px;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .challenge-card {
+    padding: 10px;
+    gap: 10px;
+  }
+  .challenge-ref {
+    width: 80px;
+    height: 80px;
+  }
+  #challenge-banner { margin-bottom: 8px; }
+
+  /* Upload overlay : centrage + safe-area iOS */
+  #community-upload-overlay {
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px
+             calc(env(safe-area-inset-bottom, 0px) + 16px);
+  }
+  #community-upload-overlay .share-drawing-box {
+    margin: auto;
+    width: 100%;
+    max-width: 92vw;
+  }
 }
 
 /* ═══ LEADERBOARD ═══ */

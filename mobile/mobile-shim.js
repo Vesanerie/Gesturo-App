@@ -28,6 +28,22 @@
   };
 
   const openExternal = async (url) => {
+    // URLs avec apps natives connues → App.openUrl() pour déclencher
+    // les Universal Links iOS (ouvre Instagram/Discord/etc. nativement)
+    const nativeAppPatterns = [
+      /instagram\.com/i,
+      /discord\.gg/i,
+      /discord\.com/i,
+    ];
+    const shouldOpenNative = nativeAppPatterns.some(p => p.test(url));
+
+    if (shouldOpenNative && plugins.App && plugins.App.openUrl) {
+      try {
+        await plugins.App.openUrl({ url });
+        return;
+      } catch (e) { /* fall through to Browser */ }
+    }
+
     try {
       if (plugins.Browser && plugins.Browser.open) {
         await plugins.Browser.open({ url });
@@ -237,6 +253,11 @@
         return data || { success: false };
       } catch (e) { return { success: false }; }
     },
+    moderateCommunityPost: async (postId) => {
+      // Mobile sends base64 → moderation happens in submitCommunityPost directly.
+      // This is a no-op fallback for safety.
+      return { ok: true };
+    },
     getCommunityPosts: async () => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();
@@ -301,6 +322,96 @@
         const { data } = await sb.functions.invoke('daily-challenge');
         return data || { ok: false };
       } catch (e) { return { ok: false }; }
+    },
+
+    // ── Camera (Capacitor plugin, better quality than <input capture>) ──
+    // Returns { dataUrl, format } or null if cancelled.
+    // Falls back to null if plugin not available (caller should use <input> fallback).
+    capturePhoto: async () => {
+      const Camera = plugins.Camera;
+      if (!Camera || !Camera.getPhoto) return null;
+      try {
+        const photo = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: 'dataUrl',    // CameraResultType.DataUrl
+          source: 'PROMPT',         // CameraSource.Prompt — lets user pick camera or gallery
+        });
+        return { dataUrl: photo.dataUrl, format: photo.format || 'jpeg' };
+      } catch (e) {
+        // User cancelled or permission denied
+        return null;
+      }
+    },
+
+    // ── Share (native share sheet via Capacitor) ──
+    shareImage: async ({ imageUrl, text }) => {
+      const FS = plugins.Filesystem;
+      const SharePlugin = plugins.Share;
+
+      // Debug: identify what's available
+      const available = {
+        share: !!SharePlugin,
+        fs: !!FS,
+        allPlugins: Object.keys(plugins),
+      };
+      console.log('[shareImage] plugins:', JSON.stringify(available));
+
+      if (!FS) {
+        return { ok: false, error: 'Filesystem plugin missing. Plugins: ' + available.allPlugins.join(',') };
+      }
+
+      try {
+        // 1. Get base64 — proxy via Edge Function (iOS CORS blocks direct fetch to R2)
+        let base64;
+        if (imageUrl.startsWith('data:')) {
+          base64 = imageUrl.split(',')[1];
+          console.log('[shareImage] using provided data URL, length:', base64.length);
+        } else {
+          console.log('[shareImage] proxying image via Edge Function...');
+          const sb = await window.__gesturoAuth.getSupabase();
+          const { data } = await sb.functions.invoke('user-data', {
+            body: { action: 'proxyImage', payload: { imageUrl } }
+          });
+          if (!data || !data.base64) {
+            return { ok: false, error: 'proxy failed: ' + (data?.error || 'no data') };
+          }
+          base64 = data.base64;
+          console.log('[shareImage] proxied, base64 length:', base64.length);
+        }
+
+        // 2. Write to cache
+        const fileName = 'gesturo-drawing-' + Date.now() + '.jpg';
+        let saved;
+        try {
+          saved = await FS.writeFile({
+            path: fileName,
+            data: base64,
+            directory: 'CACHE',
+          });
+          console.log('[shareImage] saved:', JSON.stringify(saved));
+        } catch (fsErr) {
+          console.error('[shareImage] FS.writeFile failed:', JSON.stringify(fsErr), fsErr.message, String(fsErr));
+          return { ok: false, error: 'writeFile: ' + (fsErr.message || String(fsErr)) };
+        }
+
+        // 3. Share via native plugin
+        try {
+          await SharePlugin.share({
+            text: text || '',
+            files: [saved.uri],
+          });
+          return { ok: true };
+        } catch (shareErr) {
+          console.error('[shareImage] Share.share failed:', JSON.stringify(shareErr), shareErr.message, String(shareErr));
+          // If user cancelled, it's not an error
+          if (String(shareErr).includes('cancel') || String(shareErr).includes('dismiss')) return { ok: false };
+          return { ok: false, error: 'share: ' + (shareErr.message || String(shareErr)) };
+        }
+      } catch (e) {
+        console.error('[shareImage] outer error:', JSON.stringify(e), e.message, String(e));
+        return { ok: false, error: String(e) || e.message || 'unknown' };
+      }
     },
 
     // ── Moodboard webview path — N/A on mobile ──
