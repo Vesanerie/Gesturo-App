@@ -310,17 +310,20 @@ if (action === 'getStreak') {
     }
 
     if (action === 'getCommunityPosts') {
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 20, 1), 50);
+      const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
       const { data } = await admin
-        .from('community_posts').select('*')
+        .from('community_posts')
+        .select('id, user_email, username, image_key, ref_image_url, challenge_id, created_at')
         .eq('approved', true)
         .order('created_at', { ascending: false })
-        .limit(30);
+        .range(reqOffset, reqOffset + reqLimit - 1);
       const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
       const posts = (data || []).map((p: any) => ({
         ...p,
         image_url: r2Public ? `${r2Public}/${p.image_key}` : '',
       }));
-      return json({ posts });
+      return json({ posts, limit: reqLimit, offset: reqOffset });
     }
 
     if (action === 'deleteCommunityPost') {
@@ -426,14 +429,9 @@ if (action === 'getStreak') {
 
     // ── Community leaderboard ──
     if (action === 'getCommunityLeaderboard') {
-      const { data: postCounts } = await admin
-        .from('community_posts')
-        .select('user_email, username')
-        .eq('approved', true);
-
       const { data: allPosts } = await admin
         .from('community_posts')
-        .select('id, user_email')
+        .select('id, user_email, username')
         .eq('approved', true);
 
       const postIdToAuthor: Record<string, string> = {};
@@ -453,7 +451,7 @@ if (action === 'getStreak') {
       }
 
       const userMap: Record<string, { username: string; posts: number; reactions: number }> = {};
-      (postCounts || []).forEach((p: any) => {
+      (allPosts || []).forEach((p: any) => {
         if (!userMap[p.user_email]) userMap[p.user_email] = { username: p.username || p.user_email.split('@')[0], posts: 0, reactions: 0 };
         userMap[p.user_email].posts++;
       });
