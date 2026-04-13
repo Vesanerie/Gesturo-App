@@ -889,31 +889,50 @@ async function triggerDailyChallenge() {
 function renderChallengeBanner() {
   const banner = document.getElementById('challenge-banner')
   if (!_activeChallenges.length) { banner.style.display = 'none'; return }
-  const c = _activeChallenges[0]
   banner.style.display = ''
-  document.getElementById('challenge-title').textContent = c.title
-  document.getElementById('challenge-ref-img').src = c.ref_image_url
+  banner.innerHTML = ''
+  _activeChallenges.forEach((c, i) => {
+    const card = document.createElement('div')
+    card.className = 'challenge-card'
+    if (i > 0) card.classList.add('challenge-card-compact')
+    card.innerHTML = `
+      <div class="challenge-ref">
+        <img src="${c.ref_image_url || ''}" alt="Ref">
+      </div>
+      <div class="challenge-info">
+        <div class="challenge-label">CHALLENGE</div>
+        <h3>${c.title || ''}</h3>
+        <div class="challenge-deadline" data-challenge-id="${c.id}"></div>
+        <div class="challenge-participants" data-challenge-id="${c.id}"></div>
+        <button class="end-btn end-btn-share" onclick="participateChallenge('${c.id}')">Participer</button>
+      </div>
+    `
+    banner.appendChild(card)
+  })
   updateChallengeCountdown()
 }
 
 function updateChallengeCountdown() {
-  const el = document.getElementById('challenge-deadline')
-  if (!_activeChallenges.length || !el) return
-  const dl = new Date(_activeChallenges[0].deadline)
-  const diff = dl - new Date()
-  if (diff <= 0) { el.textContent = 'Dernière chance !'; return }
-  const days = Math.floor(diff / 86400000)
-  const hours = Math.floor((diff % 86400000) / 3600000)
-  if (days > 0) el.textContent = days + 'j ' + hours + 'h restants'
-  else el.textContent = hours + 'h restantes'
+  _activeChallenges.forEach(c => {
+    const el = document.querySelector(`.challenge-deadline[data-challenge-id="${c.id}"]`)
+    if (!el) return
+    const dl = new Date(c.deadline)
+    const diff = dl - new Date()
+    if (diff <= 0) { el.textContent = 'Dernière chance !'; return }
+    const days = Math.floor(diff / 86400000)
+    const hours = Math.floor((diff % 86400000) / 3600000)
+    if (days > 0) el.textContent = days + 'j ' + hours + 'h restants'
+    else el.textContent = hours + 'h restantes'
+  })
 }
 
 function updateChallengeParticipants(allPosts) {
-  const el = document.getElementById('challenge-participants')
-  if (!el || !_activeChallenges.length) { if (el) el.textContent = ''; return }
-  const cid = _activeChallenges[0].id
-  const count = allPosts.filter(p => p.challenge_id === cid).length
-  el.textContent = count > 0 ? count + ' participant' + (count > 1 ? 's' : '') : ''
+  _activeChallenges.forEach(c => {
+    const el = document.querySelector(`.challenge-participants[data-challenge-id="${c.id}"]`)
+    if (!el) return
+    const count = allPosts.filter(p => p.challenge_id === c.id).length
+    el.textContent = count > 0 ? count + ' participant' + (count > 1 ? 's' : '') : ''
+  })
 }
 
 function renderChallengeFilter() {
@@ -937,10 +956,11 @@ function filterByChallenge() {
 
 let _challengeSession = false
 
-function participateChallenge() {
-  if (!_activeChallenges.length) return
-  const c = _activeChallenges[0]
-  if (!c.ref_image_url) return
+function participateChallenge(challengeId) {
+  const c = challengeId
+    ? _activeChallenges.find(ch => ch.id === challengeId)
+    : _activeChallenges[0]
+  if (!c || !c.ref_image_url) return
   // Build a single-image session with the challenge ref
   sessionEntries = [{ type: 'image', path: c.ref_image_url, category: 'Challenge', isR2: true }]
   currentIndex = 0; sessionLog = []; _challengeSession = true

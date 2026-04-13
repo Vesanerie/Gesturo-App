@@ -172,7 +172,25 @@
 
 /* ═══ CHALLENGE ═══ */
 #challenge-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+/* Cartes compactes (2e challenge et suivants) */
+.challenge-card-compact {
+  border-color: #1e2d4088;
+}
+.challenge-card-compact .challenge-ref {
+  width: 72px;
+  height: 72px;
+}
+.challenge-card-compact .challenge-info h3 {
+  font-size: 13px;
+}
+.challenge-card-compact .challenge-label {
+  font-size: 9px;
 }
 .challenge-card {
   display: flex;
