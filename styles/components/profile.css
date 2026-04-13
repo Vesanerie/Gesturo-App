@@ -133,7 +133,15 @@
 /* ── Mobile ── */
 @media (max-width: 767px) {
   #profile-btn { display: none !important; }
+  .profile-overlay {
+    padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px
+             calc(env(safe-area-inset-bottom, 0px) + 20px);
+  }
   .profile-card { width: 92vw; }
+  .username-modal-overlay {
+    padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px
+             calc(env(safe-area-inset-bottom, 0px) + 24px);
+  }
   .username-modal-card { padding: 32px 24px; }
   .username-modal-title { font-size: 20px; }
   .username-modal-emoji { font-size: 44px; }
