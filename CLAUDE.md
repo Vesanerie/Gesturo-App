@@ -370,6 +370,20 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   Edge Functions OK, shim mobile OK. Reste à valider gestes tactiles +
   safe-area-inset + deep link auth sur device réel.
 
+### À faire plus tard
+- **Activer la modération auto des images communauté** — le code est en
+  place (`moderateImage()` dans `user-data/index.ts`, appels côté client
+  dans `src/app.js`, bridge dans `preload.js`/`main.js`/`mobile-shim.js`).
+  Utilise Claude Haiku 4.5 via l'API Anthropic (~$0.001/image).
+  **Il manque la clé API.** Pour activer :
+  1. Créer un compte sur [console.anthropic.com](https://console.anthropic.com)
+  2. Ajouter $5 de crédits (~5000 modérations)
+  3. Copier la clé API
+  4. `npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-api03-TA_CLE`
+  En attendant, le système est fail-open : sans clé, tous les posts
+  passent avec `approved = false` et la review manuelle via le panel
+  admin prend le relais.
+
 ### Backlog
 - **Phase D — Rotations planifiées** (admin web). Prêt côté DB (tables
   rotations + rotation_files créées). Reste à implémenter :
@@ -387,11 +401,28 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   pas urgent. main.js fait ~720 lignes, encore lisible.
 - **Vrai découpage modulaire de `src/app.js`** — monolithe global ~2148L.
   Nécessite import/export, virer globals, event delegation. Gros chantier.
-- **CI iOS** — Capacitor iOS scaffold pas encore généré.
+- **CI iOS** — Capacitor iOS scaffold généré (`df94eea`), workflow CI
+  pas encore créé.
 - **Tests** — il n'y en a pas. Pas une priorité pour un solo dev.
 
 ## Commits récents importants
 
+- `87448dc` feat(admin): 6 features modération UI — speed review, profil user, audit log
+- `bdf0d19` feat(community): bouton Partager sur la vue dessin (Web Share API)
+- `84b288b` feat(backend): 6 features modération — auto-approve, audit log, profil user
+- `2f59db1` feat(community): afficher tous les challenges actifs
+- `f605b0f` feat(backend): ban user, stats modération, recherche par user dans adminListPosts
+- `bd4b373` fix(ios): ouvrir Instagram/Discord dans l'app native via Universal Links
+- `ea58516` fix(mobile): empêcher le double-post community sur iOS
+- `94c4c11` fix(ios): safe-area-inset-top sur l'écran Config mobile
+- `dfee224` fix(mobile): tap-to-close + swipe-down + back button sur tous les overlays
+- `8933e2e` fix(mobile): community cards plus compactes sur phone
+- `cff6b19` feat(mobile): capturePhoto via plugin Camera Capacitor dans le shim
+- `a7545d0` fix(mobile): support landscape phone (max-height 500px)
+- `5c381e7` perf(user-data): réponses compactes — select explicite + fusion requête leaderboard
+- `9f179b1` feat(ios): meta tags Apple web app + theme-color
+- `92a1fff` fix(mobile): safe-area-inset sur modales auth, onboarding et profile
+- `8b4e82a` feat(ios): permissions caméra/photos + flag encryption dans Info.plist
 - `91c38db` perf(admin): augmenter concurrence archive/unarchive/move à 20 + overwrite:true
 - `48ec697` fix(tablet): hide moodboard pin button on mobile/tablet
 - `df94eea` feat(ios): add Capacitor iOS scaffold + deep link + iPad touch fixes

@@ -2,7 +2,7 @@
 // community posts, reactions.
 // Auth via Supabase JWT, DB writes via service role (bypasses RLS).
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { presignPut } from '../_shared/r2.ts';
+import { presignPut, putObject, deleteKeys } from '../_shared/r2.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +21,67 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin = createClient(SUPABASE_URL, SERVICE);
+
+// ── Image moderation via Claude Vision ────────────────────────────────────
+// Returns { ok, reason }. ok=true means the image is a drawing/painting and SFW.
+async function moderateImage(base64: string): Promise<{ ok: boolean; reason: string }> {
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!apiKey) {
+    // No key configured → skip moderation, let manual review handle it
+    console.warn('[moderation] ANTHROPIC_API_KEY not set, skipping auto-moderation');
+    return { ok: true, reason: 'moderation skipped (no API key)' };
+  }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/jpeg', data: base64 },
+            },
+            {
+              type: 'text',
+              text: `You are a content moderator for an art community app (gesture drawing / figure drawing).
+Analyze this image and respond with ONLY a JSON object, no other text:
+{"isArtwork": true/false, "isNSFW": true/false, "reason": "brief explanation"}
+
+Rules:
+- isArtwork = true if image is a drawing, painting, sketch, digital art, watercolor, charcoal, figure study, gesture drawing, or any hand-made artwork (even beginner level). Also true for photos OF artwork (e.g. a photo of a sketchbook page).
+- isArtwork = false if it's a selfie, random photo, meme, screenshot, text-only image, or clearly not artwork.
+- isNSFW = true ONLY for explicit sexual content, genitalia close-ups, or pornographic imagery. Artistic nudity (figure drawing, classical poses) is ALLOWED and should be isNSFW = false.
+- Be lenient on quality — bad drawings are still artwork.`,
+            },
+          ],
+        }],
+      }),
+    });
+    if (!res.ok) {
+      console.warn('[moderation] Claude API error:', res.status);
+      return { ok: true, reason: 'moderation error, allowing through' };
+    }
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return { ok: true, reason: 'could not parse response' };
+    const result = JSON.parse(match[0]);
+    if (result.isNSFW) return { ok: false, reason: result.reason || 'Contenu inapproprié détecté.' };
+    if (!result.isArtwork) return { ok: false, reason: result.reason || 'Cette image ne semble pas être un dessin ou une création artistique.' };
+    return { ok: true, reason: 'approved' };
+  } catch (e) {
+    console.warn('[moderation] error:', (e as Error).message);
+    return { ok: true, reason: 'moderation error, allowing through' };
+  }
+}
 
 async function getEmail(req: Request): Promise<string | null> {
   const auth = req.headers.get('Authorization') || '';
@@ -296,31 +357,86 @@ if (action === 'getStreak') {
 
     // ── Community posts ──
     if (action === 'submitCommunityPost') {
-      const { refImageUrl, username } = payload || {};
+      // Block banned users
+      const { data: prof } = await admin.from('profiles').select('banned').eq('email', email).maybeSingle();
+      if (prof?.banned) return json({ error: 'Votre compte est suspendu. Vous ne pouvez pas publier.' }, 403);
+      const { refImageUrl, username, imageBase64 } = payload || {};
       const key = `Community/${Date.now()}_${email.replace(/[^a-z0-9]/gi, '_')}.jpg`;
-      const uploadUrl = await presignPut(key, 'image/jpeg', 600);
+
+      // If imageBase64 is provided (mobile), moderate before uploading.
+      let uploadUrl: string | null = null;
+      if (imageBase64) {
+        const modResult = await moderateImage(imageBase64);
+        if (!modResult.ok) return json({ error: modResult.reason }, 400);
+        const bytes = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
+        await putObject(key, bytes, 'image/jpeg');
+      } else {
+        // Desktop: presigned URL flow. Moderation happens after upload via moderateCommunityPost.
+        uploadUrl = await presignPut(key, 'image/jpeg', 600);
+      }
+
+      // Auto-approve trusted users (>= 1 previously approved post)
+      const { count: approvedCount } = await admin.from('community_posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_email', email).eq('approved', true);
+      const autoApprove = (approvedCount || 0) >= 1;
+
       const { data: post, error } = await admin.from('community_posts').insert({
         user_email: email,
         username: username || email.split('@')[0],
         image_key: key,
         ref_image_url: refImageUrl || null,
+        approved: autoApprove,
       }).select('id').single();
       if (error) return json({ error: error.message }, 500);
-      return json({ uploadUrl, postId: post.id, imageKey: key });
+      return json({ uploadUrl, postId: post.id, imageKey: key, uploaded: !!imageBase64, needsModeration: !imageBase64, autoApproved: autoApprove });
+    }
+
+    // Desktop post-upload moderation: fetch image from R2 public URL, run vision check
+    if (action === 'moderateCommunityPost') {
+      const { postId } = payload || {};
+      if (!postId) return json({ error: 'missing postId' }, 400);
+      const { data: post } = await admin
+        .from('community_posts').select('id, image_key, user_email')
+        .eq('id', postId).eq('user_email', email).maybeSingle();
+      if (!post) return json({ error: 'post not found' }, 404);
+      const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
+      const imageUrl = `${r2Public}/${post.image_key}`;
+      try {
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) return json({ error: 'could not fetch image' }, 500);
+        const buf = await imgRes.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const modResult = await moderateImage(base64);
+        if (!modResult.ok) {
+          // Auto-reject: delete post + image
+          await admin.from('post_reactions').delete().eq('post_id', post.id);
+          await admin.from('community_posts').delete().eq('id', post.id);
+          await deleteKeys([post.image_key]);
+          return json({ ok: false, reason: modResult.reason });
+        }
+        return json({ ok: true });
+      } catch (e) {
+        // If moderation fails, don't block — manual review will handle it
+        return json({ ok: true, reason: 'moderation error, allowing through' });
+      }
     }
 
     if (action === 'getCommunityPosts') {
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 20, 1), 50);
+      const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
       const { data } = await admin
-        .from('community_posts').select('*')
+        .from('community_posts')
+        .select('id, user_email, username, image_key, ref_image_url, challenge_id, created_at')
         .eq('approved', true)
         .order('created_at', { ascending: false })
-        .limit(30);
+        .range(reqOffset, reqOffset + reqLimit - 1);
       const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
       const posts = (data || []).map((p: any) => ({
         ...p,
         image_url: r2Public ? `${r2Public}/${p.image_key}` : '',
       }));
-      return json({ posts });
+      return json({ posts, limit: reqLimit, offset: reqOffset });
     }
 
     if (action === 'deleteCommunityPost') {
@@ -426,14 +542,9 @@ if (action === 'getStreak') {
 
     // ── Community leaderboard ──
     if (action === 'getCommunityLeaderboard') {
-      const { data: postCounts } = await admin
-        .from('community_posts')
-        .select('user_email, username')
-        .eq('approved', true);
-
       const { data: allPosts } = await admin
         .from('community_posts')
-        .select('id, user_email')
+        .select('id, user_email, username')
         .eq('approved', true);
 
       const postIdToAuthor: Record<string, string> = {};
@@ -453,7 +564,7 @@ if (action === 'getStreak') {
       }
 
       const userMap: Record<string, { username: string; posts: number; reactions: number }> = {};
-      (postCounts || []).forEach((p: any) => {
+      (allPosts || []).forEach((p: any) => {
         if (!userMap[p.user_email]) userMap[p.user_email] = { username: p.username || p.user_email.split('@')[0], posts: 0, reactions: 0 };
         userMap[p.user_email].posts++;
       });
@@ -488,6 +599,168 @@ if (action === 'getStreak') {
       const reactionsGivenCount = (myReactions || []).length;
 
       return json({ postsCount, reactionsGivenCount, challengesCount });
+    }
+
+    // ── Admin: community moderation ──
+    if (action === 'adminListPosts') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const filter = payload?.filter || 'pending'; // 'pending' | 'approved' | 'all'
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 50, 1), 200);
+      const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
+      const search = (payload?.search || '').trim().toLowerCase();
+      let query = admin
+        .from('community_posts')
+        .select('id, user_email, username, image_key, ref_image_url, challenge_id, approved, created_at')
+        .order('created_at', { ascending: false })
+        .range(reqOffset, reqOffset + reqLimit - 1);
+      if (filter === 'pending') query = query.eq('approved', false);
+      else if (filter === 'approved') query = query.eq('approved', true);
+      if (search) query = query.or(`username.ilike.%${search}%,user_email.ilike.%${search}%`);
+      const { data, error } = await query;
+      if (error) return json({ error: error.message }, 500);
+      const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
+      const posts = (data || []).map((p: any) => ({
+        ...p,
+        image_url: r2Public ? `${r2Public}/${p.image_key}` : '',
+      }));
+      // Count pending for badge
+      const { count } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('approved', false);
+      return json({ posts, pendingCount: count || 0, limit: reqLimit, offset: reqOffset });
+    }
+
+    if (action === 'adminApprovePost') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const postIds = Array.isArray(payload?.postIds) ? payload.postIds : [payload?.postId].filter(Boolean);
+      if (!postIds.length) return json({ error: 'missing postId(s)' }, 400);
+      // Get target emails for logging
+      const { data: targets } = await admin.from('community_posts').select('id, user_email').in('id', postIds);
+      const { error } = await admin.from('community_posts').update({ approved: true }).in('id', postIds);
+      if (error) return json({ error: error.message }, 500);
+      // Log moderation action (silent fail if table doesn't exist)
+      try {
+        for (const t of (targets || [])) {
+          await admin.from('moderation_log').insert({ admin_email: email, action: 'approve', target_email: t.user_email, post_id: t.id });
+        }
+      } catch {}
+      return json({ ok: true, count: postIds.length });
+    }
+
+    if (action === 'adminRejectPost') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const postIds = Array.isArray(payload?.postIds) ? payload.postIds : [payload?.postId].filter(Boolean);
+      if (!postIds.length) return json({ error: 'missing postId(s)' }, 400);
+      const reason = payload?.reason || null;
+      // Get image keys + emails before deleting
+      const { data: posts } = await admin.from('community_posts').select('id, image_key, user_email').in('id', postIds);
+      const keys = (posts || []).map((p: any) => p.image_key).filter(Boolean);
+      // Delete reactions, then posts
+      await admin.from('post_reactions').delete().in('post_id', postIds);
+      await admin.from('community_posts').delete().in('id', postIds);
+      // Delete R2 images (silent fail)
+      try { if (keys.length) await deleteKeys(keys); } catch {}
+      // Log moderation action (silent fail if table doesn't exist)
+      try {
+        for (const t of (posts || [])) {
+          await admin.from('moderation_log').insert({ admin_email: email, action: 'reject', target_email: t.user_email, post_id: t.id, reason });
+        }
+      } catch {}
+      return json({ ok: true, count: postIds.length, deletedImages: keys.length });
+    }
+
+    if (action === 'adminBanUser') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      const { error } = await admin.from('profiles').update({ banned: true }).eq('email', targetEmail);
+      if (error) return json({ error: error.message }, 500);
+      try { await admin.from('moderation_log').insert({ admin_email: email, action: 'ban', target_email: targetEmail }); } catch {}
+      return json({ ok: true });
+    }
+
+    if (action === 'adminUnbanUser') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      const { error } = await admin.from('profiles').update({ banned: false }).eq('email', targetEmail);
+      if (error) return json({ error: error.message }, 500);
+      try { await admin.from('moderation_log').insert({ admin_email: email, action: 'unban', target_email: targetEmail }); } catch {}
+      return json({ ok: true });
+    }
+
+    if (action === 'adminListBannedUsers') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { data } = await admin.from('profiles')
+        .select('email, username, banned, created_at')
+        .eq('banned', true)
+        .order('email');
+      return json({ users: data || [] });
+    }
+
+    if (action === 'adminGetUserProfile') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      const { data: prof } = await admin.from('profiles').select('username, email, banned, plan, created_at').eq('email', targetEmail).maybeSingle();
+      const { data: allPosts } = await admin.from('community_posts')
+        .select('id, image_key, approved, challenge_id, created_at')
+        .eq('user_email', targetEmail).order('created_at', { ascending: false });
+      const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
+      const posts = (allPosts || []).map((p: any) => ({ ...p, image_url: r2Public ? `${r2Public}/${p.image_key}` : '' }));
+      const { count: approvedCount } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('user_email', targetEmail).eq('approved', true);
+      let logs: any[] = [];
+      try {
+        const { data: logData } = await admin.from('moderation_log')
+          .select('action, reason, created_at, admin_email')
+          .eq('target_email', targetEmail).order('created_at', { ascending: false }).limit(20);
+        logs = logData || [];
+      } catch {}
+      return json({ profile: prof, posts, approvedCount: approvedCount || 0, trusted: (approvedCount || 0) >= 1, logs });
+    }
+
+    if (action === 'adminGetModerationLog') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 50, 1), 200);
+      let logs: any[] = [];
+      try {
+        const { data: logData } = await admin.from('moderation_log')
+          .select('*').order('created_at', { ascending: false }).limit(reqLimit);
+        logs = logData || [];
+      } catch {}
+      return json({ logs });
+    }
+
+    if (action === 'adminModerationStats') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayISO = todayStart.toISOString();
+      const { count: pending } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('approved', false);
+      const { count: approvedToday } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('approved', true).gte('created_at', todayISO);
+      const { count: totalApproved } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('approved', true);
+      const { count: totalPosts } = await admin.from('community_posts').select('id', { count: 'exact', head: true });
+      return json({ pending: pending || 0, approvedToday: approvedToday || 0, totalApproved: totalApproved || 0, totalPosts: totalPosts || 0 });
+    }
+
+    // ── Proxy image as base64 (mobile can't fetch R2 due to CORS) ──
+    if (action === 'proxyImage') {
+      const { imageUrl } = payload || {};
+      if (!imageUrl) return json({ error: 'missing imageUrl' }, 400);
+      const resp = await fetch(imageUrl);
+      if (!resp.ok) return json({ error: 'fetch failed: ' + resp.status }, 502);
+      const buf = await resp.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      return json({ base64, contentType: resp.headers.get('content-type') || 'image/jpeg' });
     }
 
     return json({ error: 'unknown action' }, 400);

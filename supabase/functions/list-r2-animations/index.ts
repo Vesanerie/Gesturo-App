@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       }
     }
     return new Response(JSON.stringify(results), {
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
     });
   } catch (e) {
     if (e instanceof Response) return e;

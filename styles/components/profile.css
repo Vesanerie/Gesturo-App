@@ -12,7 +12,7 @@
 .profile-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6);
   display: flex; align-items: center; justify-content: center;
-  z-index: 9000;
+  z-index: 1000;
 }
 .profile-card {
   background: #141e2a; border: 0.5px solid #1e2d40; border-radius: 16px;
@@ -73,9 +73,9 @@
 
 /* ═══ CHOOSE USERNAME MODAL (post-Google signup) ═══ */
 .username-modal-overlay {
-  position: fixed; inset: 0; z-index: 10001;
+  position: fixed; inset: 0; z-index: 1100;
   background: rgba(5, 12, 20, 0.85);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--blur-sm)); -webkit-backdrop-filter: blur(var(--blur-sm));
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -133,7 +133,15 @@
 /* ── Mobile ── */
 @media (max-width: 767px) {
   #profile-btn { display: none !important; }
+  .profile-overlay {
+    padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px
+             calc(env(safe-area-inset-bottom, 0px) + 20px);
+  }
   .profile-card { width: 92vw; }
+  .username-modal-overlay {
+    padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px
+             calc(env(safe-area-inset-bottom, 0px) + 24px);
+  }
   .username-modal-card { padding: 32px 24px; }
   .username-modal-title { font-size: 20px; }
   .username-modal-emoji { font-size: 44px; }

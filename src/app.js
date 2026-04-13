@@ -146,18 +146,20 @@ window.addEventListener('DOMContentLoaded', () => {
           else document.getElementById('auth-msg').textContent = result?.message || result?.reason || 'Connexion échouée'
         }).catch(e => document.getElementById('auth-msg').textContent = e.message)
       })
-      document.getElementById('btn-email-login').addEventListener('click', () => {
+      document.getElementById('btn-email-login').addEventListener('click', function() {
+        const btn = this
         const email = document.getElementById('auth-email').value.trim()
         const password = document.getElementById('auth-password').value
         const msg = document.getElementById('auth-msg')
         if (!email || !password) { msg.textContent = 'Email et mot de passe requis'; return }
-        msg.textContent = 'Connexion...'
+        btn.disabled = true; msg.textContent = 'Connexion...'
         window.electronAPI.authEmail({ email, password }).then(result => {
           if (result?.success) location.reload()
-          else msg.textContent = result?.message || 'Connexion échouée'
-        }).catch(e => msg.textContent = e.message)
+          else { msg.textContent = result?.message || 'Connexion échouée'; btn.disabled = false }
+        }).catch(e => { msg.textContent = e.message; btn.disabled = false })
       })
-      document.getElementById('btn-email-signup').addEventListener('click', () => {
+      document.getElementById('btn-email-signup').addEventListener('click', function() {
+        const btn = this
         const username = document.getElementById('auth-signup-username').value.trim()
         const email = document.getElementById('auth-signup-email').value.trim()
         const password = document.getElementById('auth-signup-password').value
@@ -165,12 +167,12 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!username) { msg.textContent = 'Choisis un pseudo'; return }
         if (!email || !password) { msg.textContent = 'Email et mot de passe requis'; return }
         if (password.length < 6) { msg.textContent = 'Mot de passe trop court (6 car. min)'; return }
-        msg.textContent = 'Inscription...'
+        btn.disabled = true; msg.textContent = 'Inscription...'
         window.electronAPI.authSignup({ email, password, username }).then(result => {
           if (result?.needsConfirmation) { msg.textContent = 'Vérifie tes emails pour confirmer ton compte !'; msg.style.color = '#2ecc71'; return }
           if (result?.success) location.reload()
-          else msg.textContent = result?.message || 'Inscription échouée'
-        }).catch(e => msg.textContent = e.message)
+          else { msg.textContent = result?.message || 'Inscription échouée'; btn.disabled = false }
+        }).catch(e => { msg.textContent = e.message; btn.disabled = false })
       })
       document.getElementById('auth-password').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') document.getElementById('btn-email-login').click()
@@ -249,12 +251,12 @@ async function openMoodboard() {
     try {
       const p = await window.electronAPI.getMoodboardPreloadPath()
       if (p) wv.setAttribute('preload', 'file://' + p)
-    } catch (e) { console.warn('moodboard preload path failed', e) }
+    } catch (e) {  }
     wv.setAttribute('src', 'moodboard/index.html')
     moodboardLoaded = true
   } else if (moodboardNeedsRefresh) {
     // A project was created/modified from outside the webview — reload it
-    try { wv.reload() } catch (e) { console.warn('moodboard reload failed', e) }
+    try { wv.reload() } catch (e) {  }
     moodboardNeedsRefresh = false
   }
   showScreen('screen-moodboard')
@@ -418,7 +420,7 @@ async function loadR2(isPro) {
     if (r2Status) r2Status.textContent = allEntries.length + ' photos chargées ✓'
     document.getElementById('btn-start').disabled = allEntries.length === 0
   } catch(e) {
-    console.error('loadR2 error:', e)
+    
     const msg = (e && e.message) || String(e)
     // Si l'Edge Function renvoie 401, c'est généralement une session expirée
     // ou un compte sans entrée profiles. On le dit clairement au user au lieu
@@ -498,7 +500,7 @@ function renderCategories(parentCat = null) {
   const header = document.createElement('div')
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentCat) {
-    header.innerHTML = `<button onclick="renderCategories(null)" style="background:transparent;border:none;color:#5b9bd5;font-size:13px;cursor:pointer;padding:0;">← ${getCatLabel(parentCat)}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Sous-collections</span>`
+    header.innerHTML = `<button class="cat-back-btn" onclick="renderCategories(null)"><span class="cat-back-arrow">‹</span> ${getCatLabel(parentCat)}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Sous-collections</span>`
   } else {
     const allSelected = cats.every(c => selectedCats.has(c))
     header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Collections</span><button id="cat-all" onclick="toggleAllCats()" style="font-size:12px;background:transparent;border:0.5px solid #1e2d40;border-radius:6px;color:${allSelected ? '#2983eb' : '#3a5570'};padding:4px 10px;cursor:pointer;">${allSelected ? '✓ Tout' : 'Tout sélectionner'}</button>`
@@ -603,7 +605,7 @@ function renderSequences(parentPath = null) {
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentPath) {
     const label = parentPath.split('/').pop()
-    header.innerHTML = `<button onclick="renderSequences(${parentPath.split('/').slice(0,-1).join('/') ? "'"+parentPath.split('/').slice(0,-1).join('/')+"'" : 'null'})" style="background:transparent;border:none;color:#5b9bd5;font-size:13px;cursor:pointer;padding:0;">← ${label}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
+    header.innerHTML = `<button class="cat-back-btn" onclick="renderSequences(${parentPath.split('/').slice(0,-1).join('/') ? "'"+parentPath.split('/').slice(0,-1).join('/')+"'" : 'null'})"><span class="cat-back-arrow">‹</span> ${label}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
   } else {
     header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Collections</span>`
   }
@@ -815,7 +817,7 @@ async function toggleReaction(postId, emoji) {
     // Invalide le cache des stats pour déclencher la re-vérif des badges communauté
     _communityStats = null
     checkBadges()
-  } catch(e) { /* silent */ }
+  } catch(e) { if (btn) btn.classList.toggle('active') }
 }
 
 function renderReactionButtons(postId) {
@@ -889,31 +891,50 @@ async function triggerDailyChallenge() {
 function renderChallengeBanner() {
   const banner = document.getElementById('challenge-banner')
   if (!_activeChallenges.length) { banner.style.display = 'none'; return }
-  const c = _activeChallenges[0]
   banner.style.display = ''
-  document.getElementById('challenge-title').textContent = c.title
-  document.getElementById('challenge-ref-img').src = c.ref_image_url
+  banner.innerHTML = ''
+  _activeChallenges.forEach((c, i) => {
+    const card = document.createElement('div')
+    card.className = 'challenge-card'
+    if (i > 0) card.classList.add('challenge-card-compact')
+    card.innerHTML = `
+      <div class="challenge-ref">
+        <img src="${c.ref_image_url || ''}" alt="Ref">
+      </div>
+      <div class="challenge-info">
+        <div class="challenge-label">CHALLENGE</div>
+        <h3>${c.title || ''}</h3>
+        <div class="challenge-deadline" data-challenge-id="${c.id}"></div>
+        <div class="challenge-participants" data-challenge-id="${c.id}"></div>
+        <button class="end-btn end-btn-share" onclick="participateChallenge('${c.id}')">Participer</button>
+      </div>
+    `
+    banner.appendChild(card)
+  })
   updateChallengeCountdown()
 }
 
 function updateChallengeCountdown() {
-  const el = document.getElementById('challenge-deadline')
-  if (!_activeChallenges.length || !el) return
-  const dl = new Date(_activeChallenges[0].deadline)
-  const diff = dl - new Date()
-  if (diff <= 0) { el.textContent = 'Dernière chance !'; return }
-  const days = Math.floor(diff / 86400000)
-  const hours = Math.floor((diff % 86400000) / 3600000)
-  if (days > 0) el.textContent = days + 'j ' + hours + 'h restants'
-  else el.textContent = hours + 'h restantes'
+  _activeChallenges.forEach(c => {
+    const el = document.querySelector(`.challenge-deadline[data-challenge-id="${c.id}"]`)
+    if (!el) return
+    const dl = new Date(c.deadline)
+    const diff = dl - new Date()
+    if (diff <= 0) { el.textContent = 'Dernière chance !'; return }
+    const days = Math.floor(diff / 86400000)
+    const hours = Math.floor((diff % 86400000) / 3600000)
+    if (days > 0) el.textContent = days + 'j ' + hours + 'h restants'
+    else el.textContent = hours + 'h restantes'
+  })
 }
 
 function updateChallengeParticipants(allPosts) {
-  const el = document.getElementById('challenge-participants')
-  if (!el || !_activeChallenges.length) { if (el) el.textContent = ''; return }
-  const cid = _activeChallenges[0].id
-  const count = allPosts.filter(p => p.challenge_id === cid).length
-  el.textContent = count > 0 ? count + ' participant' + (count > 1 ? 's' : '') : ''
+  _activeChallenges.forEach(c => {
+    const el = document.querySelector(`.challenge-participants[data-challenge-id="${c.id}"]`)
+    if (!el) return
+    const count = allPosts.filter(p => p.challenge_id === c.id).length
+    el.textContent = count > 0 ? count + ' participant' + (count > 1 ? 's' : '') : ''
+  })
 }
 
 function renderChallengeFilter() {
@@ -937,10 +958,11 @@ function filterByChallenge() {
 
 let _challengeSession = false
 
-function participateChallenge() {
-  if (!_activeChallenges.length) return
-  const c = _activeChallenges[0]
-  if (!c.ref_image_url) return
+function participateChallenge(challengeId) {
+  const c = challengeId
+    ? _activeChallenges.find(ch => ch.id === challengeId)
+    : _activeChallenges[0]
+  if (!c || !c.ref_image_url) return
   // Build a single-image session with the challenge ref
   sessionEntries = [{ type: 'image', path: c.ref_image_url, category: 'Challenge', isR2: true }]
   currentIndex = 0; sessionLog = []; _challengeSession = true
@@ -1002,32 +1024,54 @@ function handleCommunityFile(input) {
   reader.readAsDataURL(file)
 }
 
+function _blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result.split(',')[1])
+    reader.readAsDataURL(blob)
+  })
+}
+const _isMobile = !window.electronAPI?.pickFolder || typeof Capacitor !== 'undefined'
+let _uploading = false
+
 async function confirmCommunityUpload() {
-  if (!_communityBlob) return
+  if (!_communityBlob || _uploading) return
+  _uploading = true
   const status = document.getElementById('community-upload-status')
   status.style.display = 'block'
   status.style.color = '#6a8aaa'
   status.textContent = 'Envoi en cours...'
   document.getElementById('community-upload-actions').style.display = 'none'
   try {
-    const res = await window.electronAPI.submitCommunityPost({
+    const postData = {
       refImageUrl: null,
       username: _communityUsername || (_communityEmail ? _communityEmail.split('@')[0] : 'anonyme'),
-    })
+    }
+    if (_isMobile) postData.imageBase64 = await _blobToBase64(_communityBlob)
+    const res = await window.electronAPI.submitCommunityPost(postData)
     if (res.error) throw new Error(res.error)
-    await fetch(res.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'image/jpeg' },
-      body: _communityBlob,
-    })
+    if (!res.uploaded && res.uploadUrl) {
+      await fetch(res.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: _communityBlob,
+      })
+      // Desktop: run auto-moderation after upload
+      if (res.needsModeration && res.postId) {
+        status.textContent = 'Vérification du contenu...'
+        const modRes = await window.electronAPI.moderateCommunityPost(res.postId)
+        if (modRes && !modRes.ok) throw new Error(modRes.reason || 'Image refusée par la modération automatique.')
+      }
+    }
     if (_activeChallenges.length && res.postId) {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) {}
     }
     status.textContent = 'Publié !'
     status.style.color = '#2ecc71'
     _communityStats = null; checkBadges()
-    setTimeout(() => { closeCommunityUpload(); renderCommunity() }, 1500)
+    setTimeout(() => { _uploading = false; closeCommunityUpload(); renderCommunity() }, 1500)
   } catch(e) {
+    _uploading = false
     status.textContent = 'Erreur : ' + (e.message || 'échec')
     status.style.color = '#e74c3c'
     document.getElementById('community-upload-actions').style.display = 'flex'
@@ -1090,32 +1134,42 @@ function handleShareFile(input) {
 }
 
 async function confirmShareDrawing() {
-  if (!_shareBlob) return
+  if (!_shareBlob || _uploading) return
+  _uploading = true
   const status = document.getElementById('share-status')
   status.style.display = 'block'
   status.textContent = 'Envoi en cours...'
   document.getElementById('share-actions').style.display = 'none'
   try {
-    const res = await window.electronAPI.submitCommunityPost({
+    const postData = {
       refImageUrl: _lastRefUrl || null,
       username: _communityUsername || (_communityEmail ? _communityEmail.split('@')[0] : 'anonyme'),
-    })
+    }
+    if (_isMobile) postData.imageBase64 = await _blobToBase64(_shareBlob)
+    const res = await window.electronAPI.submitCommunityPost(postData)
     if (res.error) throw new Error(res.error)
-    // Upload to R2 via presigned URL
-    await fetch(res.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'image/jpeg' },
-      body: _shareBlob,
-    })
-    // Auto-tag to active challenge if there is one
+    if (!res.uploaded && res.uploadUrl) {
+      await fetch(res.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: _shareBlob,
+      })
+      // Desktop: run auto-moderation after upload
+      if (res.needsModeration && res.postId) {
+        status.textContent = 'Vérification du contenu...'
+        const modRes = await window.electronAPI.moderateCommunityPost(res.postId)
+        if (modRes && !modRes.ok) throw new Error(modRes.reason || 'Image refusée par la modération automatique.')
+      }
+    }
     if (_activeChallenges.length && res.postId) {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) { /* silent */ }
     }
     status.textContent = 'Publié ! Ton dessin est visible dans la Communauté.'
     status.style.color = '#2ecc71'
     _communityStats = null; checkBadges()
-    setTimeout(closeShareDrawing, 2000)
+    setTimeout(() => { _uploading = false; closeShareDrawing() }, 2000)
   } catch(e) {
+    _uploading = false
     status.textContent = 'Erreur : ' + (e.message || 'échec upload')
     status.style.color = '#e74c3c'
     document.getElementById('share-actions').style.display = 'flex'
@@ -1192,6 +1246,43 @@ function drawFromCompare() {
   if (!_ccCurrentPost || !_ccCurrentPost.ref_image_url) return
   closeCommunityCompare()
   drawFromRefUrl(_ccCurrentPost.ref_image_url)
+}
+
+async function shareFromCompare() {
+  if (!_ccCurrentPost) return
+  const btn = document.getElementById('cc-share-btn')
+  const origText = btn.textContent
+  btn.textContent = '⏳ Chargement...'
+  btn.disabled = true
+
+  const imgUrl = _ccCurrentPost.image_url
+  const shareText = 'Dessin réalisé avec Gesturo ✏️ gesturo.art\n#gesturo #gesturedrawing #art #sketch'
+
+  try {
+    if (window.electronAPI?.shareImage) {
+      const res = await window.electronAPI.shareImage({ imageUrl: imgUrl, text: shareText })
+      if (res.ok) {
+        btn.textContent = '✅ Partagé !'
+        setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 2000)
+        return
+      }
+      if (res.error) {
+        btn.textContent = '❌ ' + res.error
+        setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 4000)
+        return
+      }
+    } else {
+      await navigator.clipboard?.writeText(shareText)
+      showAlertModal('Texte copié ! Enregistre l\'image et colle le texte sur Instagram.')
+    }
+  } catch (e) {
+    btn.textContent = '❌ Erreur'
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 3000)
+    return
+  }
+
+  btn.textContent = origText
+  btn.disabled = false
 }
 
 function buildPostCard(post, i) {
@@ -1409,9 +1500,9 @@ let _communityTab = 'feed'
 function startCommunityRefresh() {
   if (communityInterval) clearInterval(communityInterval)
   communityInterval = setInterval(() => { if (mainMode === 'community') { if (_communityTab === 'feed') renderCommunity() } }, 60 * 1000)
-  // Live countdown update every minute
+  // Live countdown update every second
   if (_countdownInterval) clearInterval(_countdownInterval)
-  _countdownInterval = setInterval(updateChallengeCountdown, 60 * 1000)
+  _countdownInterval = setInterval(updateChallengeCountdown, 1000)
 }
 
 function switchCommunityTab(tab) {
@@ -1471,13 +1562,14 @@ async function renderMyPosts() {
       del.className = 'community-post-delete'
       del.textContent = '×'
       del.title = 'Supprimer'
-      del.onclick = async (e) => {
+      del.onclick = (e) => {
         e.stopPropagation()
-        if (!confirm('Supprimer ce dessin ?')) return
-        try {
-          await window.electronAPI.deleteCommunityPost(post.id)
-          renderMyPosts()
-        } catch(err) { /* silent */ }
+        showConfirmModal('Supprimer ce dessin ?', async () => {
+          try {
+            await window.electronAPI.deleteCommunityPost(post.id)
+            renderMyPosts()
+          } catch(err) { /* silent */ }
+        }, { confirmText: 'Supprimer', danger: true })
       }
       card.appendChild(del)
 
@@ -1567,14 +1659,14 @@ async function startSession() {
       for (let p = 1; p <= pdfDoc.numPages; p++) pages.push({ type: 'pdf', path: e.path, category: e.category, pageNum: p, pdfDoc })
       const ai = allEntries.indexOf(e); if (ai !== -1) allEntries.splice(ai, 1, ...pages)
       if (categories[e.category]) { const ci = categories[e.category].indexOf(e); if (ci !== -1) categories[e.category].splice(ci, 1, ...pages) }
-    } catch(err) { console.warn('PDF illisible', e.path) }
+    } catch(err) {  }
   }
   let pool = allEntries.filter(e => {
     if (selectedCats.has(e.category)) return true
     if (e.subcategory && selectedCats.has(e.category + '/' + e.subcategory)) return true
     return false
   })
-  if (pool.length === 0) { alert('Sélectionne au moins une catégorie pour démarrer.'); return }
+  if (pool.length === 0) { showAlertModal('Sélectionne au moins une catégorie pour démarrer.'); return }
   let imgPool = pool.filter(e => e.type === 'image')
   const pdfPool = pool.filter(e => e.type === 'pdf-pending' || e.type === 'pdf')
   pool = [...imgPool, ...pdfPool]; pool.sort(() => Math.random() - 0.5)
@@ -1603,7 +1695,7 @@ async function startSession() {
         resolved.push({ original: e, pages })
         const ai = allEntries.indexOf(e); if (ai !== -1) allEntries.splice(ai, 1, ...pages)
         const ci = categories[e.category]?.indexOf(e); if (ci !== -1 && ci !== undefined) categories[e.category].splice(ci, 1, ...pages)
-      } catch(err) { console.warn('PDF illisible', e.path) }
+      } catch(err) {  }
     }
     for (const { original, pages } of resolved) {
       const si = sessionEntries.indexOf(original); if (si !== -1) sessionEntries.splice(si, 1, pages[0])
@@ -1832,6 +1924,8 @@ function getLoopTarget() { return loopCountVal }
 
 async function startAnimSession() {
   if (!selectedSeq || !sequences[selectedSeq]) return
+  const animScreen = document.getElementById('screen-anim')
+  if (animScreen) animScreen.classList.remove('controls-hidden')
   const paths = sequences[selectedSeq].paths
   const btn = document.getElementById('btn-start'); btn.disabled = true
   animFrames = paths.map(p => ({ path: p, dataUrl: isR2Mode ? p : 'file://' + p }))
@@ -1975,10 +2069,17 @@ function resumeStudyTimer() {
 function updateStudyTimer() {
   const m = Math.floor(studyTimeLeft / 60), s = studyTimeLeft % 60
   const el = document.getElementById('study-timer')
-  el.textContent = m + ':' + String(s).padStart(2, '0')
-  el.className = (studyTimeLeft <= 5 && studyTimeLeft > 0) ? 'warning' : ''
+  const timeStr = m + ':' + String(s).padStart(2, '0')
+  el.textContent = timeStr
+  const isWarning = studyTimeLeft <= 5 && studyTimeLeft > 0
+  el.className = isWarning ? 'warning' : ''
   const pct = studyDuration > 0 ? Math.round((studyTimeLeft / studyDuration) * 100) : 0
   document.getElementById('study-prog-bar').style.width = pct + '%'
+  // Sync floating timer (mobile/tablet)
+  const ft = document.getElementById('anim-float-timer-text')
+  const fb = document.getElementById('anim-float-timer-bar')
+  if (ft) { ft.textContent = timeStr; ft.className = 'float-timer-text' + (isWarning ? ' warning' : '') }
+  if (fb) fb.style.width = pct + '%'
 }
 
 function animNextFrame() {
@@ -2066,10 +2167,11 @@ function askEndAnim() {
 // ══ RÉCAP POSE ══
 function finishSession() {
   clearInterval(ticker); ticker = null
+  if (_bgPreloadTimer) { clearTimeout(_bgPreloadTimer); _bgPreloadTimer = null }
   const logs = sessionLog.filter(Boolean)
   const totalMins = Math.round(logs.reduce((a, l) => a + l.duration, 0) / 60)
   document.getElementById('stat-poses').textContent = logs.length
-  document.getElementById('stat-time').textContent = totalMins
+  document.getElementById('stat-time').textContent = totalMins || 1
   logSession({ type: 'pose', poses: logs.length, minutes: totalMins || 1, subMode: currentSubMode, cats: Array.from(selectedCats).filter(c => c !== 'Sans catégorie').join(', ') })
   const grid = document.getElementById('recap-grid'); grid.innerHTML = ''
   logs.forEach((log, i) => {
@@ -2173,7 +2275,7 @@ async function syncFavsFromServer() {
       // Push merged set back to server
       window.electronAPI.saveFavorites(merged).catch(() => {})
     }
-  } catch (e) { console.warn('[favs] sync error', e) }
+  } catch (e) {  }
 }
 
 function currentPoseSrc() {
@@ -2413,7 +2515,7 @@ async function pinImageToMoodboard(projectFile, src, label) {
       updatedAt: Date.now(),
     })
     return true
-  } catch (e) { console.warn('pinImageToMoodboard error:', e); return false }
+  } catch (e) { ; return false }
 }
 
 let lbFavSrc = null
@@ -2467,7 +2569,7 @@ function logSession(data) {
   if (hist.length > 500) hist.splice(0, hist.length - 500)
   saveHist(hist); renderWeekBar()
   if (window.electronAPI?.saveSession) {
-    window.electronAPI.saveSession({ poses: data.poses, minutes: data.minutes, cats: data.cats || data.seq || null }).catch(e => console.warn('saveSession error:', e))
+    window.electronAPI.saveSession({ poses: data.poses, minutes: data.minutes, cats: data.cats || data.seq || null }).catch(() => {})
   }
   checkBadges()
 }
@@ -2621,15 +2723,17 @@ document.addEventListener('click', (e) => {
 })
 function confirmResetHistory() {
   document.getElementById('options-dropdown').classList.remove('open')
-  if (confirm('Réinitialiser tout l\'historique ? Cette action est irréversible.')) {
+  showConfirmModal('Réinitialiser tout l\'historique ? Cette action est irréversible.', () => {
     localStorage.removeItem(HIST_KEY); renderWeekBar()
     if (document.getElementById('hist-options').style.display !== 'none') renderHist()
-  }
+  }, { confirmText: 'Réinitialiser', danger: true })
 }
-async function handleLogout() {
+function handleLogout() {
   document.getElementById('options-dropdown').classList.remove('open')
   closeProfile()
-  if (confirm('Se déconnecter ?')) await window.electronAPI.authLogout()
+  showConfirmModal('Se déconnecter ?', async () => {
+    await window.electronAPI.authLogout()
+  }, { confirmText: 'Se déconnecter', danger: true })
 }
 
 // ══ PROFIL ══
@@ -2690,11 +2794,49 @@ document.addEventListener('click', (e) => {
   if (modal.style.display === 'flex' && e.target === modal) closeProfile()
 })
 
+// ══ MODALES GÉNÉRIQUES (remplacent confirm/alert natifs) ══
+function showConfirmModal(message, onConfirm, opts) {
+  const confirmText = (opts && opts.confirmText) || 'Confirmer'
+  const cancelText = (opts && opts.cancelText) || 'Annuler'
+  const danger = opts && opts.danger
+  let overlay = document.getElementById('generic-modal-overlay')
+  if (overlay) overlay.remove()
+  overlay = document.createElement('div')
+  overlay.id = 'generic-modal-overlay'
+  overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(5,12,22,0.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;z-index:9000;padding:24px;'
+  overlay.innerHTML = '<div style="background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center;">' +
+    '<p style="font-size:15px;color:#fff;margin:0 0 22px;line-height:1.5;">' + message + '</p>' +
+    '<div style="display:flex;gap:10px;justify-content:center;">' +
+    '<button id="gm-cancel" style="flex:1;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);cursor:pointer;">' + cancelText + '</button>' +
+    '<button id="gm-confirm" style="flex:1;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:' + (danger ? '#E24B4A' : '#2983eb') + ';border:none;color:#fff;font-weight:600;cursor:pointer;">' + confirmText + '</button>' +
+    '</div></div>'
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove() } })
+  document.body.appendChild(overlay)
+  document.getElementById('gm-cancel').onclick = () => overlay.remove()
+  document.getElementById('gm-confirm').onclick = () => { overlay.remove(); onConfirm() }
+}
+
+function showAlertModal(message, opts) {
+  const btnText = (opts && opts.btnText) || 'OK'
+  let overlay = document.getElementById('generic-modal-overlay')
+  if (overlay) overlay.remove()
+  overlay = document.createElement('div')
+  overlay.id = 'generic-modal-overlay'
+  overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(5,12,22,0.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;z-index:9000;padding:24px;'
+  overlay.innerHTML = '<div style="background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center;">' +
+    '<p style="font-size:15px;color:#fff;margin:0 0 22px;line-height:1.5;">' + message + '</p>' +
+    '<button id="gm-ok" style="width:100%;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:#2983eb;border:none;color:#fff;font-weight:600;cursor:pointer;">' + btnText + '</button>' +
+    '</div>'
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
+  document.body.appendChild(overlay)
+  document.getElementById('gm-ok').onclick = () => overlay.remove()
+}
+
 // ══ ONBOARDING ══
 const ONBOARDING_KEY = 'gd4_onboarding_done'
 // DEV : mettre à false pour revenir au comportement normal
 // (affichage uniquement à la première connexion).
-const DEV_ALWAYS_SHOW_ONBOARDING = true
+const DEV_ALWAYS_SHOW_ONBOARDING = false
 let _onboardingShown = false
 
 function maybeShowOnboarding() {
@@ -2870,7 +3012,7 @@ async function maybeAskForUsername() {
     }
     showUsernameModal()
   } catch (e) {
-    console.warn('[username] getProfile failed', e)
+    
   } finally {
     _usernameAskInFlight = false
   }
@@ -2890,6 +3032,7 @@ function showUsernameModal() {
       <input id="username-modal-input" class="username-modal-input" type="text" maxlength="30" placeholder="Ton pseudo" value="${emailPrefix.replace(/"/g, '&quot;')}">
       <div id="username-modal-msg" class="username-modal-msg"></div>
       <button id="username-modal-confirm" class="username-modal-confirm">Confirmer</button>
+      <button id="username-modal-skip" class="username-modal-skip" style="background:none;border:none;color:#4a6280;font-size:13px;cursor:pointer;margin-top:8px;padding:8px;">Passer pour l'instant</button>
     </div>
   `
   document.body.appendChild(overlay)
@@ -2924,6 +3067,7 @@ function showUsernameModal() {
 
   btn.addEventListener('click', submit)
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit() })
+  document.getElementById('username-modal-skip').addEventListener('click', closeUsernameModal)
 }
 
 function closeUsernameModal() {
@@ -3200,6 +3344,24 @@ function toggleBadgesPanel() {
   }
 })()
 
+// ─── MOBILE + TABLET — tap-to-toggle des controls sur Animation ─────────
+// Même logique que Session : tap sur la photo toggle .controls-hidden.
+// Le timer d'étude reste visible via #anim-float-timer (synced dans
+// updateStudyTimer). L'overlay play n'est pas affecté.
+;(function () {
+  const photoArea = document.getElementById('anim-photo-area')
+  const animEl = document.getElementById('screen-anim')
+  if (!photoArea || !animEl) return
+  photoArea.addEventListener('click', (e) => {
+    if (window.innerWidth > 1399) return
+    if (e.target.closest('button') || e.target.closest('.anim-big-btn')) return
+    // Ne pas toggle si l'overlay play est visible
+    const overlay = document.getElementById('anim-overlay')
+    if (overlay && !overlay.classList.contains('hidden')) return
+    animEl.classList.toggle('controls-hidden')
+  })
+})()
+
 // ─── MOBILE — Accordion sur les cards de l'écran Config ─────────────────
 // Sur mobile, on transforme chaque .card de #screen-config en accordéon :
 // le h3 devient un header cliquable, le reste du contenu est wrappé dans
@@ -3249,4 +3411,76 @@ function toggleBadgesPanel() {
   } else {
     setupConfigAccordion()
   }
+})()
+
+// ── Mobile back gesture: close topmost overlay ──
+// Handles hardware back button (Capacitor) and also provides a
+// helper for swipe-down-to-close on overlays.
+;(function() {
+  // Priority-ordered list: first open overlay wins.
+  function closeTopOverlay() {
+    const checks = [
+      { el: () => document.getElementById('badge-detail-overlay'), close: () => document.getElementById('badge-detail-overlay')?.remove() },
+      { el: () => document.getElementById('lightbox'), test: (e) => e.classList.contains('open'), close: closeLightbox },
+      { el: () => document.getElementById('community-compare'), test: (e) => e.style.display !== 'none', close: closeCommunityCompare },
+      { el: () => document.getElementById('community-upload-overlay'), test: (e) => e.style.display !== 'none', close: closeCommunityUpload },
+      { el: () => document.getElementById('share-drawing-overlay'), test: (e) => e.style.display !== 'none', close: closeShareDrawing },
+      { el: () => document.getElementById('end-confirm-modal'), test: (e) => e.classList.contains('open'), close: closeEndConfirm },
+      { el: () => document.getElementById('about-modal'), test: (e) => e.classList.contains('open'), close: closeAbout },
+      { el: () => document.getElementById('profile-modal'), test: (e) => e.style.display !== 'none', close: closeProfile },
+    ]
+    for (const c of checks) {
+      const e = c.el()
+      if (!e) continue
+      if (c.test ? c.test(e) : true) { c.close(); return true }
+    }
+    return false
+  }
+
+  // Capacitor hardware back button
+  if (typeof Capacitor !== 'undefined') {
+    document.addEventListener('backbutton', (e) => {
+      if (closeTopOverlay()) { e.preventDefault(); return }
+      // If on a session screen, go back to config
+      const active = document.querySelector('.screen.active')
+      if (active && ['screen-session', 'screen-anim', 'screen-cinema', 'screen-end'].includes(active.id)) {
+        e.preventDefault()
+        showScreen('screen-config')
+      }
+    })
+  }
+
+  // Swipe-down to close overlays on touch devices
+  const SWIPE_THRESHOLD = 80
+  let touchStartY = 0, touchTarget = null
+
+  const overlaySelectors = [
+    '#community-compare', '#community-upload-overlay', '#share-drawing-overlay',
+    '#lightbox', '#profile-modal', '#about-modal'
+  ]
+
+  document.addEventListener('touchstart', (e) => {
+    const t = e.touches[0]
+    for (const sel of overlaySelectors) {
+      const el = document.querySelector(sel)
+      if (el && (el.style.display !== 'none' && el.style.display !== '') || el?.classList.contains('open')) {
+        if (el.contains(e.target) || el === e.target) {
+          touchStartY = t.clientY
+          touchTarget = sel
+          return
+        }
+      }
+    }
+    touchTarget = null
+  }, { passive: true })
+
+  document.addEventListener('touchend', (e) => {
+    if (!touchTarget) return
+    const t = e.changedTouches[0]
+    const dy = t.clientY - touchStartY
+    if (dy > SWIPE_THRESHOLD) {
+      closeTopOverlay()
+    }
+    touchTarget = null
+  }, { passive: true })
 })()

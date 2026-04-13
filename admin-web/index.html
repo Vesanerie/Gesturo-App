@@ -29,6 +29,7 @@
       <div class="admin-nav">
         <button class="admin-nav-btn active" data-panel="files">📂 Fichiers</button>
         <button class="admin-nav-btn" data-panel="challenges">🏆 Challenges</button>
+        <button class="admin-nav-btn" data-panel="moderation">🛡️ Modération <span id="mod-badge" class="mod-badge hidden">0</span></button>
       </div>
       <div id="global-stats" class="global-stats muted" title="Cliquer pour rafraîchir">📊 Calcul…</div>
       <div class="user">
@@ -145,6 +146,28 @@
       </div>
     </div><!-- /panel-challenges -->
 
+    <!-- ═ MODERATION PANEL ═ -->
+    <div id="panel-moderation" class="admin-panel hidden">
+      <div id="mod-stats" class="mod-stats"></div>
+      <div class="mod-toolbar">
+        <div class="mod-filters">
+          <button class="mod-filter-btn active" data-filter="pending">En attente</button>
+          <button class="mod-filter-btn" data-filter="approved">Approuvés</button>
+          <button class="mod-filter-btn" data-filter="all">Tous</button>
+        </div>
+        <input id="mod-search" type="search" placeholder="🔍 Rechercher un utilisateur…" autocomplete="off">
+        <button id="mod-speed-btn" class="btn-secondary" title="Mode speed review — une image à la fois">⚡ Speed Review</button>
+        <button id="mod-log-btn" class="btn-secondary" title="Historique de modération">📜 Historique</button>
+        <button id="mod-banned-btn" class="btn-secondary" title="Utilisateurs bannis">🚫 Bannis</button>
+        <div class="mod-actions-global">
+          <button id="mod-approve-all" class="add-btn" disabled>✓ Approuver la sélection</button>
+          <button id="mod-reject-all" class="btn-danger" disabled>✕ Rejeter la sélection</button>
+        </div>
+      </div>
+      <div class="mod-kbd-hint muted">Raccourcis : ← → naviguer · A approuver · R rejeter · Espace sélectionner</div>
+      <div id="mod-grid" class="mod-grid"></div>
+    </div><!-- /panel-moderation -->
+
   </section>
 
   <!-- R2 image picker modal (for challenge ref image) -->
@@ -194,6 +217,88 @@
         <button id="audit-close" class="btn-ghost">Fermer</button>
       </div>
       <div id="audit-list" class="audit-list">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- Speed Review modal -->
+  <div id="speed-review" class="modal-backdrop hidden">
+    <div class="speed-review-wrap">
+      <button id="speed-close" class="lightbox-close">&times;</button>
+      <div class="speed-counter" id="speed-counter">1 / 1</div>
+      <img id="speed-img" class="speed-img" alt="">
+      <div id="speed-ref" class="speed-ref hidden">
+        <span class="speed-ref-label">Ref :</span>
+        <img id="speed-ref-img" class="speed-ref-img" alt="">
+      </div>
+      <div class="speed-info">
+        <span id="speed-user" class="speed-user"></span>
+        <span id="speed-email" class="speed-email"></span>
+        <span id="speed-date" class="speed-date"></span>
+      </div>
+      <div class="speed-actions">
+        <button id="speed-reject" class="btn-danger speed-action-btn">✕ Rejeter (R)</button>
+        <button id="speed-approve" class="add-btn speed-action-btn">✓ Approuver (A)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile modal -->
+  <div id="user-profile-modal" class="modal-backdrop hidden">
+    <div class="modal user-profile-modal">
+      <div class="user-profile-header">
+        <h2 id="up-title">Profil utilisateur</h2>
+        <button id="up-close" class="btn-ghost">Fermer</button>
+      </div>
+      <div id="up-info" class="up-info"></div>
+      <div id="up-actions" class="up-actions"></div>
+      <h3 class="up-section-title">Posts (<span id="up-post-count">0</span>)</h3>
+      <div id="up-grid" class="grid up-grid"></div>
+      <h3 class="up-section-title">Historique modération</h3>
+      <div id="up-logs" class="up-logs"></div>
+    </div>
+  </div>
+
+  <!-- Moderation Log modal -->
+  <div id="mod-log-modal" class="modal-backdrop hidden">
+    <div class="modal audit-modal">
+      <div class="audit-header">
+        <h2>📜 Historique modération</h2>
+        <button id="mod-log-close" class="btn-ghost">Fermer</button>
+      </div>
+      <div id="mod-log-list" class="audit-list">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- Banned users modal -->
+  <div id="banned-modal" class="modal-backdrop hidden">
+    <div class="modal audit-modal">
+      <div class="audit-header">
+        <h2>🚫 Utilisateurs bannis</h2>
+        <button id="banned-close" class="btn-ghost">Fermer</button>
+      </div>
+      <div id="banned-list" class="audit-list">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- Reject reason modal -->
+  <div id="reject-reason-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <h2>Raison du rejet</h2>
+      <div id="reject-tags" class="reject-tags">
+        <button class="reject-tag" data-reason="Pas un dessin">Pas un dessin</button>
+        <button class="reject-tag" data-reason="Photo / selfie">Photo / selfie</button>
+        <button class="reject-tag" data-reason="Contenu inapproprié">Contenu inapproprié</button>
+        <button class="reject-tag" data-reason="Spam">Spam</button>
+        <button class="reject-tag" data-reason="Screenshot">Screenshot</button>
+        <button class="reject-tag" data-reason="Hors sujet">Hors sujet</button>
+        <button class="reject-tag" data-reason="Doublon">Doublon</button>
+        <button class="reject-tag" data-reason="Qualité trop basse">Qualité trop basse</button>
+      </div>
+      <input id="reject-reason-input" type="text" placeholder="Ou écrire une raison…" autocomplete="off" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:10px 12px;font-size:14px;outline:none;margin-bottom:14px;">
+      <div class="modal-buttons">
+        <button id="reject-reason-cancel" class="btn-ghost">Annuler</button>
+        <button id="reject-reason-ok" class="btn-danger">Rejeter</button>
+      </div>
     </div>
   </div>
 
