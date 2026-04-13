@@ -3,6 +3,22 @@
   "appName": "Gesturo",
   "webDir": "www",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0a1520"
+    },
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "showSpinner": false,
+      "backgroundColor": "#0a1520"
+    },
+    "Keyboard": {
+      "resize": "native",
+      "scrollPadding": false
+    }
   }
 }

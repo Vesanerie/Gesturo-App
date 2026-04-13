@@ -310,17 +310,19 @@ if (action === 'getStreak') {
     }
 
     if (action === 'getCommunityPosts') {
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 20, 1), 50);
+      const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
       const { data } = await admin
         .from('community_posts').select('*')
         .eq('approved', true)
         .order('created_at', { ascending: false })
-        .limit(30);
+        .range(reqOffset, reqOffset + reqLimit - 1);
       const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
       const posts = (data || []).map((p: any) => ({
         ...p,
         image_url: r2Public ? `${r2Public}/${p.image_key}` : '',
       }));
-      return json({ posts });
+      return json({ posts, limit: reqLimit, offset: reqOffset });
     }
 
     if (action === 'deleteCommunityPost') {

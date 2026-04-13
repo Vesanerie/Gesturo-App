@@ -266,3 +266,81 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
   .challenges-layout { grid-template-columns: 1fr; }
   .ref-picker-modal { width: 95vw; }
 }
+
+/* ═══ Mobile fallback ═══ */
+@media (max-width: 768px) {
+  /* Topbar — stack vertically */
+  .topbar { flex-wrap: wrap; gap: 10px; padding: 12px 14px; }
+  .brand { width: 100%; }
+  .admin-nav { width: 100%; }
+  .admin-nav-btn { flex: 1; text-align: center; min-height: 44px; }
+  .user { width: 100%; justify-content: flex-end; }
+  .user button, #audit-btn { min-height: 44px; padding: 10px 14px; font-size: 13px; }
+
+  /* Toolbar — compact wrap */
+  .toolbar { padding: 10px 14px; gap: 8px; }
+  .nav-btn { width: 44px; height: 44px; font-size: 18px; }
+  .root-btn { min-height: 44px; padding: 10px 14px; }
+  .add-btn { min-height: 44px; padding: 10px 14px; }
+  #mkdir-btn { min-height: 44px; padding: 10px 14px; }
+  #search-input { min-width: 0; flex: 1; min-height: 44px; padding: 10px 12px; }
+  #sort-select { min-height: 44px; }
+  .thumb-toggle { display: none; }
+
+  /* Breadcrumb — horizontal scroll */
+  .breadcrumb { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 10px 14px; gap: 2px; scrollbar-width: none; }
+  .breadcrumb::-webkit-scrollbar { display: none; }
+  .breadcrumb .crumb { white-space: nowrap; flex-shrink: 0; min-height: 44px; display: flex; align-items: center; padding: 6px 10px; }
+
+  /* Grid — fixed 2 columns */
+  .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; padding: 12px 14px; }
+
+  /* Grid items — bigger labels */
+  .grid-item .label { font-size: 11px; padding: 16px 8px 8px; }
+
+  /* Action bar — stack */
+  .action-bar { flex-direction: column; gap: 10px; padding: 14px; align-items: stretch; }
+  #selection-count { text-align: center; }
+  .action-bar-buttons { justify-content: center; flex-wrap: wrap; }
+  .action-bar-buttons button { min-height: 44px; flex: 1; min-width: 100px; }
+
+  /* Lightbox — smaller nav */
+  .lightbox-nav { width: 44px; height: 60px; font-size: 32px; }
+  .lightbox-prev { left: 8px; }
+  .lightbox-next { right: 8px; }
+  .lightbox-meta { max-width: 92vw; padding: 10px 14px; bottom: 12px; }
+  .lightbox-close { top: 12px; right: 14px; font-size: 32px; }
+
+  /* Modals — full width */
+  .modal { width: 96vw; padding: 18px; }
+  .modal-buttons button { min-height: 44px; }
+  .audit-modal { max-height: 90vh; }
+
+  /* Context menu — bigger tap targets */
+  .ctx-item { min-height: 44px; padding: 12px 14px; font-size: 14px; }
+
+  /* Challenges layout */
+  .challenges-layout { padding: 14px; gap: 16px; }
+  .challenge-form-card, .challenge-list-card { padding: 16px; }
+  .form-group input { min-height: 44px; }
+  #ch-create-btn { min-height: 44px; width: 100%; }
+  .ch-row { padding: 12px; }
+  .ch-row-delete { width: 44px; height: 44px; }
+
+  /* Toasts — full width bottom */
+  .toasts { left: 14px; right: 14px; max-width: none; }
+
+  /* Upload bar */
+  .upload-bar { padding: 12px 14px; }
+
+  /* Drop overlay */
+  .drop-overlay { inset: 8px; }
+  .drop-icon { font-size: 48px; }
+  .drop-text { font-size: 16px; }
+
+  /* Hover preview — disable on touch */
+  .hover-preview { display: none !important; }
+
+  /* Global stats */
+  .global-stats { display: none; }
+}
