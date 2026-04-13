@@ -32,7 +32,7 @@ function initFilmGrid() {
     const card = document.createElement('div')
     card.className = 'film-card' + (locked ? ' film-locked' : ''); card.dataset.key = key
     card.innerHTML = `<div class="film-card-thumb-placeholder">${film.emoji}</div><div class="film-card-info"><div class="film-card-title">${film.title}</div><div class="film-card-frames">${locked ? '🔒 Pro' : film.frames.toLocaleString() + ' frames'}</div></div><div class="film-card-check">✓</div>`
-    card.onclick = () => { if (locked) { alert('Passe Pro pour d\u00e9bloquer ce film \u2b50'); return } selectFilm(key) }
+    card.onclick = () => { if (locked) { showAlertModal('Passe Pro pour débloquer ce film ⭐'); return } selectFilm(key) }
     grid.appendChild(card)
   })
   document.querySelectorAll('#cinema-chips .chip').forEach(chip => {

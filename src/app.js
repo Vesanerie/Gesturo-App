@@ -1273,7 +1273,7 @@ async function shareFromCompare() {
       }
     } else {
       await navigator.clipboard?.writeText(shareText)
-      alert('Texte copié ! Enregistre l\'image et colle le texte sur Instagram.')
+      showAlertModal('Texte copié ! Enregistre l\'image et colle le texte sur Instagram.')
     }
   } catch (e) {
     btn.textContent = '❌ Erreur'
@@ -1562,13 +1562,14 @@ async function renderMyPosts() {
       del.className = 'community-post-delete'
       del.textContent = '×'
       del.title = 'Supprimer'
-      del.onclick = async (e) => {
+      del.onclick = (e) => {
         e.stopPropagation()
-        if (!confirm('Supprimer ce dessin ?')) return
-        try {
-          await window.electronAPI.deleteCommunityPost(post.id)
-          renderMyPosts()
-        } catch(err) { /* silent */ }
+        showConfirmModal('Supprimer ce dessin ?', async () => {
+          try {
+            await window.electronAPI.deleteCommunityPost(post.id)
+            renderMyPosts()
+          } catch(err) { /* silent */ }
+        }, { confirmText: 'Supprimer', danger: true })
       }
       card.appendChild(del)
 
@@ -1665,7 +1666,7 @@ async function startSession() {
     if (e.subcategory && selectedCats.has(e.category + '/' + e.subcategory)) return true
     return false
   })
-  if (pool.length === 0) { alert('Sélectionne au moins une catégorie pour démarrer.'); return }
+  if (pool.length === 0) { showAlertModal('Sélectionne au moins une catégorie pour démarrer.'); return }
   let imgPool = pool.filter(e => e.type === 'image')
   const pdfPool = pool.filter(e => e.type === 'pdf-pending' || e.type === 'pdf')
   pool = [...imgPool, ...pdfPool]; pool.sort(() => Math.random() - 0.5)
@@ -2722,15 +2723,17 @@ document.addEventListener('click', (e) => {
 })
 function confirmResetHistory() {
   document.getElementById('options-dropdown').classList.remove('open')
-  if (confirm('Réinitialiser tout l\'historique ? Cette action est irréversible.')) {
+  showConfirmModal('Réinitialiser tout l\'historique ? Cette action est irréversible.', () => {
     localStorage.removeItem(HIST_KEY); renderWeekBar()
     if (document.getElementById('hist-options').style.display !== 'none') renderHist()
-  }
+  }, { confirmText: 'Réinitialiser', danger: true })
 }
-async function handleLogout() {
+function handleLogout() {
   document.getElementById('options-dropdown').classList.remove('open')
   closeProfile()
-  if (confirm('Se déconnecter ?')) await window.electronAPI.authLogout()
+  showConfirmModal('Se déconnecter ?', async () => {
+    await window.electronAPI.authLogout()
+  }, { confirmText: 'Se déconnecter', danger: true })
 }
 
 // ══ PROFIL ══
@@ -2790,6 +2793,44 @@ document.addEventListener('click', (e) => {
   const modal = document.getElementById('profile-modal')
   if (modal.style.display === 'flex' && e.target === modal) closeProfile()
 })
+
+// ══ MODALES GÉNÉRIQUES (remplacent confirm/alert natifs) ══
+function showConfirmModal(message, onConfirm, opts) {
+  const confirmText = (opts && opts.confirmText) || 'Confirmer'
+  const cancelText = (opts && opts.cancelText) || 'Annuler'
+  const danger = opts && opts.danger
+  let overlay = document.getElementById('generic-modal-overlay')
+  if (overlay) overlay.remove()
+  overlay = document.createElement('div')
+  overlay.id = 'generic-modal-overlay'
+  overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(5,12,22,0.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;z-index:9000;padding:24px;'
+  overlay.innerHTML = '<div style="background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center;">' +
+    '<p style="font-size:15px;color:#fff;margin:0 0 22px;line-height:1.5;">' + message + '</p>' +
+    '<div style="display:flex;gap:10px;justify-content:center;">' +
+    '<button id="gm-cancel" style="flex:1;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);cursor:pointer;">' + cancelText + '</button>' +
+    '<button id="gm-confirm" style="flex:1;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:' + (danger ? '#E24B4A' : '#2983eb') + ';border:none;color:#fff;font-weight:600;cursor:pointer;">' + confirmText + '</button>' +
+    '</div></div>'
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove() } })
+  document.body.appendChild(overlay)
+  document.getElementById('gm-cancel').onclick = () => overlay.remove()
+  document.getElementById('gm-confirm').onclick = () => { overlay.remove(); onConfirm() }
+}
+
+function showAlertModal(message, opts) {
+  const btnText = (opts && opts.btnText) || 'OK'
+  let overlay = document.getElementById('generic-modal-overlay')
+  if (overlay) overlay.remove()
+  overlay = document.createElement('div')
+  overlay.id = 'generic-modal-overlay'
+  overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(5,12,22,0.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;z-index:9000;padding:24px;'
+  overlay.innerHTML = '<div style="background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center;">' +
+    '<p style="font-size:15px;color:#fff;margin:0 0 22px;line-height:1.5;">' + message + '</p>' +
+    '<button id="gm-ok" style="width:100%;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:#2983eb;border:none;color:#fff;font-weight:600;cursor:pointer;">' + btnText + '</button>' +
+    '</div>'
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
+  document.body.appendChild(overlay)
+  document.getElementById('gm-ok').onclick = () => overlay.remove()
+}
 
 // ══ ONBOARDING ══
 const ONBOARDING_KEY = 'gd4_onboarding_done'
