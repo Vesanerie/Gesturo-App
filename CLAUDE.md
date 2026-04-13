@@ -407,6 +407,10 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 
 ## Commits récents importants
 
+- `87448dc` feat(admin): 6 features modération UI — speed review, profil user, audit log
+- `bdf0d19` feat(community): bouton Partager sur la vue dessin (Web Share API)
+- `84b288b` feat(backend): 6 features modération — auto-approve, audit log, profil user
+- `2f59db1` feat(community): afficher tous les challenges actifs
 - `f605b0f` feat(backend): ban user, stats modération, recherche par user dans adminListPosts
 - `bd4b373` fix(ios): ouvrir Instagram/Discord dans l'app native via Universal Links
 - `ea58516` fix(mobile): empêcher le double-post community sur iOS
