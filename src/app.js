@@ -498,7 +498,7 @@ function renderCategories(parentCat = null) {
   const header = document.createElement('div')
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentCat) {
-    header.innerHTML = `<button onclick="renderCategories(null)" style="background:transparent;border:none;color:#5b9bd5;font-size:13px;cursor:pointer;padding:0;">← ${getCatLabel(parentCat)}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Sous-collections</span>`
+    header.innerHTML = `<button class="cat-back-btn" onclick="renderCategories(null)"><span class="cat-back-arrow">‹</span> ${getCatLabel(parentCat)}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Sous-collections</span>`
   } else {
     const allSelected = cats.every(c => selectedCats.has(c))
     header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Collections</span><button id="cat-all" onclick="toggleAllCats()" style="font-size:12px;background:transparent;border:0.5px solid #1e2d40;border-radius:6px;color:${allSelected ? '#2983eb' : '#3a5570'};padding:4px 10px;cursor:pointer;">${allSelected ? '✓ Tout' : 'Tout sélectionner'}</button>`
@@ -603,7 +603,7 @@ function renderSequences(parentPath = null) {
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentPath) {
     const label = parentPath.split('/').pop()
-    header.innerHTML = `<button onclick="renderSequences(${parentPath.split('/').slice(0,-1).join('/') ? "'"+parentPath.split('/').slice(0,-1).join('/')+"'" : 'null'})" style="background:transparent;border:none;color:#5b9bd5;font-size:13px;cursor:pointer;padding:0;">← ${label}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
+    header.innerHTML = `<button class="cat-back-btn" onclick="renderSequences(${parentPath.split('/').slice(0,-1).join('/') ? "'"+parentPath.split('/').slice(0,-1).join('/')+"'" : 'null'})"><span class="cat-back-arrow">‹</span> ${label}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
   } else {
     header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Collections</span>`
   }
