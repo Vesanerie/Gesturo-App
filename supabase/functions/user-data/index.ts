@@ -638,10 +638,12 @@ if (action === 'getStreak') {
       const { data: targets } = await admin.from('community_posts').select('id, user_email').in('id', postIds);
       const { error } = await admin.from('community_posts').update({ approved: true }).in('id', postIds);
       if (error) return json({ error: error.message }, 500);
-      // Log moderation action
-      for (const t of (targets || [])) {
-        await admin.from('moderation_log').insert({ admin_email: email, action: 'approve', target_email: t.user_email, post_id: t.id }).catch(() => {});
-      }
+      // Log moderation action (silent fail if table doesn't exist)
+      try {
+        for (const t of (targets || [])) {
+          await admin.from('moderation_log').insert({ admin_email: email, action: 'approve', target_email: t.user_email, post_id: t.id });
+        }
+      } catch {}
       return json({ ok: true, count: postIds.length });
     }
 
@@ -654,14 +656,17 @@ if (action === 'getStreak') {
       // Get image keys + emails before deleting
       const { data: posts } = await admin.from('community_posts').select('id, image_key, user_email').in('id', postIds);
       const keys = (posts || []).map((p: any) => p.image_key).filter(Boolean);
-      // Delete reactions, then posts, then R2 images
+      // Delete reactions, then posts
       await admin.from('post_reactions').delete().in('post_id', postIds);
       await admin.from('community_posts').delete().in('id', postIds);
-      if (keys.length) await deleteKeys(keys);
-      // Log moderation action
-      for (const t of (posts || [])) {
-        await admin.from('moderation_log').insert({ admin_email: email, action: 'reject', target_email: t.user_email, post_id: t.id, reason }).catch(() => {});
-      }
+      // Delete R2 images (silent fail)
+      try { if (keys.length) await deleteKeys(keys); } catch {}
+      // Log moderation action (silent fail if table doesn't exist)
+      try {
+        for (const t of (posts || [])) {
+          await admin.from('moderation_log').insert({ admin_email: email, action: 'reject', target_email: t.user_email, post_id: t.id, reason });
+        }
+      } catch {}
       return json({ ok: true, count: postIds.length, deletedImages: keys.length });
     }
 
@@ -672,7 +677,7 @@ if (action === 'getStreak') {
       if (!targetEmail) return json({ error: 'missing email' }, 400);
       const { error } = await admin.from('profiles').update({ banned: true }).eq('email', targetEmail);
       if (error) return json({ error: error.message }, 500);
-      await admin.from('moderation_log').insert({ admin_email: email, action: 'ban', target_email: targetEmail }).catch(() => {});
+      try { await admin.from('moderation_log').insert({ admin_email: email, action: 'ban', target_email: targetEmail }); } catch {}
       return json({ ok: true });
     }
 
@@ -683,7 +688,7 @@ if (action === 'getStreak') {
       if (!targetEmail) return json({ error: 'missing email' }, 400);
       const { error } = await admin.from('profiles').update({ banned: false }).eq('email', targetEmail);
       if (error) return json({ error: error.message }, 500);
-      await admin.from('moderation_log').insert({ admin_email: email, action: 'unban', target_email: targetEmail }).catch(() => {});
+      try { await admin.from('moderation_log').insert({ admin_email: email, action: 'unban', target_email: targetEmail }); } catch {}
       return json({ ok: true });
     }
 
@@ -699,21 +704,27 @@ if (action === 'getStreak') {
       const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
       const posts = (allPosts || []).map((p: any) => ({ ...p, image_url: r2Public ? `${r2Public}/${p.image_key}` : '' }));
       const { count: approvedCount } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('user_email', targetEmail).eq('approved', true);
-      const { data: logs } = await admin.from('moderation_log')
-        .select('action, reason, created_at, admin_email')
-        .eq('target_email', targetEmail).order('created_at', { ascending: false }).limit(20)
-        .catch(() => ({ data: [] })) as any;
-      return json({ profile: prof, posts, approvedCount: approvedCount || 0, trusted: (approvedCount || 0) >= 1, logs: logs || [] });
+      let logs: any[] = [];
+      try {
+        const { data: logData } = await admin.from('moderation_log')
+          .select('action, reason, created_at, admin_email')
+          .eq('target_email', targetEmail).order('created_at', { ascending: false }).limit(20);
+        logs = logData || [];
+      } catch {}
+      return json({ profile: prof, posts, approvedCount: approvedCount || 0, trusted: (approvedCount || 0) >= 1, logs });
     }
 
     if (action === 'adminGetModerationLog') {
       const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
       if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
       const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 50, 1), 200);
-      const { data: logs } = await admin.from('moderation_log')
-        .select('*').order('created_at', { ascending: false }).limit(reqLimit)
-        .catch(() => ({ data: [] })) as any;
-      return json({ logs: logs || [] });
+      let logs: any[] = [];
+      try {
+        const { data: logData } = await admin.from('moderation_log')
+          .select('*').order('created_at', { ascending: false }).limit(reqLimit);
+        logs = logData || [];
+      } catch {}
+      return json({ logs });
     }
 
     if (action === 'adminModerationStats') {
