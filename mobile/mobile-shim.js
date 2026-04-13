@@ -344,6 +344,39 @@
       }
     },
 
+    // ── Share (native share sheet via Capacitor) ──
+    shareImage: async ({ imageUrl, text }) => {
+      const Share = plugins.Share;
+      const Filesystem = plugins.Filesystem;
+      if (!Share || !Filesystem) return { ok: false };
+      try {
+        // Download image to temp file (Share plugin needs a file URI)
+        const resp = await fetch(imageUrl);
+        const blob = await resp.blob();
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve) => {
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(blob);
+        });
+        const fileName = 'gesturo-drawing-' + Date.now() + '.jpg';
+        const saved = await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: 'CACHE',
+        });
+        await Share.share({
+          title: 'Mon dessin Gesturo',
+          text: text || '',
+          url: saved.uri,
+          dialogTitle: 'Partager ton dessin',
+        });
+        return { ok: true };
+      } catch (e) {
+        if (e.message && e.message.includes('cancel')) return { ok: false };
+        return { ok: false, error: e.message };
+      }
+    },
+
     // ── Moodboard webview path — N/A on mobile ──
     getMoodboardPreloadPath: async () => null,
     mbListProjects: async () => [],
