@@ -2792,7 +2792,7 @@ document.addEventListener('click', (e) => {
 const ONBOARDING_KEY = 'gd4_onboarding_done'
 // DEV : mettre à false pour revenir au comportement normal
 // (affichage uniquement à la première connexion).
-const DEV_ALWAYS_SHOW_ONBOARDING = true
+const DEV_ALWAYS_SHOW_ONBOARDING = false
 let _onboardingShown = false
 
 function maybeShowOnboarding() {
