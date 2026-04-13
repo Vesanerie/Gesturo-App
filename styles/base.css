@@ -2,6 +2,25 @@
   /* Or chaud Gesturo — utilisé pour les titres, favoris, streaks, highlights */
   --warm: #f0c040;
   --warm-halo: rgba(240, 192, 64, 0.3);
+
+  /* Couleurs */
+  --primary: #2983eb;
+  --danger: #E24B4A;
+  --bg-body: #0f1923;
+  --bg-screen: #0a1520;
+  --bg-card: #131f2e;
+  --bg-hover: #162030;
+  --border: #1e2d40;
+
+  /* Surfaces semi-transparentes (overlays, barres flottantes) */
+  --surface-light: rgba(10, 21, 32, 0.6);
+  --surface-medium: rgba(10, 21, 32, 0.75);
+  --surface-heavy: rgba(10, 21, 32, 0.9);
+
+  /* Backdrop blur — 3 niveaux */
+  --blur-sm: 8px;
+  --blur-md: 14px;
+  --blur-lg: 20px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
