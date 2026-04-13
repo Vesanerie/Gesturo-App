@@ -9,7 +9,7 @@
 .opt-item.danger:hover { background: #1a0a0a; }
 
 /* About modal */
-#about-modal { display:none; position:fixed; inset:0; background:rgba(5,10,18,0.85); z-index:9999; align-items:center; justify-content:center; }
+#about-modal { display:none; position:fixed; inset:0; background:rgba(5,10,18,0.85); z-index:1000; align-items:center; justify-content:center; }
 #about-modal.open { display:flex; }
 .about-box { background:#131f2e; border:0.5px solid #1e2d40; border-radius:16px; padding:28px; width:320px; }
 .about-box h3 { font-size:16px; font-weight:600; color:#fff; margin-bottom:16px; }

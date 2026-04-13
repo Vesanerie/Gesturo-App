@@ -16,7 +16,7 @@
   justify-content: center;
   gap: 22px;
   padding: 30px;
-  z-index: 9000;
+  z-index: 1000;
 }
 #end-confirm-modal span {
   font-size: 18px;

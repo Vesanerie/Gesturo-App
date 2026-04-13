@@ -60,7 +60,7 @@ body::before {
   opacity: 0.035;
   mix-blend-mode: overlay;
   pointer-events: none;
-  z-index: 9998;
+  z-index: 101;
 }
 
 /* Mobile : le badge PRO global (#plan-badge, position fixed top:14 right:96)
@@ -80,7 +80,7 @@ body::after {
   opacity: 0.022;
   mix-blend-mode: soft-light;
   pointer-events: none;
-  z-index: 9997;
+  z-index: 100;
 }
 
 /* ──────────────────────────────────────────────────────────────────

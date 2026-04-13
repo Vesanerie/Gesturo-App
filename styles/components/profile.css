@@ -12,7 +12,7 @@
 .profile-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6);
   display: flex; align-items: center; justify-content: center;
-  z-index: 9000;
+  z-index: 1000;
 }
 .profile-card {
   background: #141e2a; border: 0.5px solid #1e2d40; border-radius: 16px;
@@ -73,7 +73,7 @@
 
 /* ═══ CHOOSE USERNAME MODAL (post-Google signup) ═══ */
 .username-modal-overlay {
-  position: fixed; inset: 0; z-index: 10001;
+  position: fixed; inset: 0; z-index: 1100;
   background: rgba(5, 12, 20, 0.85);
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
