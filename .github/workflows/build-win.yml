@@ -42,9 +42,12 @@ jobs:
           echo "VERSION=$VERSION" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
-      - name: Upload to existing release
+      - name: Create release if needed, then upload EXE
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          gh release upload "v${{ steps.version.outputs.VERSION }}" "dist/Gesturo Setup ${{ steps.version.outputs.VERSION }}.exe" --clobber
+          TAG="v${{ steps.version.outputs.VERSION }}"
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --title "Gesturo ${{ steps.version.outputs.VERSION }}" --draft=false
+          gh release upload "$TAG" "dist/Gesturo Setup ${{ steps.version.outputs.VERSION }}.exe" --clobber
         shell: bash
