@@ -51,3 +51,23 @@ jobs:
             gh release create "$TAG" --title "Gesturo ${{ steps.version.outputs.VERSION }}" --draft=false
           gh release upload "$TAG" "dist/Gesturo Setup ${{ steps.version.outputs.VERSION }}.exe" --clobber
         shell: bash
+
+      - name: Update download.html on website
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/Vesanerie/gesturo-website.git site
+          cd site
+          sed -i "s|/download/v[0-9]*\.[0-9]*\.[0-9]*/Gesturo%20Setup%20[0-9]*\.[0-9]*\.[0-9]*\.exe|/download/v${VERSION}/Gesturo%20Setup%20${VERSION}.exe|g" download.html
+          sed -i "s|/download/v[0-9]*\.[0-9]*\.[0-9]*/Gesturo.Setup.[0-9]*\.[0-9]*\.[0-9]*\.exe|/download/v${VERSION}/Gesturo%20Setup%20${VERSION}.exe|g" download.html
+          git config user.email "bot@gesturo.fr"
+          git config user.name "Gesturo Bot"
+          git add download.html
+          if git diff --cached --quiet; then
+            echo "download.html already up to date — skipping"
+            exit 0
+          fi
+          git commit -m "chore: update Windows download link to v${VERSION}"
+          git push
+        shell: bash

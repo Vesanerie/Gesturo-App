@@ -484,8 +484,8 @@
 @media (max-width: 932px) and (orientation: landscape) and (max-height: 500px) {
   #screen-anim #anim-bar {
     bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
-    left: 6px;
-    right: 6px;
+    left: calc(env(safe-area-inset-left, 0px) + 6px);
+    right: calc(env(safe-area-inset-right, 0px) + 6px);
   }
   #screen-anim .thumb-item { width: 38px; height: 50px; }
   #screen-anim #timeline-wrap { padding: 6px 10px 0; }

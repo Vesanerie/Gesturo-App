@@ -319,6 +319,8 @@
 @media (max-width: 932px) and (orientation: landscape) and (max-height: 500px) {
   #screen-cinema #cinema-bar {
     bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+    left: calc(env(safe-area-inset-left, 0px) + 8px);
+    right: calc(env(safe-area-inset-right, 0px) + 8px);
     padding: 6px 10px;
   }
   #screen-cinema #cinema-bar .s-btn {
