@@ -251,12 +251,12 @@ async function openMoodboard() {
     try {
       const p = await window.electronAPI.getMoodboardPreloadPath()
       if (p) wv.setAttribute('preload', 'file://' + p)
-    } catch (e) { console.warn('moodboard preload path failed', e) }
+    } catch (e) {  }
     wv.setAttribute('src', 'moodboard/index.html')
     moodboardLoaded = true
   } else if (moodboardNeedsRefresh) {
     // A project was created/modified from outside the webview — reload it
-    try { wv.reload() } catch (e) { console.warn('moodboard reload failed', e) }
+    try { wv.reload() } catch (e) {  }
     moodboardNeedsRefresh = false
   }
   showScreen('screen-moodboard')
@@ -420,7 +420,7 @@ async function loadR2(isPro) {
     if (r2Status) r2Status.textContent = allEntries.length + ' photos chargées ✓'
     document.getElementById('btn-start').disabled = allEntries.length === 0
   } catch(e) {
-    console.error('loadR2 error:', e)
+    
     const msg = (e && e.message) || String(e)
     // Si l'Edge Function renvoie 401, c'est généralement une session expirée
     // ou un compte sans entrée profiles. On le dit clairement au user au lieu
@@ -817,7 +817,7 @@ async function toggleReaction(postId, emoji) {
     // Invalide le cache des stats pour déclencher la re-vérif des badges communauté
     _communityStats = null
     checkBadges()
-  } catch(e) { /* silent */ }
+  } catch(e) { if (btn) btn.classList.toggle('active') }
 }
 
 function renderReactionButtons(postId) {
@@ -1500,9 +1500,9 @@ let _communityTab = 'feed'
 function startCommunityRefresh() {
   if (communityInterval) clearInterval(communityInterval)
   communityInterval = setInterval(() => { if (mainMode === 'community') { if (_communityTab === 'feed') renderCommunity() } }, 60 * 1000)
-  // Live countdown update every minute
+  // Live countdown update every second
   if (_countdownInterval) clearInterval(_countdownInterval)
-  _countdownInterval = setInterval(updateChallengeCountdown, 60 * 1000)
+  _countdownInterval = setInterval(updateChallengeCountdown, 1000)
 }
 
 function switchCommunityTab(tab) {
@@ -1659,7 +1659,7 @@ async function startSession() {
       for (let p = 1; p <= pdfDoc.numPages; p++) pages.push({ type: 'pdf', path: e.path, category: e.category, pageNum: p, pdfDoc })
       const ai = allEntries.indexOf(e); if (ai !== -1) allEntries.splice(ai, 1, ...pages)
       if (categories[e.category]) { const ci = categories[e.category].indexOf(e); if (ci !== -1) categories[e.category].splice(ci, 1, ...pages) }
-    } catch(err) { console.warn('PDF illisible', e.path) }
+    } catch(err) {  }
   }
   let pool = allEntries.filter(e => {
     if (selectedCats.has(e.category)) return true
@@ -1695,7 +1695,7 @@ async function startSession() {
         resolved.push({ original: e, pages })
         const ai = allEntries.indexOf(e); if (ai !== -1) allEntries.splice(ai, 1, ...pages)
         const ci = categories[e.category]?.indexOf(e); if (ci !== -1 && ci !== undefined) categories[e.category].splice(ci, 1, ...pages)
-      } catch(err) { console.warn('PDF illisible', e.path) }
+      } catch(err) {  }
     }
     for (const { original, pages } of resolved) {
       const si = sessionEntries.indexOf(original); if (si !== -1) sessionEntries.splice(si, 1, pages[0])
@@ -2275,7 +2275,7 @@ async function syncFavsFromServer() {
       // Push merged set back to server
       window.electronAPI.saveFavorites(merged).catch(() => {})
     }
-  } catch (e) { console.warn('[favs] sync error', e) }
+  } catch (e) {  }
 }
 
 function currentPoseSrc() {
@@ -2515,7 +2515,7 @@ async function pinImageToMoodboard(projectFile, src, label) {
       updatedAt: Date.now(),
     })
     return true
-  } catch (e) { console.warn('pinImageToMoodboard error:', e); return false }
+  } catch (e) { ; return false }
 }
 
 let lbFavSrc = null
@@ -2569,7 +2569,7 @@ function logSession(data) {
   if (hist.length > 500) hist.splice(0, hist.length - 500)
   saveHist(hist); renderWeekBar()
   if (window.electronAPI?.saveSession) {
-    window.electronAPI.saveSession({ poses: data.poses, minutes: data.minutes, cats: data.cats || data.seq || null }).catch(e => console.warn('saveSession error:', e))
+    window.electronAPI.saveSession({ poses: data.poses, minutes: data.minutes, cats: data.cats || data.seq || null }).catch(e => )
   }
   checkBadges()
 }
@@ -3012,7 +3012,7 @@ async function maybeAskForUsername() {
     }
     showUsernameModal()
   } catch (e) {
-    console.warn('[username] getProfile failed', e)
+    
   } finally {
     _usernameAskInFlight = false
   }
