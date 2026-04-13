@@ -1002,6 +1002,15 @@ function handleCommunityFile(input) {
   reader.readAsDataURL(file)
 }
 
+function _blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result.split(',')[1])
+    reader.readAsDataURL(blob)
+  })
+}
+const _isMobile = !window.electronAPI?.pickFolder || typeof Capacitor !== 'undefined'
+
 async function confirmCommunityUpload() {
   if (!_communityBlob) return
   const status = document.getElementById('community-upload-status')
@@ -1010,16 +1019,20 @@ async function confirmCommunityUpload() {
   status.textContent = 'Envoi en cours...'
   document.getElementById('community-upload-actions').style.display = 'none'
   try {
-    const res = await window.electronAPI.submitCommunityPost({
+    const postData = {
       refImageUrl: null,
       username: _communityUsername || (_communityEmail ? _communityEmail.split('@')[0] : 'anonyme'),
-    })
+    }
+    if (_isMobile) postData.imageBase64 = await _blobToBase64(_communityBlob)
+    const res = await window.electronAPI.submitCommunityPost(postData)
     if (res.error) throw new Error(res.error)
-    await fetch(res.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'image/jpeg' },
-      body: _communityBlob,
-    })
+    if (!res.uploaded && res.uploadUrl) {
+      await fetch(res.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: _communityBlob,
+      })
+    }
     if (_activeChallenges.length && res.postId) {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) {}
     }
@@ -1096,18 +1109,20 @@ async function confirmShareDrawing() {
   status.textContent = 'Envoi en cours...'
   document.getElementById('share-actions').style.display = 'none'
   try {
-    const res = await window.electronAPI.submitCommunityPost({
+    const postData = {
       refImageUrl: _lastRefUrl || null,
       username: _communityUsername || (_communityEmail ? _communityEmail.split('@')[0] : 'anonyme'),
-    })
+    }
+    if (_isMobile) postData.imageBase64 = await _blobToBase64(_shareBlob)
+    const res = await window.electronAPI.submitCommunityPost(postData)
     if (res.error) throw new Error(res.error)
-    // Upload to R2 via presigned URL
-    await fetch(res.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'image/jpeg' },
-      body: _shareBlob,
-    })
-    // Auto-tag to active challenge if there is one
+    if (!res.uploaded && res.uploadUrl) {
+      await fetch(res.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: _shareBlob,
+      })
+    }
     if (_activeChallenges.length && res.postId) {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) { /* silent */ }
     }

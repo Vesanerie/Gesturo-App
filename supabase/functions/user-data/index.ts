@@ -2,7 +2,7 @@
 // community posts, reactions.
 // Auth via Supabase JWT, DB writes via service role (bypasses RLS).
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { presignPut } from '../_shared/r2.ts';
+import { presignPut, putObject } from '../_shared/r2.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -296,9 +296,19 @@ if (action === 'getStreak') {
 
     // ── Community posts ──
     if (action === 'submitCommunityPost') {
-      const { refImageUrl, username } = payload || {};
+      const { refImageUrl, username, imageBase64 } = payload || {};
       const key = `Community/${Date.now()}_${email.replace(/[^a-z0-9]/gi, '_')}.jpg`;
-      const uploadUrl = await presignPut(key, 'image/jpeg', 600);
+
+      // If imageBase64 is provided (mobile), upload server-side.
+      // Otherwise return a presigned PUT URL for the client to upload directly.
+      let uploadUrl: string | null = null;
+      if (imageBase64) {
+        const bytes = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
+        await putObject(key, bytes, 'image/jpeg');
+      } else {
+        uploadUrl = await presignPut(key, 'image/jpeg', 600);
+      }
+
       const { data: post, error } = await admin.from('community_posts').insert({
         user_email: email,
         username: username || email.split('@')[0],
@@ -306,7 +316,7 @@ if (action === 'getStreak') {
         ref_image_url: refImageUrl || null,
       }).select('id').single();
       if (error) return json({ error: error.message }, 500);
-      return json({ uploadUrl, postId: post.id, imageKey: key });
+      return json({ uploadUrl, postId: post.id, imageKey: key, uploaded: !!imageBase64 });
     }
 
     if (action === 'getCommunityPosts') {

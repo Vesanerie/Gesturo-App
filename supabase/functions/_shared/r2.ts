@@ -184,6 +184,14 @@ export async function presignPut(key: string, contentType?: string, expiresInSec
   return await getSignedUrl(client, cmd, { expiresIn: expiresInSec });
 }
 
+// Upload bytes directly to R2 (server-side). Used when the client can't PUT
+// directly (e.g. Capacitor iOS where CORS on presigned URLs is blocked).
+export async function putObject(key: string, body: Uint8Array, contentType = 'image/jpeg') {
+  const client = r2Client();
+  const bucket = Deno.env.get('R2_BUCKET')!;
+  await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
+}
+
 // Create an empty placeholder object so an empty "folder" appears in browseLevel().
 // R2/S3 has no real folders — this writes "<prefix>/.keep" which is filtered out
 // of listings (see browseLevel) but still makes the CommonPrefix exist.
