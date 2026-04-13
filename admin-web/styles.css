@@ -323,6 +323,59 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .lightbox-compare-label { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: var(--muted); font-size: 11px; padding: 3px 10px; border-radius: 4px; }
 .lightbox-compare-wrap { position: relative; }
 
+/* ═══ Speed Review ═══ */
+.speed-review-wrap { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 14px; padding: 20px; }
+.speed-counter { color: var(--muted); font-size: 13px; font-weight: 600; }
+.speed-img { max-width: 70vw; max-height: 60vh; object-fit: contain; border-radius: 8px; border: 1px solid var(--border); }
+.speed-ref { display: flex; align-items: center; gap: 10px; }
+.speed-ref-label { color: var(--muted); font-size: 12px; }
+.speed-ref-img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; }
+.speed-info { display: flex; gap: 14px; align-items: center; color: var(--muted); font-size: 13px; }
+.speed-user { font-weight: 600; color: var(--text); cursor: pointer; }
+.speed-user:hover { color: var(--accent); text-decoration: underline; }
+.speed-email { font-size: 12px; }
+.speed-date { font-size: 12px; color: var(--dim); }
+.speed-actions { display: flex; gap: 16px; }
+.speed-action-btn { min-width: 180px; min-height: 48px; font-size: 15px; font-weight: 600; border-radius: 8px; }
+
+/* ═══ User Profile modal ═══ */
+.user-profile-modal { width: 700px; max-width: 96vw; max-height: 85vh; display: flex; flex-direction: column; overflow-y: auto; }
+.user-profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.up-info { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 14px; }
+.up-info-item { font-size: 13px; color: var(--muted); }
+.up-info-item strong { color: var(--text); }
+.up-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.up-tag.banned { background: rgba(226,75,74,0.15); color: var(--danger); }
+.up-tag.trusted { background: rgba(95,207,127,0.15); color: #5fcf7f; }
+.up-tag.free { background: rgba(106,138,168,0.15); color: var(--muted); }
+.up-tag.pro { background: rgba(240,192,64,0.15); color: var(--warm); }
+.up-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+.up-section-title { font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.up-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; gap: 6px !important; padding: 0 !important; max-height: 250px; overflow-y: auto; }
+.up-grid .grid-item { border-radius: 6px; }
+.up-logs { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+.up-log-row { display: flex; gap: 10px; align-items: center; font-size: 12px; padding: 6px 8px; background: var(--bg); border-radius: 6px; }
+.up-log-action { font-weight: 700; min-width: 60px; }
+.up-log-action.approve { color: #5fcf7f; }
+.up-log-action.reject { color: var(--danger); }
+.up-log-action.ban { color: #e6a341; }
+.up-log-action.unban { color: var(--accent); }
+.up-log-reason { color: var(--muted); font-style: italic; }
+.up-log-date { color: var(--dim); margin-left: auto; white-space: nowrap; }
+
+/* ═══ Moderation log rows ═══ */
+.mod-log-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.mod-log-row:hover { border-color: var(--accent); }
+.mod-log-action { font-weight: 700; padding: 3px 10px; border-radius: 4px; background: var(--bg-2); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; min-width: 70px; text-align: center; }
+.mod-log-action.approve { color: #5fcf7f; background: rgba(95,207,127,0.12); }
+.mod-log-action.reject { color: var(--danger); background: rgba(226,75,74,0.12); }
+.mod-log-action.ban { color: #e6a341; background: rgba(230,163,65,0.12); }
+.mod-log-action.unban { color: var(--accent); background: rgba(41,131,235,0.12); }
+.mod-log-target { color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; }
+.mod-log-target:hover { color: var(--accent); text-decoration: underline; }
+.mod-log-reason { color: var(--muted); font-size: 12px; font-style: italic; flex: 1; }
+.mod-log-date { color: var(--dim); font-size: 11px; font-family: monospace; white-space: nowrap; margin-left: auto; }
+
 @media (max-width: 800px) {
   .challenges-layout { grid-template-columns: 1fr; }
   .ref-picker-modal { width: 95vw; }
@@ -337,4 +390,9 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
   .mod-kbd-hint { display: none; }
   .lightbox-compare { flex-direction: column; gap: 10px; }
   .lightbox-compare img { max-width: 90vw; max-height: 42vh; }
+  .speed-img { max-width: 90vw; max-height: 50vh; }
+  .speed-actions { width: 100%; }
+  .speed-action-btn { flex: 1; min-width: 0; min-height: 48px; }
+  .user-profile-modal { max-height: 92vh; }
+  .up-grid { grid-template-columns: repeat(3, 1fr) !important; }
 }
