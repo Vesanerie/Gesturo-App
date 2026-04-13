@@ -370,6 +370,20 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   Edge Functions OK, shim mobile OK. Reste à valider gestes tactiles +
   safe-area-inset + deep link auth sur device réel.
 
+### À faire plus tard
+- **Activer la modération auto des images communauté** — le code est en
+  place (`moderateImage()` dans `user-data/index.ts`, appels côté client
+  dans `src/app.js`, bridge dans `preload.js`/`main.js`/`mobile-shim.js`).
+  Utilise Claude Haiku 4.5 via l'API Anthropic (~$0.001/image).
+  **Il manque la clé API.** Pour activer :
+  1. Créer un compte sur [console.anthropic.com](https://console.anthropic.com)
+  2. Ajouter $5 de crédits (~5000 modérations)
+  3. Copier la clé API
+  4. `npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-api03-TA_CLE`
+  En attendant, le système est fail-open : sans clé, tous les posts
+  passent avec `approved = false` et la review manuelle via le panel
+  admin prend le relais.
+
 ### Backlog
 - **Phase D — Rotations planifiées** (admin web). Prêt côté DB (tables
   rotations + rotation_files créées). Reste à implémenter :
