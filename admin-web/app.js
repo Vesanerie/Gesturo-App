@@ -2122,8 +2122,8 @@ function openRejectReasonModal(postIds, fromSpeed = false) {
   _rejectPostIds = postIds;
   _rejectFromSpeed = fromSpeed;
   $('reject-reason-input').value = '';
+  document.querySelectorAll('.reject-tag').forEach(t => t.classList.remove('active'));
   $('reject-reason-modal').classList.remove('hidden');
-  $('reject-reason-input').focus();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2156,6 +2156,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Enter to confirm
   $('reject-reason-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); $('reject-reason-ok').click(); }
+  });
+  // Tag clicks → fill input + toggle active
+  document.querySelectorAll('.reject-tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      document.querySelectorAll('.reject-tag').forEach(t => t.classList.remove('active'));
+      tag.classList.add('active');
+      $('reject-reason-input').value = tag.dataset.reason;
+    });
+  });
+  // Typing in input clears active tag
+  $('reject-reason-input').addEventListener('input', () => {
+    document.querySelectorAll('.reject-tag').forEach(t => t.classList.remove('active'));
   });
 });
 

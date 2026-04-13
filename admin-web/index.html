@@ -284,8 +284,17 @@
   <div id="reject-reason-modal" class="modal-backdrop hidden">
     <div class="modal">
       <h2>Raison du rejet</h2>
-      <p class="muted">Optionnel — sera enregistré dans l'historique.</p>
-      <input id="reject-reason-input" type="text" placeholder="Ex : pas un dessin, contenu inapproprié…" autocomplete="off" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:10px 12px;font-size:14px;outline:none;margin-bottom:14px;">
+      <div id="reject-tags" class="reject-tags">
+        <button class="reject-tag" data-reason="Pas un dessin">Pas un dessin</button>
+        <button class="reject-tag" data-reason="Photo / selfie">Photo / selfie</button>
+        <button class="reject-tag" data-reason="Contenu inapproprié">Contenu inapproprié</button>
+        <button class="reject-tag" data-reason="Spam">Spam</button>
+        <button class="reject-tag" data-reason="Screenshot">Screenshot</button>
+        <button class="reject-tag" data-reason="Hors sujet">Hors sujet</button>
+        <button class="reject-tag" data-reason="Doublon">Doublon</button>
+        <button class="reject-tag" data-reason="Qualité trop basse">Qualité trop basse</button>
+      </div>
+      <input id="reject-reason-input" type="text" placeholder="Ou écrire une raison…" autocomplete="off" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:10px 12px;font-size:14px;outline:none;margin-bottom:14px;">
       <div class="modal-buttons">
         <button id="reject-reason-cancel" class="btn-ghost">Annuler</button>
         <button id="reject-reason-ok" class="btn-danger">Rejeter</button>

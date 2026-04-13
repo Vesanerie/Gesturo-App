@@ -384,6 +384,12 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .banned-email { font-size: 12px; color: var(--muted); word-break: break-all; }
 .banned-row .btn-secondary { flex-shrink: 0; }
 
+/* Reject reason tags */
+.reject-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.reject-tag { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); padding: 7px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; }
+.reject-tag:hover { color: var(--text); border-color: var(--accent); }
+.reject-tag.active { background: var(--danger); border-color: var(--danger); color: #fff; }
+
 @media (max-width: 800px) {
   .challenges-layout { grid-template-columns: 1fr; }
   .ref-picker-modal { width: 95vw; }
