@@ -146,18 +146,20 @@ window.addEventListener('DOMContentLoaded', () => {
           else document.getElementById('auth-msg').textContent = result?.message || result?.reason || 'Connexion échouée'
         }).catch(e => document.getElementById('auth-msg').textContent = e.message)
       })
-      document.getElementById('btn-email-login').addEventListener('click', () => {
+      document.getElementById('btn-email-login').addEventListener('click', function() {
+        const btn = this
         const email = document.getElementById('auth-email').value.trim()
         const password = document.getElementById('auth-password').value
         const msg = document.getElementById('auth-msg')
         if (!email || !password) { msg.textContent = 'Email et mot de passe requis'; return }
-        msg.textContent = 'Connexion...'
+        btn.disabled = true; msg.textContent = 'Connexion...'
         window.electronAPI.authEmail({ email, password }).then(result => {
           if (result?.success) location.reload()
-          else msg.textContent = result?.message || 'Connexion échouée'
-        }).catch(e => msg.textContent = e.message)
+          else { msg.textContent = result?.message || 'Connexion échouée'; btn.disabled = false }
+        }).catch(e => { msg.textContent = e.message; btn.disabled = false })
       })
-      document.getElementById('btn-email-signup').addEventListener('click', () => {
+      document.getElementById('btn-email-signup').addEventListener('click', function() {
+        const btn = this
         const username = document.getElementById('auth-signup-username').value.trim()
         const email = document.getElementById('auth-signup-email').value.trim()
         const password = document.getElementById('auth-signup-password').value
@@ -165,12 +167,12 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!username) { msg.textContent = 'Choisis un pseudo'; return }
         if (!email || !password) { msg.textContent = 'Email et mot de passe requis'; return }
         if (password.length < 6) { msg.textContent = 'Mot de passe trop court (6 car. min)'; return }
-        msg.textContent = 'Inscription...'
+        btn.disabled = true; msg.textContent = 'Inscription...'
         window.electronAPI.authSignup({ email, password, username }).then(result => {
           if (result?.needsConfirmation) { msg.textContent = 'Vérifie tes emails pour confirmer ton compte !'; msg.style.color = '#2ecc71'; return }
           if (result?.success) location.reload()
-          else msg.textContent = result?.message || 'Inscription échouée'
-        }).catch(e => msg.textContent = e.message)
+          else { msg.textContent = result?.message || 'Inscription échouée'; btn.disabled = false }
+        }).catch(e => { msg.textContent = e.message; btn.disabled = false })
       })
       document.getElementById('auth-password').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') document.getElementById('btn-email-login').click()
@@ -2164,10 +2166,11 @@ function askEndAnim() {
 // ══ RÉCAP POSE ══
 function finishSession() {
   clearInterval(ticker); ticker = null
+  if (_bgPreloadTimer) { clearTimeout(_bgPreloadTimer); _bgPreloadTimer = null }
   const logs = sessionLog.filter(Boolean)
   const totalMins = Math.round(logs.reduce((a, l) => a + l.duration, 0) / 60)
   document.getElementById('stat-poses').textContent = logs.length
-  document.getElementById('stat-time').textContent = totalMins
+  document.getElementById('stat-time').textContent = totalMins || 1
   logSession({ type: 'pose', poses: logs.length, minutes: totalMins || 1, subMode: currentSubMode, cats: Array.from(selectedCats).filter(c => c !== 'Sans catégorie').join(', ') })
   const grid = document.getElementById('recap-grid'); grid.innerHTML = ''
   logs.forEach((log, i) => {
@@ -2988,6 +2991,7 @@ function showUsernameModal() {
       <input id="username-modal-input" class="username-modal-input" type="text" maxlength="30" placeholder="Ton pseudo" value="${emailPrefix.replace(/"/g, '&quot;')}">
       <div id="username-modal-msg" class="username-modal-msg"></div>
       <button id="username-modal-confirm" class="username-modal-confirm">Confirmer</button>
+      <button id="username-modal-skip" class="username-modal-skip" style="background:none;border:none;color:#4a6280;font-size:13px;cursor:pointer;margin-top:8px;padding:8px;">Passer pour l'instant</button>
     </div>
   `
   document.body.appendChild(overlay)
@@ -3022,6 +3026,7 @@ function showUsernameModal() {
 
   btn.addEventListener('click', submit)
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit() })
+  document.getElementById('username-modal-skip').addEventListener('click', closeUsernameModal)
 }
 
 function closeUsernameModal() {
