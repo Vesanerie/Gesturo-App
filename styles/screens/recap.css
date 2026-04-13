@@ -161,6 +161,20 @@
     max-height: 82vh;
   }
 
+  /* Overlay share : forcer le centrage vertical sur iOS */
+  #share-drawing-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px
+             calc(env(safe-area-inset-bottom, 0px) + 16px);
+  }
+  .share-drawing-box {
+    width: 100%;
+    max-width: 92vw;
+    padding: 24px 20px;
+    margin: auto;
+  }
+
   /* Bouton close des overlays share/upload — plus gros + safe-area */
   .share-close {
     top: calc(env(safe-area-inset-top, 0px) + 10px);

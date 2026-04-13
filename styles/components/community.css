@@ -708,6 +708,17 @@
     height: 80px;
   }
   #challenge-banner { margin-bottom: 8px; }
+
+  /* Upload overlay : centrage + safe-area iOS */
+  #community-upload-overlay {
+    padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px
+             calc(env(safe-area-inset-bottom, 0px) + 16px);
+  }
+  #community-upload-overlay .share-drawing-box {
+    margin: auto;
+    width: 100%;
+    max-width: 92vw;
+  }
 }
 
 /* ═══ LEADERBOARD ═══ */
