@@ -362,14 +362,23 @@
       }
 
       try {
-        // 1. Download image to base64
-        console.log('[shareImage] fetching image...');
-        const resp = await fetch(imageUrl);
-        const blob = await resp.blob();
-        const base64 = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result.split(',')[1]);
-          reader.readAsDataURL(blob);
+        // 1. Get image as base64 via canvas (fetch fails on iOS due to CORS)
+        console.log('[shareImage] loading image via canvas...');
+        const base64 = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              canvas.getContext('2d').drawImage(img, 0, 0);
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+              resolve(dataUrl.split(',')[1]);
+            } catch (e) { reject(e); }
+          };
+          img.onerror = () => reject(new Error('image load failed'));
+          img.src = imageUrl;
         });
         console.log('[shareImage] base64 length:', base64.length);
 
