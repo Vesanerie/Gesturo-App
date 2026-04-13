@@ -635,18 +635,52 @@
 @media (max-width: 767px) {
   #community-feed, #community-mine {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
+  }
+  .community-post {
+    border-radius: 8px;
+  }
+  .community-post-info {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+  .community-reactions {
+    padding: 2px 8px 6px;
+    gap: 2px;
   }
   .community-reaction-btn {
     min-height: 44px;
-    padding: 6px 12px;
-    font-size: 16px;
+    padding: 4px 10px;
+    font-size: 15px;
   }
   .community-tab {
     min-height: 44px;
     font-size: 14px;
   }
   .community-post-delete { opacity: 1; }
+  .community-post-ref {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+  .community-cta {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+  .my-posts-stats {
+    padding: 8px 10px;
+    gap: 10px;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .challenge-card {
+    padding: 10px;
+    gap: 10px;
+  }
+  .challenge-ref {
+    width: 80px;
+    height: 80px;
+  }
+  #challenge-banner { margin-bottom: 8px; }
 }
 
 /* ═══ LEADERBOARD ═══ */
