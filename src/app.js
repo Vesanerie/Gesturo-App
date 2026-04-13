@@ -1248,19 +1248,31 @@ function drawFromCompare() {
 
 async function shareFromCompare() {
   if (!_ccCurrentPost) return
+  const btn = document.getElementById('cc-share-btn')
+  const origText = btn.textContent
+  btn.textContent = '⏳ Chargement...'
+  btn.disabled = true
+
   const imgUrl = _ccCurrentPost.image_url
   const shareText = 'Dessin réalisé avec Gesturo ✏️ gesturo.art\n#gesturo #gesturedrawing #art #sketch'
 
-  // Mobile: native share sheet via Capacitor plugin
-  if (window.electronAPI?.shareImage) {
-    await window.electronAPI.shareImage({ imageUrl: imgUrl, text: shareText })
-    return
-  }
-  // Desktop fallback
   try {
-    await navigator.clipboard.writeText(shareText)
-    alert('Texte copié ! Enregistre l\'image et colle le texte sur Instagram.')
+    if (window.electronAPI?.shareImage) {
+      const res = await window.electronAPI.shareImage({ imageUrl: imgUrl, text: shareText })
+      if (res.fallback) {
+        btn.textContent = '✅ Image téléchargée + texte copié !'
+        setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 3000)
+        return
+      }
+    } else {
+      // Desktop: copy text
+      await navigator.clipboard?.writeText(shareText)
+      alert('Texte copié ! Enregistre l\'image et colle le texte sur Instagram.')
+    }
   } catch (e) { /* silent */ }
+
+  btn.textContent = origText
+  btn.disabled = false
 }
 
 function buildPostCard(post, i) {
