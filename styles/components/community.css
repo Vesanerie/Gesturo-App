@@ -3,8 +3,8 @@
   position: fixed;
   inset: 0;
   background: rgba(5, 10, 18, 0.95);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -385,8 +385,8 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.15s;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
 }
 .community-post:hover .community-post-delete {
   opacity: 1;
@@ -469,8 +469,8 @@
   border-radius: 10px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
 }
 
 /* Ref row (community posts with reference image) */
@@ -636,8 +636,8 @@
   text-overflow: ellipsis;
   pointer-events: none;
   z-index: 10;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
   border: 0.5px solid #1e2d40;
 }
 .community-reaction-btn:hover .reaction-tooltip {
