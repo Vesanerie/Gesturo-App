@@ -245,9 +245,16 @@
     z-index: 20;
   }
 
-  /* Timeline scrollable, thumbs plus grands (64×86) */
-  #screen-anim #timeline-wrap { padding: 14px 18px 0; }
+  /* Timeline scrollable tactile — swipe horizontal, scrollbar cachée */
+  #screen-anim #timeline-wrap {
+    padding: 14px 18px 0;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;            /* Firefox */
+  }
+  #screen-anim #timeline-wrap::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
   #screen-anim #timeline-inner { gap: 6px; padding-bottom: 8px; }
+  #screen-anim .thumb-item { scroll-snap-align: center; }
   #screen-anim .thumb-item { width: 64px; height: 86px; border-radius: 6px; }
   #screen-anim .thumb-num { font-size: 10px; bottom: 3px; }
 
