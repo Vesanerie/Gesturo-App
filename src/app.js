@@ -1259,17 +1259,25 @@ async function shareFromCompare() {
   try {
     if (window.electronAPI?.shareImage) {
       const res = await window.electronAPI.shareImage({ imageUrl: imgUrl, text: shareText })
-      if (res.fallback) {
-        btn.textContent = '✅ Image téléchargée + texte copié !'
-        setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 3000)
+      if (res.ok) {
+        btn.textContent = '✅ Partagé !'
+        setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 2000)
+        return
+      }
+      if (res.error) {
+        btn.textContent = '❌ ' + res.error
+        setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 4000)
         return
       }
     } else {
-      // Desktop: copy text
       await navigator.clipboard?.writeText(shareText)
       alert('Texte copié ! Enregistre l\'image et colle le texte sur Instagram.')
     }
-  } catch (e) { /* silent */ }
+  } catch (e) {
+    btn.textContent = '❌ Erreur'
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 3000)
+    return
+  }
 
   btn.textContent = origText
   btn.disabled = false

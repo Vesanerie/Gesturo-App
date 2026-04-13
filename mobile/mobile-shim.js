@@ -346,61 +346,66 @@
 
     // ── Share (native share sheet via Capacitor) ──
     shareImage: async ({ imageUrl, text }) => {
-      // Try multiple ways to access the Share plugin
-      const Share = plugins.Share || (Capacitor && Capacitor.Plugins && Capacitor.Plugins.Share);
-      const FS = plugins.Filesystem || (Capacitor && Capacitor.Plugins && Capacitor.Plugins.Filesystem);
+      const FS = plugins.Filesystem;
+      const SharePlugin = plugins.Share;
 
-      if (Share && FS) {
-        try {
-          // Download image to base64
-          const resp = await fetch(imageUrl);
-          const blob = await resp.blob();
-          const base64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(blob);
-          });
-          const fileName = 'gesturo-drawing-' + Date.now() + '.jpg';
-          const saved = await FS.writeFile({
-            path: fileName,
-            data: base64,
-            directory: 'CACHE',
-          });
-          await Share.share({
+      // Debug: identify what's available
+      const available = {
+        share: !!SharePlugin,
+        fs: !!FS,
+        allPlugins: Object.keys(plugins),
+      };
+      console.log('[shareImage] plugins:', JSON.stringify(available));
+
+      if (!FS) {
+        return { ok: false, error: 'Filesystem plugin missing. Plugins: ' + available.allPlugins.join(',') };
+      }
+
+      try {
+        // 1. Download image to base64
+        const resp = await fetch(imageUrl);
+        const blob = await resp.blob();
+        const base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(blob);
+        });
+
+        // 2. Write to cache
+        const fileName = 'gesturo-drawing-' + Date.now() + '.jpg';
+        const saved = await FS.writeFile({
+          path: fileName,
+          data: base64,
+          directory: 'CACHE',
+        });
+        console.log('[shareImage] saved uri:', saved.uri);
+
+        // 3. Share via native plugin (use files array, not url)
+        if (SharePlugin) {
+          await SharePlugin.share({
             title: 'Mon dessin Gesturo',
             text: text || '',
-            url: saved.uri,
+            files: [saved.uri],
             dialogTitle: 'Partager ton dessin',
           });
           return { ok: true };
-        } catch (e) {
-          if (e.message && e.message.includes('cancel')) return { ok: false };
-          // Fall through to Web Share API
         }
-      }
 
-      // Fallback: Web Share API (works on some iOS versions)
-      if (navigator.share) {
-        try {
-          const resp = await fetch(imageUrl);
-          const blob = await resp.blob();
+        // 4. Fallback: Web Share API with file
+        if (navigator.share && navigator.canShare) {
           const file = new File([blob], 'gesturo-drawing.jpg', { type: 'image/jpeg' });
-          await navigator.share({ text: text || '', files: [file] });
-          return { ok: true };
-        } catch (e) {
-          if (e.name === 'AbortError') return { ok: false };
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ text: text || '', files: [file] });
+            return { ok: true };
+          }
         }
-      }
 
-      // Last fallback: download + copy text
-      try {
-        const a = document.createElement('a');
-        a.href = imageUrl;
-        a.download = 'gesturo-drawing.jpg';
-        a.click();
-        if (navigator.clipboard) await navigator.clipboard.writeText(text || '');
-      } catch (e) { /* silent */ }
-      return { ok: false, fallback: true };
+        return { ok: false, error: 'Share plugin not found', uri: saved.uri };
+      } catch (e) {
+        if (e.message && e.message.includes('cancel')) return { ok: false };
+        console.error('[shareImage] error:', e);
+        return { ok: false, error: e.message };
+      }
     },
 
     // ── Moodboard webview path — N/A on mobile ──
