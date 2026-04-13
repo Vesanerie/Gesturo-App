@@ -362,25 +362,23 @@
       }
 
       try {
-        // 1. Get image as base64 via canvas (fetch fails on iOS due to CORS)
-        console.log('[shareImage] loading image via canvas...');
-        const base64 = await new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            try {
-              const canvas = document.createElement('canvas');
-              canvas.width = img.naturalWidth;
-              canvas.height = img.naturalHeight;
-              canvas.getContext('2d').drawImage(img, 0, 0);
-              const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-              resolve(dataUrl.split(',')[1]);
-            } catch (e) { reject(e); }
-          };
-          img.onerror = () => reject(new Error('image load failed'));
-          img.src = imageUrl;
-        });
-        console.log('[shareImage] base64 length:', base64.length);
+        // 1. Get base64 from image (may already be a data URL from canvas)
+        let base64;
+        if (imageUrl.startsWith('data:')) {
+          base64 = imageUrl.split(',')[1];
+          console.log('[shareImage] using provided data URL, length:', base64.length);
+        } else {
+          // Fallback: try fetch (may fail on iOS CORS)
+          console.log('[shareImage] fetching image URL...');
+          const resp = await fetch(imageUrl);
+          const blob = await resp.blob();
+          base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(blob);
+          });
+          console.log('[shareImage] fetched, base64 length:', base64.length);
+        }
 
         // 2. Write to cache
         const fileName = 'gesturo-drawing-' + Date.now() + '.jpg';
