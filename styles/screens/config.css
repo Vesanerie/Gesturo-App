@@ -392,6 +392,34 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
 }
 
 /* ─────────────────────────────────────────────────────────────────────
+   LANDSCAPE PHONE — Config (hauteur ≤500px, orientation paysage)
+
+   Sur téléphone en paysage, la hauteur est très limitée (~320-400px).
+   On réduit paddings et on force le scroll pour que tout reste accessible.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+  #screen-config { padding: 12px 14px; }
+  .config-inner {
+    padding-bottom: 80px;
+  }
+  .config-inner h1 { font-size: 28px; margin-bottom: 4px; }
+  .config-inner .subtitle { font-size: 11px; margin-bottom: 10px; }
+
+  .card { margin-bottom: 8px; }
+  #screen-config .card h3 { padding: 12px 18px; min-height: 36px; }
+  #screen-config .card .card-body { padding: 0 18px 12px; }
+
+  .mode-tabs { margin-bottom: 8px; }
+  .mode-tab { height: 40px; font-size: 12px; }
+
+  #start-bar {
+    bottom: 0;
+    padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  }
+  #start-bar .btn-start { min-height: 44px; font-size: 14px; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
    TABLET — Config (768-1199px, iPad portrait/landscape + Android tablets)
 
    Philosophie C : UI tablet repensée pour l'écran + le doigt.

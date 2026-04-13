@@ -154,3 +154,35 @@
   .onboarding-subtitle { font-size: 14px; max-width: 280px; }
   .onboarding-nav { padding: 16px 20px 22px; }
 }
+
+/* ═══ LANDSCAPE PHONE (hauteur ≤500px) ═══ */
+@media (max-height: 500px) and (orientation: landscape) {
+  .onboarding-overlay { padding: 8px; }
+  .onboarding-card {
+    flex-direction: row;
+    height: 100%; max-height: calc(100vh - 16px);
+    border-radius: 12px;
+  }
+  .onboarding-viewport { flex: 1; min-width: 0; overflow-y: auto; }
+  .onboarding-slide {
+    padding: 16px 20px;
+    justify-content: flex-start;
+  }
+  .onboarding-icon { font-size: 48px; margin-bottom: 12px; }
+  .onboarding-logo { font-size: 36px; margin-bottom: 16px; }
+  .onboarding-title { font-size: 18px; margin-bottom: 8px; }
+  .onboarding-subtitle { font-size: 13px; }
+  .onboarding-start-btn { margin-top: 16px; padding: 12px 28px; }
+  .onboarding-nav {
+    flex-direction: column;
+    padding: 12px;
+    border-top: none;
+    border-left: 0.5px solid #1e2d40;
+    width: 60px;
+    flex-shrink: 0;
+    justify-content: center;
+  }
+  .onboarding-dots { flex-direction: column; }
+  .onboarding-dot.active { width: 8px; height: 24px; border-radius: 4px; }
+  .onboarding-skip { top: 8px; right: auto; left: 8px; font-size: 11px; }
+}

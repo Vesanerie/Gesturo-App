@@ -163,6 +163,37 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
+   LANDSCAPE PHONE — Recap (hauteur ≤500px)
+   Header sticky plus compact, grille en 3 colonnes pour exploiter
+   la largeur paysage.
+   ══════════════════════════════════════════════════════════════ */
+@media (max-height: 500px) and (orientation: landscape) {
+  .end-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(15, 25, 35, 0.9);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+  .end-header h2 { font-size: 16px; }
+  .end-stats-row { gap: 12px; margin-top: 0; }
+  .end-stat { font-size: 11px; }
+  .end-btn { padding: 8px 12px; font-size: 12px; min-height: 36px; }
+
+  #recap-grid {
+    padding: 10px 16px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
    TABLET (768-1199px) — grille plus dense, header plein, lightbox
    adapté. Pas de sidebar ici (écran de résultats, on garde l'espace
    max pour la grille de poses).
