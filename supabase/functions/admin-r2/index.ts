@@ -101,11 +101,13 @@ Deno.serve(async (req) => {
 
       // archive: move every key under <root>/archive/<ts>/<rest>. Single timestamp
       // for the whole batch so the group stays restorable as one unit.
+      // Use overwrite:true (archive paths include a timestamp so collisions
+      // are practically impossible) and concurrency 20 to avoid 60s timeout.
       const ts = new Date().toISOString().replace(/[:.]/g, '-');
-      const result = await parallelMap(keys, 8, async (k) => {
+      const result = await parallelMap(keys, 20, async (k) => {
         const dest = archiveKeyFor(k, ts);
         if (!dest) throw new Error('not under <root>/current/');
-        await moveObject(k, dest);
+        await moveObject(k, dest, { overwrite: true });
         return { from: k, to: dest };
       });
       await logAction(adminEmail, 'archive', body.prefix || keys[0], result.ok.length, { timestamp: ts, failed: result.failed.length });
@@ -124,11 +126,11 @@ Deno.serve(async (req) => {
       }
       if (keys.length === 0) return jsonError('keys or prefix is required', 400);
 
-      const result = await parallelMap(keys, 8, async (k) => {
+      const result = await parallelMap(keys, 20, async (k) => {
         if (!isAllowedAdminKey(k)) throw new Error('forbidden');
         const dest = unarchiveKeyFor(k);
         if (!dest) throw new Error('not under <root>/archive/<ts>/');
-        await moveObject(k, dest);
+        await moveObject(k, dest, { overwrite: true });
         return { from: k, to: dest };
       });
       await logAction(adminEmail, 'unarchive', body.prefix || keys[0], result.ok.length, { failed: result.failed.length });
@@ -144,7 +146,7 @@ Deno.serve(async (req) => {
       for (const k of keys) {
         if (!isAllowedAdminKey(k)) return jsonError(`forbidden key: ${k}`, 400);
       }
-      const result = await parallelMap(keys, 8, async (k) => {
+      const result = await parallelMap(keys, 20, async (k) => {
         const fileName = k.split('/').pop() || '';
         const dest = destPrefix + fileName;
         if (dest === k) throw new Error('source equals dest');
