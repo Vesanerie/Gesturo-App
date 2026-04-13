@@ -2569,7 +2569,7 @@ function logSession(data) {
   if (hist.length > 500) hist.splice(0, hist.length - 500)
   saveHist(hist); renderWeekBar()
   if (window.electronAPI?.saveSession) {
-    window.electronAPI.saveSession({ poses: data.poses, minutes: data.minutes, cats: data.cats || data.seq || null }).catch(e => )
+    window.electronAPI.saveSession({ poses: data.poses, minutes: data.minutes, cats: data.cats || data.seq || null }).catch(() => {})
   }
   checkBadges()
 }
