@@ -1034,6 +1034,12 @@ async function confirmCommunityUpload() {
         headers: { 'Content-Type': 'image/jpeg' },
         body: _communityBlob,
       })
+      // Desktop: run auto-moderation after upload
+      if (res.needsModeration && res.postId) {
+        status.textContent = 'Vérification du contenu...'
+        const modRes = await window.electronAPI.moderateCommunityPost(res.postId)
+        if (modRes && !modRes.ok) throw new Error(modRes.reason || 'Image refusée par la modération automatique.')
+      }
     }
     if (_activeChallenges.length && res.postId) {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) {}
@@ -1126,6 +1132,12 @@ async function confirmShareDrawing() {
         headers: { 'Content-Type': 'image/jpeg' },
         body: _shareBlob,
       })
+      // Desktop: run auto-moderation after upload
+      if (res.needsModeration && res.postId) {
+        status.textContent = 'Vérification du contenu...'
+        const modRes = await window.electronAPI.moderateCommunityPost(res.postId)
+        if (modRes && !modRes.ok) throw new Error(modRes.reason || 'Image refusée par la modération automatique.')
+      }
     }
     if (_activeChallenges.length && res.postId) {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) { /* silent */ }

@@ -253,6 +253,11 @@
         return data || { success: false };
       } catch (e) { return { success: false }; }
     },
+    moderateCommunityPost: async (postId) => {
+      // Mobile sends base64 → moderation happens in submitCommunityPost directly.
+      // This is a no-op fallback for safety.
+      return { ok: true };
+    },
     getCommunityPosts: async () => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();

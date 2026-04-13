@@ -800,6 +800,15 @@ ipcMain.handle('submit-community-post', async (_e, data) => {
   }
 })
 
+ipcMain.handle('moderate-community-post', async (_e, postId) => {
+  try {
+    return await callUserData('moderateCommunityPost', { postId })
+  } catch (e) {
+    console.warn('[community] moderation error:', e.message)
+    return { ok: true } // fail open — manual review will catch it
+  }
+})
+
 ipcMain.handle('get-community-posts', async () => {
   try {
     return await callUserData('getCommunityPosts')

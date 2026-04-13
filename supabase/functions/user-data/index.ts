@@ -22,6 +22,67 @@ const ANON = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin = createClient(SUPABASE_URL, SERVICE);
 
+// ── Image moderation via Claude Vision ────────────────────────────────────
+// Returns { ok, reason }. ok=true means the image is a drawing/painting and SFW.
+async function moderateImage(base64: string): Promise<{ ok: boolean; reason: string }> {
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!apiKey) {
+    // No key configured → skip moderation, let manual review handle it
+    console.warn('[moderation] ANTHROPIC_API_KEY not set, skipping auto-moderation');
+    return { ok: true, reason: 'moderation skipped (no API key)' };
+  }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/jpeg', data: base64 },
+            },
+            {
+              type: 'text',
+              text: `You are a content moderator for an art community app (gesture drawing / figure drawing).
+Analyze this image and respond with ONLY a JSON object, no other text:
+{"isArtwork": true/false, "isNSFW": true/false, "reason": "brief explanation"}
+
+Rules:
+- isArtwork = true if image is a drawing, painting, sketch, digital art, watercolor, charcoal, figure study, gesture drawing, or any hand-made artwork (even beginner level). Also true for photos OF artwork (e.g. a photo of a sketchbook page).
+- isArtwork = false if it's a selfie, random photo, meme, screenshot, text-only image, or clearly not artwork.
+- isNSFW = true ONLY for explicit sexual content, genitalia close-ups, or pornographic imagery. Artistic nudity (figure drawing, classical poses) is ALLOWED and should be isNSFW = false.
+- Be lenient on quality — bad drawings are still artwork.`,
+            },
+          ],
+        }],
+      }),
+    });
+    if (!res.ok) {
+      console.warn('[moderation] Claude API error:', res.status);
+      return { ok: true, reason: 'moderation error, allowing through' };
+    }
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return { ok: true, reason: 'could not parse response' };
+    const result = JSON.parse(match[0]);
+    if (result.isNSFW) return { ok: false, reason: result.reason || 'Contenu inapproprié détecté.' };
+    if (!result.isArtwork) return { ok: false, reason: result.reason || 'Cette image ne semble pas être un dessin ou une création artistique.' };
+    return { ok: true, reason: 'approved' };
+  } catch (e) {
+    console.warn('[moderation] error:', (e as Error).message);
+    return { ok: true, reason: 'moderation error, allowing through' };
+  }
+}
+
 async function getEmail(req: Request): Promise<string | null> {
   const auth = req.headers.get('Authorization') || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
@@ -302,13 +363,15 @@ if (action === 'getStreak') {
       const { refImageUrl, username, imageBase64 } = payload || {};
       const key = `Community/${Date.now()}_${email.replace(/[^a-z0-9]/gi, '_')}.jpg`;
 
-      // If imageBase64 is provided (mobile), upload server-side.
-      // Otherwise return a presigned PUT URL for the client to upload directly.
+      // If imageBase64 is provided (mobile), moderate before uploading.
       let uploadUrl: string | null = null;
       if (imageBase64) {
+        const modResult = await moderateImage(imageBase64);
+        if (!modResult.ok) return json({ error: modResult.reason }, 400);
         const bytes = Uint8Array.from(atob(imageBase64), c => c.charCodeAt(0));
         await putObject(key, bytes, 'image/jpeg');
       } else {
+        // Desktop: presigned URL flow. Moderation happens after upload via moderateCommunityPost.
         uploadUrl = await presignPut(key, 'image/jpeg', 600);
       }
 
@@ -319,7 +382,37 @@ if (action === 'getStreak') {
         ref_image_url: refImageUrl || null,
       }).select('id').single();
       if (error) return json({ error: error.message }, 500);
-      return json({ uploadUrl, postId: post.id, imageKey: key, uploaded: !!imageBase64 });
+      return json({ uploadUrl, postId: post.id, imageKey: key, uploaded: !!imageBase64, needsModeration: !imageBase64 });
+    }
+
+    // Desktop post-upload moderation: fetch image from R2 public URL, run vision check
+    if (action === 'moderateCommunityPost') {
+      const { postId } = payload || {};
+      if (!postId) return json({ error: 'missing postId' }, 400);
+      const { data: post } = await admin
+        .from('community_posts').select('id, image_key, user_email')
+        .eq('id', postId).eq('user_email', email).maybeSingle();
+      if (!post) return json({ error: 'post not found' }, 404);
+      const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
+      const imageUrl = `${r2Public}/${post.image_key}`;
+      try {
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) return json({ error: 'could not fetch image' }, 500);
+        const buf = await imgRes.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const modResult = await moderateImage(base64);
+        if (!modResult.ok) {
+          // Auto-reject: delete post + image
+          await admin.from('post_reactions').delete().eq('post_id', post.id);
+          await admin.from('community_posts').delete().eq('id', post.id);
+          await deleteKeys([post.image_key]);
+          return json({ ok: false, reason: modResult.reason });
+        }
+        return json({ ok: true });
+      } catch (e) {
+        // If moderation fails, don't block — manual review will handle it
+        return json({ ok: true, reason: 'moderation error, allowing through' });
+      }
     }
 
     if (action === 'getCommunityPosts') {
