@@ -375,11 +375,11 @@ if (action === 'getStreak') {
         uploadUrl = await presignPut(key, 'image/jpeg', 600);
       }
 
-      // Auto-approve trusted users (>= 3 previously approved posts)
+      // Auto-approve trusted users (>= 1 previously approved post)
       const { count: approvedCount } = await admin.from('community_posts')
         .select('id', { count: 'exact', head: true })
         .eq('user_email', email).eq('approved', true);
-      const autoApprove = (approvedCount || 0) >= 3;
+      const autoApprove = (approvedCount || 0) >= 1;
 
       const { data: post, error } = await admin.from('community_posts').insert({
         user_email: email,
@@ -703,7 +703,7 @@ if (action === 'getStreak') {
         .select('action, reason, created_at, admin_email')
         .eq('target_email', targetEmail).order('created_at', { ascending: false }).limit(20)
         .catch(() => ({ data: [] })) as any;
-      return json({ profile: prof, posts, approvedCount: approvedCount || 0, trusted: (approvedCount || 0) >= 3, logs: logs || [] });
+      return json({ profile: prof, posts, approvedCount: approvedCount || 0, trusted: (approvedCount || 0) >= 1, logs: logs || [] });
     }
 
     if (action === 'adminGetModerationLog') {
