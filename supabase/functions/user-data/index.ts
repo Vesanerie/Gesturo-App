@@ -2,7 +2,7 @@
 // community posts, reactions.
 // Auth via Supabase JWT, DB writes via service role (bypasses RLS).
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { presignPut, putObject } from '../_shared/r2.ts';
+import { presignPut, putObject, deleteKeys } from '../_shared/r2.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -496,6 +496,57 @@ if (action === 'getStreak') {
       const reactionsGivenCount = (myReactions || []).length;
 
       return json({ postsCount, reactionsGivenCount, challengesCount });
+    }
+
+    // ── Admin: community moderation ──
+    if (action === 'adminListPosts') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const filter = payload?.filter || 'pending'; // 'pending' | 'approved' | 'all'
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 50, 1), 200);
+      const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
+      let query = admin
+        .from('community_posts')
+        .select('id, user_email, username, image_key, ref_image_url, challenge_id, approved, created_at')
+        .order('created_at', { ascending: false })
+        .range(reqOffset, reqOffset + reqLimit - 1);
+      if (filter === 'pending') query = query.eq('approved', false);
+      else if (filter === 'approved') query = query.eq('approved', true);
+      const { data, error } = await query;
+      if (error) return json({ error: error.message }, 500);
+      const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
+      const posts = (data || []).map((p: any) => ({
+        ...p,
+        image_url: r2Public ? `${r2Public}/${p.image_key}` : '',
+      }));
+      // Count pending for badge
+      const { count } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('approved', false);
+      return json({ posts, pendingCount: count || 0, limit: reqLimit, offset: reqOffset });
+    }
+
+    if (action === 'adminApprovePost') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const postIds = Array.isArray(payload?.postIds) ? payload.postIds : [payload?.postId].filter(Boolean);
+      if (!postIds.length) return json({ error: 'missing postId(s)' }, 400);
+      const { error } = await admin.from('community_posts').update({ approved: true }).in('id', postIds);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, count: postIds.length });
+    }
+
+    if (action === 'adminRejectPost') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const postIds = Array.isArray(payload?.postIds) ? payload.postIds : [payload?.postId].filter(Boolean);
+      if (!postIds.length) return json({ error: 'missing postId(s)' }, 400);
+      // Get image keys before deleting
+      const { data: posts } = await admin.from('community_posts').select('id, image_key').in('id', postIds);
+      const keys = (posts || []).map((p: any) => p.image_key).filter(Boolean);
+      // Delete reactions, then posts, then R2 images
+      await admin.from('post_reactions').delete().in('post_id', postIds);
+      await admin.from('community_posts').delete().in('id', postIds);
+      if (keys.length) await deleteKeys(keys);
+      return json({ ok: true, count: postIds.length, deletedImages: keys.length });
     }
 
     return json({ error: 'unknown action' }, 400);
