@@ -1010,9 +1010,11 @@ function _blobToBase64(blob) {
   })
 }
 const _isMobile = !window.electronAPI?.pickFolder || typeof Capacitor !== 'undefined'
+let _uploading = false
 
 async function confirmCommunityUpload() {
-  if (!_communityBlob) return
+  if (!_communityBlob || _uploading) return
+  _uploading = true
   const status = document.getElementById('community-upload-status')
   status.style.display = 'block'
   status.style.color = '#6a8aaa'
@@ -1039,8 +1041,9 @@ async function confirmCommunityUpload() {
     status.textContent = 'Publié !'
     status.style.color = '#2ecc71'
     _communityStats = null; checkBadges()
-    setTimeout(() => { closeCommunityUpload(); renderCommunity() }, 1500)
+    setTimeout(() => { _uploading = false; closeCommunityUpload(); renderCommunity() }, 1500)
   } catch(e) {
+    _uploading = false
     status.textContent = 'Erreur : ' + (e.message || 'échec')
     status.style.color = '#e74c3c'
     document.getElementById('community-upload-actions').style.display = 'flex'
@@ -1103,7 +1106,8 @@ function handleShareFile(input) {
 }
 
 async function confirmShareDrawing() {
-  if (!_shareBlob) return
+  if (!_shareBlob || _uploading) return
+  _uploading = true
   const status = document.getElementById('share-status')
   status.style.display = 'block'
   status.textContent = 'Envoi en cours...'
@@ -1129,8 +1133,9 @@ async function confirmShareDrawing() {
     status.textContent = 'Publié ! Ton dessin est visible dans la Communauté.'
     status.style.color = '#2ecc71'
     _communityStats = null; checkBadges()
-    setTimeout(closeShareDrawing, 2000)
+    setTimeout(() => { _uploading = false; closeShareDrawing() }, 2000)
   } catch(e) {
+    _uploading = false
     status.textContent = 'Erreur : ' + (e.message || 'échec upload')
     status.style.color = '#e74c3c'
     document.getElementById('share-actions').style.display = 'flex'
