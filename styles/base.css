@@ -121,6 +121,15 @@ body::after {
   /* Réserver de la place en bas du config pour ne pas que la dernière
      card passe sous la tab bar */
   #screen-config { padding-bottom: 80px !important; }
+
+  /* Boutons globaux (options, discord, profile) : descendre sous la
+     status bar iOS (notch / Dynamic Island) sur tous les formats */
+  #options-btn, #discord-btn, #profile-btn {
+    top: calc(env(safe-area-inset-top, 0px) + 14px) !important;
+  }
+  #options-dropdown {
+    top: calc(env(safe-area-inset-top, 0px) + 52px) !important;
+  }
 }
 
 /* Auth styles moved to styles/components/auth.css */
@@ -194,11 +203,16 @@ body::after {
     cursor: pointer;
   }
 
-  /* ── Global buttons in header: 44px ── */
-  #options-btn, #discord-btn, #profile-btn {
+  /* ── Global buttons in header: 44px + safe-area ── */
+  #options-btn, #discord-btn, #profile-btn, #plan-badge {
     width: 40px;
     height: 40px;
     font-size: 20px;
+    top: calc(env(safe-area-inset-top, 0px) + 14px) !important;
+  }
+  #plan-badge { width: auto; font-size: 11px; }
+  #options-dropdown {
+    top: calc(env(safe-area-inset-top, 0px) + 52px) !important;
   }
 
   /* ── End confirm modal: bigger buttons ── */
