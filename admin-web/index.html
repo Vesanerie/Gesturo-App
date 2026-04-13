@@ -148,17 +148,20 @@
 
     <!-- ═ MODERATION PANEL ═ -->
     <div id="panel-moderation" class="admin-panel hidden">
+      <div id="mod-stats" class="mod-stats"></div>
       <div class="mod-toolbar">
         <div class="mod-filters">
           <button class="mod-filter-btn active" data-filter="pending">En attente</button>
           <button class="mod-filter-btn" data-filter="approved">Approuvés</button>
           <button class="mod-filter-btn" data-filter="all">Tous</button>
         </div>
+        <input id="mod-search" type="search" placeholder="🔍 Rechercher un utilisateur…" autocomplete="off">
         <div class="mod-actions-global">
           <button id="mod-approve-all" class="add-btn" disabled>✓ Approuver la sélection</button>
           <button id="mod-reject-all" class="btn-danger" disabled>✕ Rejeter la sélection</button>
         </div>
       </div>
+      <div class="mod-kbd-hint muted">Raccourcis : ← → naviguer · A approuver · R rejeter · Espace sélectionner</div>
       <div id="mod-grid" class="mod-grid"></div>
     </div><!-- /panel-moderation -->
 

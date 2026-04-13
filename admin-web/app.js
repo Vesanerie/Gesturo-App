@@ -1400,7 +1400,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-' + panel));
       if (panel === 'challenges') loadChallengeList();
-      if (panel === 'moderation') loadModerationPosts();
+      if (panel === 'moderation') { loadModerationPosts(); loadModerationStats(); }
     });
   });
 });
@@ -1620,16 +1620,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Moderation panel ──────────────────────────────────────────────────────
 let _modFilter = 'pending';
+let _modSearch = '';
 let _modSelected = new Set();
+let _modPosts = []; // current loaded posts for keyboard nav
+let _modFocusIdx = -1;
+let _modSearchTimer = null;
+
+async function loadModerationStats() {
+  const el = $('mod-stats');
+  try {
+    const data = await callUserData('adminModerationStats');
+    el.innerHTML =
+      '<div class="mod-stat"><span>En attente</span> <span class="mod-stat-value warn">' + data.pending + '</span></div>' +
+      '<div class="mod-stat"><span>Approuvés aujourd\'hui</span> <span class="mod-stat-value ok">' + data.approvedToday + '</span></div>' +
+      '<div class="mod-stat"><span>Total approuvés</span> <span class="mod-stat-value">' + data.totalApproved + '</span></div>' +
+      '<div class="mod-stat"><span>Total posts</span> <span class="mod-stat-value">' + data.totalPosts + '</span></div>';
+  } catch { el.innerHTML = ''; }
+}
 
 async function loadModerationPosts() {
   const grid = $('mod-grid');
   grid.innerHTML = '<div class="mod-empty">Chargement…</div>';
   _modSelected.clear();
+  _modPosts = [];
+  _modFocusIdx = -1;
   updateModButtons();
   try {
-    const data = await callUserData('adminListPosts', { filter: _modFilter, limit: 100 });
+    const data = await callUserData('adminListPosts', { filter: _modFilter, search: _modSearch, limit: 100 });
     const posts = data.posts || [];
+    _modPosts = posts;
     // Update badge
     const badge = $('mod-badge');
     if (data.pendingCount > 0) {
@@ -1641,51 +1660,61 @@ async function loadModerationPosts() {
     grid.innerHTML = '';
     if (posts.length === 0) {
       grid.innerHTML = '<div class="mod-empty">' +
-        (_modFilter === 'pending' ? 'Aucun post en attente 👍' : 'Aucun post.') + '</div>';
+        (_modSearch ? 'Aucun résultat pour « ' + escapeHtml(_modSearch) + ' »' :
+        _modFilter === 'pending' ? 'Aucun post en attente 👍' : 'Aucun post.') + '</div>';
       return;
     }
-    posts.forEach(p => {
+    posts.forEach((p, idx) => {
       const card = document.createElement('div');
       card.className = 'mod-card';
       card.dataset.id = p.id;
+      card.dataset.idx = idx;
       const dt = new Date(p.created_at);
       const dateStr = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
       card.innerHTML =
-        '<div class="mod-check" title="Sélectionner">✓</div>' +
+        '<div class="mod-check" title="Sélectionner (Espace)">✓</div>' +
         '<img class="mod-card-img" loading="lazy" src="' + thumbUrl(p.image_url, 400) + '" alt="">' +
         '<div class="mod-card-body">' +
           '<div class="mod-card-user">' + escapeHtml(p.username || '—') + '</div>' +
           '<div class="mod-card-email">' + escapeHtml(p.user_email) + '</div>' +
           '<div class="mod-card-date">' + dateStr + '</div>' +
           '<span class="mod-card-status ' + (p.approved ? 'approved' : 'pending') + '">' + (p.approved ? 'Approuvé' : 'En attente') + '</span>' +
-          (p.ref_image_url ? '<a class="mod-ref-link" href="' + escapeHtml(p.ref_image_url) + '" target="_blank">Voir image de ref ↗</a>' : '') +
         '</div>' +
         '<div class="mod-card-actions">' +
           (p.approved
-            ? '<button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>'
-            : '<button class="mod-btn-approve" data-act="approve">✓ Approuver</button><button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>') +
+            ? '<button class="mod-btn-ban" data-act="ban" title="Bloquer cet utilisateur">🚫 Bloquer</button>' +
+              '<button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>'
+            : '<button class="mod-btn-approve" data-act="approve">✓ Approuver</button>' +
+              '<button class="mod-btn-ban" data-act="ban" title="Bloquer cet utilisateur">🚫</button>' +
+              '<button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>') +
         '</div>';
-      // Click image → lightbox
+      // Click image → lightbox with comparison if ref exists
       card.querySelector('.mod-card-img').addEventListener('click', () => {
-        $('lightbox-img').src = p.image_url;
-        $('lightbox').classList.remove('hidden');
+        openModLightbox(p);
       });
       // Click check → toggle selection
       card.querySelector('.mod-check').addEventListener('click', (e) => {
         e.stopPropagation();
-        if (_modSelected.has(p.id)) { _modSelected.delete(p.id); card.classList.remove('selected'); }
-        else { _modSelected.add(p.id); card.classList.add('selected'); }
-        updateModButtons();
+        toggleModSelect(p.id, card);
       });
-      // Single approve/reject
+      // Action buttons
       card.querySelectorAll('.mod-card-actions button').forEach(btn => {
         btn.addEventListener('click', async () => {
           const act = btn.dataset.act;
+          if (act === 'ban') {
+            if (!confirm('Bloquer l\'utilisateur ' + p.user_email + ' ?\nIl ne pourra plus publier.')) return;
+            try {
+              await callUserData('adminBanUser', { email: p.user_email });
+              toast('Utilisateur bloqué : ' + p.user_email, 'ok');
+            } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+            return;
+          }
           if (act === 'reject' && !confirm('Rejeter et supprimer définitivement ce post ?')) return;
           try {
             await callUserData(act === 'approve' ? 'adminApprovePost' : 'adminRejectPost', { postId: p.id });
             toast(act === 'approve' ? 'Post approuvé' : 'Post rejeté et supprimé', 'ok');
             loadModerationPosts();
+            loadModerationStats();
           } catch (e) { toast('Erreur : ' + e.message, 'err'); }
         });
       });
@@ -1696,6 +1725,12 @@ async function loadModerationPosts() {
   }
 }
 
+function toggleModSelect(id, card) {
+  if (_modSelected.has(id)) { _modSelected.delete(id); card.classList.remove('selected'); }
+  else { _modSelected.add(id); card.classList.add('selected'); }
+  updateModButtons();
+}
+
 function updateModButtons() {
   const n = _modSelected.size;
   $('mod-approve-all').disabled = n === 0;
@@ -1703,6 +1738,100 @@ function updateModButtons() {
   $('mod-approve-all').textContent = n > 0 ? `✓ Approuver (${n})` : '✓ Approuver la sélection';
   $('mod-reject-all').textContent = n > 0 ? `✕ Rejeter (${n})` : '✕ Rejeter la sélection';
 }
+
+// ── Feature 1: Lightbox with ref comparison ──
+function openModLightbox(post) {
+  const lb = $('lightbox');
+  const img = $('lightbox-img');
+  if (post.ref_image_url) {
+    // Side-by-side comparison
+    img.style.display = 'none';
+    let compare = lb.querySelector('.lightbox-compare');
+    if (!compare) {
+      compare = document.createElement('div');
+      compare.className = 'lightbox-compare';
+      lb.appendChild(compare);
+    }
+    compare.innerHTML =
+      '<div class="lightbox-compare-wrap">' +
+        '<img src="' + escapeHtml(post.ref_image_url) + '" alt="Référence">' +
+        '<div class="lightbox-compare-label">Référence</div>' +
+      '</div>' +
+      '<div class="lightbox-compare-wrap">' +
+        '<img src="' + escapeHtml(post.image_url) + '" alt="Dessin">' +
+        '<div class="lightbox-compare-label">Dessin de ' + escapeHtml(post.username || '?') + '</div>' +
+      '</div>';
+    compare.style.display = '';
+  } else {
+    img.src = post.image_url;
+    img.style.display = '';
+    const compare = lb.querySelector('.lightbox-compare');
+    if (compare) compare.style.display = 'none';
+  }
+  lb.classList.remove('hidden');
+}
+
+// Clean up compare view when lightbox closes
+(function () {
+  const origClose = $('lightbox-close');
+  origClose.addEventListener('click', () => {
+    const compare = $('lightbox').querySelector('.lightbox-compare');
+    if (compare) compare.style.display = 'none';
+    $('lightbox-img').style.display = '';
+  });
+})();
+
+// ── Feature 5: Keyboard shortcuts ──
+function modSetFocus(idx) {
+  if (_modPosts.length === 0) return;
+  // Clamp
+  if (idx < 0) idx = _modPosts.length - 1;
+  if (idx >= _modPosts.length) idx = 0;
+  _modFocusIdx = idx;
+  // Update visual
+  document.querySelectorAll('.mod-card.focused').forEach(c => c.classList.remove('focused'));
+  const card = $('mod-grid').querySelector(`.mod-card[data-idx="${idx}"]`);
+  if (card) {
+    card.classList.add('focused');
+    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  // Only active when moderation panel is visible
+  if ($('panel-moderation').classList.contains('hidden')) return;
+  // Don't intercept when typing in an input
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    modSetFocus(_modFocusIdx + 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    modSetFocus(_modFocusIdx - 1);
+  } else if ((e.key === 'a' || e.key === 'A') && _modFocusIdx >= 0) {
+    e.preventDefault();
+    const p = _modPosts[_modFocusIdx];
+    if (p && !p.approved) {
+      callUserData('adminApprovePost', { postId: p.id })
+        .then(() => { toast('Post approuvé', 'ok'); loadModerationPosts(); loadModerationStats(); })
+        .catch(err => toast('Erreur : ' + err.message, 'err'));
+    }
+  } else if ((e.key === 'r' || e.key === 'R') && _modFocusIdx >= 0) {
+    e.preventDefault();
+    const p = _modPosts[_modFocusIdx];
+    if (p && confirm('Rejeter et supprimer ce post ?')) {
+      callUserData('adminRejectPost', { postId: p.id })
+        .then(() => { toast('Post rejeté', 'ok'); loadModerationPosts(); loadModerationStats(); })
+        .catch(err => toast('Erreur : ' + err.message, 'err'));
+    }
+  } else if (e.key === ' ' && _modFocusIdx >= 0) {
+    e.preventDefault();
+    const p = _modPosts[_modFocusIdx];
+    const card = $('mod-grid').querySelector(`.mod-card[data-idx="${_modFocusIdx}"]`);
+    if (p && card) toggleModSelect(p.id, card);
+  }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   // Filter buttons
@@ -1713,6 +1842,14 @@ document.addEventListener('DOMContentLoaded', () => {
       loadModerationPosts();
     });
   });
+  // Search input with debounce
+  $('mod-search').addEventListener('input', () => {
+    clearTimeout(_modSearchTimer);
+    _modSearchTimer = setTimeout(() => {
+      _modSearch = $('mod-search').value.trim();
+      loadModerationPosts();
+    }, 400);
+  });
   // Batch approve
   $('mod-approve-all').addEventListener('click', async () => {
     if (_modSelected.size === 0) return;
@@ -1720,6 +1857,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await callUserData('adminApprovePost', { postIds: [..._modSelected] });
       toast(`${_modSelected.size} post(s) approuvé(s)`, 'ok');
       loadModerationPosts();
+      loadModerationStats();
     } catch (e) { toast('Erreur : ' + e.message, 'err'); }
   });
   // Batch reject
@@ -1730,6 +1868,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await callUserData('adminRejectPost', { postIds: [..._modSelected] });
       toast(`${_modSelected.size} post(s) rejeté(s) et supprimé(s)`, 'ok');
       loadModerationPosts();
+      loadModerationStats();
     } catch (e) { toast('Erreur : ' + e.message, 'err'); }
   });
 });
