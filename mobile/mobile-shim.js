@@ -363,6 +363,7 @@
 
       try {
         // 1. Download image to base64
+        console.log('[shareImage] fetching image...');
         const resp = await fetch(imageUrl);
         const blob = await resp.blob();
         const base64 = await new Promise((resolve) => {
@@ -370,41 +371,39 @@
           reader.onloadend = () => resolve(reader.result.split(',')[1]);
           reader.readAsDataURL(blob);
         });
+        console.log('[shareImage] base64 length:', base64.length);
 
         // 2. Write to cache
         const fileName = 'gesturo-drawing-' + Date.now() + '.jpg';
-        const saved = await FS.writeFile({
-          path: fileName,
-          data: base64,
-          directory: 'CACHE',
-        });
-        console.log('[shareImage] saved uri:', saved.uri);
+        let saved;
+        try {
+          saved = await FS.writeFile({
+            path: fileName,
+            data: base64,
+            directory: 'CACHE',
+          });
+          console.log('[shareImage] saved:', JSON.stringify(saved));
+        } catch (fsErr) {
+          console.error('[shareImage] FS.writeFile failed:', JSON.stringify(fsErr), fsErr.message, String(fsErr));
+          return { ok: false, error: 'writeFile: ' + (fsErr.message || String(fsErr)) };
+        }
 
-        // 3. Share via native plugin (use files array, not url)
-        if (SharePlugin) {
+        // 3. Share via native plugin
+        try {
           await SharePlugin.share({
-            title: 'Mon dessin Gesturo',
             text: text || '',
             files: [saved.uri],
-            dialogTitle: 'Partager ton dessin',
           });
           return { ok: true };
+        } catch (shareErr) {
+          console.error('[shareImage] Share.share failed:', JSON.stringify(shareErr), shareErr.message, String(shareErr));
+          // If user cancelled, it's not an error
+          if (String(shareErr).includes('cancel') || String(shareErr).includes('dismiss')) return { ok: false };
+          return { ok: false, error: 'share: ' + (shareErr.message || String(shareErr)) };
         }
-
-        // 4. Fallback: Web Share API with file
-        if (navigator.share && navigator.canShare) {
-          const file = new File([blob], 'gesturo-drawing.jpg', { type: 'image/jpeg' });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ text: text || '', files: [file] });
-            return { ok: true };
-          }
-        }
-
-        return { ok: false, error: 'Share plugin not found', uri: saved.uri };
       } catch (e) {
-        if (e.message && e.message.includes('cancel')) return { ok: false };
-        console.error('[shareImage] error:', e);
-        return { ok: false, error: e.message };
+        console.error('[shareImage] outer error:', JSON.stringify(e), e.message, String(e));
+        return { ok: false, error: String(e) || e.message || 'unknown' };
       }
     },
 
