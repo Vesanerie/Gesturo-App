@@ -136,7 +136,7 @@
   .cc-images { flex-direction: column; gap: 14px; }
   .cc-image-wrap img { max-height: 40vh; }
   .community-compare.cc-single .cc-image-wrap img { max-height: 70vh; }
-  .cc-close { top: 10px; right: 10px; }
+  .cc-close { top: calc(env(safe-area-inset-top, 0px) + 10px); right: 10px; width: 44px; height: 44px; font-size: 20px; }
   .cc-draw-btn { min-height: 48px; width: 100%; max-width: 320px; }
 }
 

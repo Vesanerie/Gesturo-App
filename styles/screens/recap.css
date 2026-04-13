@@ -160,6 +160,23 @@
     max-width: 96vw;
     max-height: 82vh;
   }
+
+  /* Bouton close des overlays share/upload — plus gros + safe-area */
+  .share-close {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 21, 32, 0.7);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-radius: 50%;
+    color: #c8d6e5;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════

@@ -307,7 +307,7 @@
       <div id="community-empty" style="font-size:13px;color:#556;text-align:center;padding:30px 0;display:none;">Chargement...</div>
 
       <!-- Upload overlay (from community tab) -->
-      <div id="community-upload-overlay" style="display:none;">
+      <div id="community-upload-overlay" style="display:none;" onclick="if(event.target===this)closeCommunityUpload()">
         <div class="share-drawing-box">
           <h3>Partage ton dessin</h3>
           <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
@@ -444,7 +444,7 @@
 </div>
 
 <!-- Modale confirm Terminer — commune aux 3 modes -->
-<div id="end-confirm-modal">
+<div id="end-confirm-modal" onclick="if(event.target===this)closeEndConfirm()">
   <span>Terminer la session ?</span>
   <button class="s-btn s-btn-danger-solid" id="end-confirm-yes">Oui, terminer</button>
   <button class="s-btn" id="end-confirm-cancel">Annuler</button>
@@ -466,7 +466,7 @@
       <button class="end-btn end-btn-share" id="btn-share-drawing" onclick="openShareDrawing()">Partager mon dessin</button>
     </div>
     <!-- Upload overlay -->
-    <div id="share-drawing-overlay" style="display:none;">
+    <div id="share-drawing-overlay" style="display:none;" onclick="if(event.target===this)closeShareDrawing()">
       <div class="share-drawing-box">
         <h3>Partage ton dessin</h3>
         <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
@@ -541,7 +541,7 @@
 </div>
 
 <!-- COMMUNITY COMPARE OVERLAY -->
-<div id="community-compare" class="community-compare" style="display:none;">
+<div id="community-compare" class="community-compare" style="display:none;" onclick="if(event.target===this)closeCommunityCompare()">
   <button class="cc-close" onclick="closeCommunityCompare()">✕</button>
   <div class="cc-content">
     <div class="cc-images">
@@ -565,7 +565,7 @@
   </div>
 </div>
 
-<div id="about-modal">
+<div id="about-modal" onclick="if(event.target===this)closeAbout()">
   <div class="about-box">
     <h3>À propos</h3>
     <div class="about-row"><span class="label">Version</span><span class="value" id="about-version">—</span></div>

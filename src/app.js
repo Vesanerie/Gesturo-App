@@ -3265,3 +3265,75 @@ function toggleBadgesPanel() {
     setupConfigAccordion()
   }
 })()
+
+// ── Mobile back gesture: close topmost overlay ──
+// Handles hardware back button (Capacitor) and also provides a
+// helper for swipe-down-to-close on overlays.
+;(function() {
+  // Priority-ordered list: first open overlay wins.
+  function closeTopOverlay() {
+    const checks = [
+      { el: () => document.getElementById('badge-detail-overlay'), close: () => document.getElementById('badge-detail-overlay')?.remove() },
+      { el: () => document.getElementById('lightbox'), test: (e) => e.classList.contains('open'), close: closeLightbox },
+      { el: () => document.getElementById('community-compare'), test: (e) => e.style.display !== 'none', close: closeCommunityCompare },
+      { el: () => document.getElementById('community-upload-overlay'), test: (e) => e.style.display !== 'none', close: closeCommunityUpload },
+      { el: () => document.getElementById('share-drawing-overlay'), test: (e) => e.style.display !== 'none', close: closeShareDrawing },
+      { el: () => document.getElementById('end-confirm-modal'), test: (e) => e.classList.contains('open'), close: closeEndConfirm },
+      { el: () => document.getElementById('about-modal'), test: (e) => e.classList.contains('open'), close: closeAbout },
+      { el: () => document.getElementById('profile-modal'), test: (e) => e.style.display !== 'none', close: closeProfile },
+    ]
+    for (const c of checks) {
+      const e = c.el()
+      if (!e) continue
+      if (c.test ? c.test(e) : true) { c.close(); return true }
+    }
+    return false
+  }
+
+  // Capacitor hardware back button
+  if (typeof Capacitor !== 'undefined') {
+    document.addEventListener('backbutton', (e) => {
+      if (closeTopOverlay()) { e.preventDefault(); return }
+      // If on a session screen, go back to config
+      const active = document.querySelector('.screen.active')
+      if (active && ['screen-session', 'screen-anim', 'screen-cinema', 'screen-end'].includes(active.id)) {
+        e.preventDefault()
+        showScreen('screen-config')
+      }
+    })
+  }
+
+  // Swipe-down to close overlays on touch devices
+  const SWIPE_THRESHOLD = 80
+  let touchStartY = 0, touchTarget = null
+
+  const overlaySelectors = [
+    '#community-compare', '#community-upload-overlay', '#share-drawing-overlay',
+    '#lightbox', '#profile-modal', '#about-modal'
+  ]
+
+  document.addEventListener('touchstart', (e) => {
+    const t = e.touches[0]
+    for (const sel of overlaySelectors) {
+      const el = document.querySelector(sel)
+      if (el && (el.style.display !== 'none' && el.style.display !== '') || el?.classList.contains('open')) {
+        if (el.contains(e.target) || el === e.target) {
+          touchStartY = t.clientY
+          touchTarget = sel
+          return
+        }
+      }
+    }
+    touchTarget = null
+  }, { passive: true })
+
+  document.addEventListener('touchend', (e) => {
+    if (!touchTarget) return
+    const t = e.changedTouches[0]
+    const dy = t.clientY - touchStartY
+    if (dy > SWIPE_THRESHOLD) {
+      closeTopOverlay()
+    }
+    touchTarget = null
+  }, { passive: true })
+})()
