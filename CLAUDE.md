@@ -387,11 +387,19 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   pas urgent. main.js fait ~720 lignes, encore lisible.
 - **Vrai découpage modulaire de `src/app.js`** — monolithe global ~2148L.
   Nécessite import/export, virer globals, event delegation. Gros chantier.
-- **CI iOS** — Capacitor iOS scaffold pas encore généré.
+- **CI iOS** — Capacitor iOS scaffold généré (`df94eea`), workflow CI
+  pas encore créé.
 - **Tests** — il n'y en a pas. Pas une priorité pour un solo dev.
 
 ## Commits récents importants
 
+- `8933e2e` fix(mobile): community cards plus compactes sur phone
+- `cff6b19` feat(mobile): capturePhoto via plugin Camera Capacitor dans le shim
+- `a7545d0` fix(mobile): support landscape phone (max-height 500px)
+- `5c381e7` perf(user-data): réponses compactes — select explicite + fusion requête leaderboard
+- `9f179b1` feat(ios): meta tags Apple web app + theme-color
+- `92a1fff` fix(mobile): safe-area-inset sur modales auth, onboarding et profile
+- `8b4e82a` feat(ios): permissions caméra/photos + flag encryption dans Info.plist
 - `d128580` fix(responsive): disable zoom + extend tablet breakpoint to 1400px
 - `4267af3` fix(mobile): add viewport meta tag for proper responsive on iPad/iPhone
 - `d9c3d27` fix(ios): add URL scheme deep link for OAuth callback
