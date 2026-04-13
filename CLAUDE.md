@@ -365,7 +365,7 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   `post_reactions`, `challenges`. Edge Functions : `user-data` étendue,
   `daily-challenge` (auto-gen).
 - **Refonte tablet** (branch `tablet-version`) — breakpoints phone ≤767px,
-  tablet 768-1199px, desktop ≥1200px. Config sidebar + Session controls XL.
+  tablet 768-1399px, desktop ≥1400px. Config sidebar + Session controls XL.
 - **1er run Android sur device** — refonte UI mobile terminée, Manifest OK,
   Edge Functions OK, shim mobile OK. Reste à valider gestes tactiles +
   safe-area-inset + deep link auth sur device réel.
@@ -392,6 +392,10 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 
 ## Commits récents importants
 
+- `91c38db` perf(admin): augmenter concurrence archive/unarchive/move à 20 + overwrite:true
+- `48ec697` fix(tablet): hide moodboard pin button on mobile/tablet
+- `df94eea` feat(ios): add Capacitor iOS scaffold + deep link + iPad touch fixes
+- `b91bfb9` fix(tablet): adapt all buttons, inputs, sliders for iPad touch
 - `d128580` fix(responsive): disable zoom + extend tablet breakpoint to 1400px
 - `4267af3` fix(mobile): add viewport meta tag for proper responsive on iPad/iPhone
 - `d9c3d27` fix(ios): add URL scheme deep link for OAuth callback
