@@ -28,6 +28,22 @@
   };
 
   const openExternal = async (url) => {
+    // URLs avec apps natives connues → App.openUrl() pour déclencher
+    // les Universal Links iOS (ouvre Instagram/Discord/etc. nativement)
+    const nativeAppPatterns = [
+      /instagram\.com/i,
+      /discord\.gg/i,
+      /discord\.com/i,
+    ];
+    const shouldOpenNative = nativeAppPatterns.some(p => p.test(url));
+
+    if (shouldOpenNative && plugins.App && plugins.App.openUrl) {
+      try {
+        await plugins.App.openUrl({ url });
+        return;
+      } catch (e) { /* fall through to Browser */ }
+    }
+
     try {
       if (plugins.Browser && plugins.Browser.open) {
         await plugins.Browser.open({ url });
