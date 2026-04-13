@@ -739,6 +739,20 @@ if (action === 'getStreak') {
       return json({ pending: pending || 0, approvedToday: approvedToday || 0, totalApproved: totalApproved || 0, totalPosts: totalPosts || 0 });
     }
 
+    // ── Proxy image as base64 (mobile can't fetch R2 due to CORS) ──
+    if (action === 'proxyImage') {
+      const { imageUrl } = payload || {};
+      if (!imageUrl) return json({ error: 'missing imageUrl' }, 400);
+      const resp = await fetch(imageUrl);
+      if (!resp.ok) return json({ error: 'fetch failed: ' + resp.status }, 502);
+      const buf = await resp.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      return json({ base64, contentType: resp.headers.get('content-type') || 'image/jpeg' });
+    }
+
     return json({ error: 'unknown action' }, 400);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

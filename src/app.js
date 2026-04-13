@@ -1258,18 +1258,7 @@ async function shareFromCompare() {
 
   try {
     if (window.electronAPI?.shareImage) {
-      // Pass the already-loaded img element's src as a data URL via canvas
-      const ccImg = document.getElementById('cc-drawing')
-      let shareImgData = imgUrl
-      if (ccImg && ccImg.naturalWidth) {
-        try {
-          const c = document.createElement('canvas')
-          c.width = ccImg.naturalWidth; c.height = ccImg.naturalHeight
-          c.getContext('2d').drawImage(ccImg, 0, 0)
-          shareImgData = c.toDataURL('image/jpeg', 0.9)
-        } catch(e) { /* tainted canvas, fall back to URL */ }
-      }
-      const res = await window.electronAPI.shareImage({ imageUrl: shareImgData, text: shareText })
+      const res = await window.electronAPI.shareImage({ imageUrl: imgUrl, text: shareText })
       if (res.ok) {
         btn.textContent = '✅ Partagé !'
         setTimeout(() => { btn.textContent = origText; btn.disabled = false }, 2000)

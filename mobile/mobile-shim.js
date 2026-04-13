@@ -362,22 +362,22 @@
       }
 
       try {
-        // 1. Get base64 from image (may already be a data URL from canvas)
+        // 1. Get base64 — proxy via Edge Function (iOS CORS blocks direct fetch to R2)
         let base64;
         if (imageUrl.startsWith('data:')) {
           base64 = imageUrl.split(',')[1];
           console.log('[shareImage] using provided data URL, length:', base64.length);
         } else {
-          // Fallback: try fetch (may fail on iOS CORS)
-          console.log('[shareImage] fetching image URL...');
-          const resp = await fetch(imageUrl);
-          const blob = await resp.blob();
-          base64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(blob);
+          console.log('[shareImage] proxying image via Edge Function...');
+          const sb = await window.__gesturoAuth.getSupabase();
+          const { data } = await sb.functions.invoke('user-data', {
+            body: { action: 'proxyImage', payload: { imageUrl } }
           });
-          console.log('[shareImage] fetched, base64 length:', base64.length);
+          if (!data || !data.base64) {
+            return { ok: false, error: 'proxy failed: ' + (data?.error || 'no data') };
+          }
+          base64 = data.base64;
+          console.log('[shareImage] proxied, base64 length:', base64.length);
         }
 
         // 2. Write to cache
