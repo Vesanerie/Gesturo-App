@@ -296,6 +296,9 @@ if (action === 'getStreak') {
 
     // ── Community posts ──
     if (action === 'submitCommunityPost') {
+      // Block banned users
+      const { data: prof } = await admin.from('profiles').select('banned').eq('email', email).maybeSingle();
+      if (prof?.banned) return json({ error: 'Votre compte est suspendu. Vous ne pouvez pas publier.' }, 403);
       const { refImageUrl, username, imageBase64 } = payload || {};
       const key = `Community/${Date.now()}_${email.replace(/[^a-z0-9]/gi, '_')}.jpg`;
 
@@ -505,6 +508,7 @@ if (action === 'getStreak') {
       const filter = payload?.filter || 'pending'; // 'pending' | 'approved' | 'all'
       const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 50, 1), 200);
       const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
+      const search = (payload?.search || '').trim().toLowerCase();
       let query = admin
         .from('community_posts')
         .select('id, user_email, username, image_key, ref_image_url, challenge_id, approved, created_at')
@@ -512,6 +516,7 @@ if (action === 'getStreak') {
         .range(reqOffset, reqOffset + reqLimit - 1);
       if (filter === 'pending') query = query.eq('approved', false);
       else if (filter === 'approved') query = query.eq('approved', true);
+      if (search) query = query.or(`username.ilike.%${search}%,user_email.ilike.%${search}%`);
       const { data, error } = await query;
       if (error) return json({ error: error.message }, 500);
       const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
@@ -547,6 +552,38 @@ if (action === 'getStreak') {
       await admin.from('community_posts').delete().in('id', postIds);
       if (keys.length) await deleteKeys(keys);
       return json({ ok: true, count: postIds.length, deletedImages: keys.length });
+    }
+
+    if (action === 'adminBanUser') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      const { error } = await admin.from('profiles').update({ banned: true }).eq('email', targetEmail);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === 'adminUnbanUser') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      const { error } = await admin.from('profiles').update({ banned: false }).eq('email', targetEmail);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === 'adminModerationStats') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayISO = todayStart.toISOString();
+      const { count: pending } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('approved', false);
+      const { count: approvedToday } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('approved', true).gte('created_at', todayISO);
+      const { count: totalApproved } = await admin.from('community_posts').select('id', { count: 'exact', head: true }).eq('approved', true);
+      const { count: totalPosts } = await admin.from('community_posts').select('id', { count: 'exact', head: true });
+      return json({ pending: pending || 0, approvedToday: approvedToday || 0, totalApproved: totalApproved || 0, totalPosts: totalPosts || 0 });
     }
 
     return json({ error: 'unknown action' }, 400);
