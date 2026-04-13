@@ -407,6 +407,11 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 
 ## Commits récents importants
 
+- `f605b0f` feat(backend): ban user, stats modération, recherche par user dans adminListPosts
+- `bd4b373` fix(ios): ouvrir Instagram/Discord dans l'app native via Universal Links
+- `ea58516` fix(mobile): empêcher le double-post community sur iOS
+- `94c4c11` fix(ios): safe-area-inset-top sur l'écran Config mobile
+- `dfee224` fix(mobile): tap-to-close + swipe-down + back button sur tous les overlays
 - `8933e2e` fix(mobile): community cards plus compactes sur phone
 - `cff6b19` feat(mobile): capturePhoto via plugin Camera Capacitor dans le shim
 - `a7545d0` fix(mobile): support landscape phone (max-height 500px)
