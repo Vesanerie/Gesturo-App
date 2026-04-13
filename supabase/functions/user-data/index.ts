@@ -692,6 +692,16 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    if (action === 'adminListBannedUsers') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { data } = await admin.from('profiles')
+        .select('email, username, banned, created_at')
+        .eq('banned', true)
+        .order('email');
+      return json({ users: data || [] });
+    }
+
     if (action === 'adminGetUserProfile') {
       const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
       if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);

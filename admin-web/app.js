@@ -1877,6 +1877,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('mod-speed-btn').addEventListener('click', openSpeedReview);
   // Moderation log button
   $('mod-log-btn').addEventListener('click', openModerationLog);
+  // Banned users button
+  $('mod-banned-btn').addEventListener('click', openBannedList);
 });
 
 // ── Feature 2: Speed Review ──────────────────────────────────────────────
@@ -2071,6 +2073,45 @@ async function openModerationLog() {
 
 document.addEventListener('DOMContentLoaded', () => {
   $('mod-log-close').addEventListener('click', () => $('mod-log-modal').classList.add('hidden'));
+});
+
+// ── Banned users list ─────────────────────────────────────────────────────
+async function openBannedList() {
+  $('banned-modal').classList.remove('hidden');
+  const list = $('banned-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('adminListBannedUsers');
+    const users = data.users || [];
+    list.innerHTML = '';
+    if (users.length === 0) { list.innerHTML = '<div class="audit-empty">Aucun utilisateur banni.</div>'; return; }
+    users.forEach(u => {
+      const row = document.createElement('div');
+      row.className = 'banned-row';
+      row.innerHTML =
+        '<div class="banned-info">' +
+          '<div class="banned-username">' + escapeHtml(u.username || '—') + '</div>' +
+          '<div class="banned-email">' + escapeHtml(u.email) + '</div>' +
+        '</div>';
+      const btn = document.createElement('button');
+      btn.className = 'btn-secondary';
+      btn.textContent = 'Débloquer';
+      btn.addEventListener('click', async () => {
+        if (!confirm('Débloquer ' + u.email + ' ?')) return;
+        try {
+          await callUserData('adminUnbanUser', { email: u.email });
+          toast('Utilisateur débloqué : ' + u.email, 'ok');
+          openBannedList();
+        } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      });
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = 'Erreur : ' + e.message; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('banned-close').addEventListener('click', () => $('banned-modal').classList.add('hidden'));
 });
 
 // ── Feature 6: Reject reason modal ───────────────────────────────────────

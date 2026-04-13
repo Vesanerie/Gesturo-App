@@ -376,6 +376,14 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .mod-log-reason { color: var(--muted); font-size: 12px; font-style: italic; flex: 1; }
 .mod-log-date { color: var(--dim); font-size: 11px; font-family: monospace; white-space: nowrap; margin-left: auto; }
 
+/* Banned users list */
+.banned-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.banned-row:hover { border-color: var(--accent); }
+.banned-info { flex: 1; min-width: 0; }
+.banned-username { font-size: 14px; font-weight: 600; color: var(--text); }
+.banned-email { font-size: 12px; color: var(--muted); word-break: break-all; }
+.banned-row .btn-secondary { flex-shrink: 0; }
+
 @media (max-width: 800px) {
   .challenges-layout { grid-template-columns: 1fr; }
   .ref-picker-modal { width: 95vw; }

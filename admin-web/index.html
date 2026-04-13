@@ -158,6 +158,7 @@
         <input id="mod-search" type="search" placeholder="🔍 Rechercher un utilisateur…" autocomplete="off">
         <button id="mod-speed-btn" class="btn-secondary" title="Mode speed review — une image à la fois">⚡ Speed Review</button>
         <button id="mod-log-btn" class="btn-secondary" title="Historique de modération">📜 Historique</button>
+        <button id="mod-banned-btn" class="btn-secondary" title="Utilisateurs bannis">🚫 Bannis</button>
         <div class="mod-actions-global">
           <button id="mod-approve-all" class="add-btn" disabled>✓ Approuver la sélection</button>
           <button id="mod-reject-all" class="btn-danger" disabled>✕ Rejeter la sélection</button>
@@ -265,6 +266,17 @@
         <button id="mod-log-close" class="btn-ghost">Fermer</button>
       </div>
       <div id="mod-log-list" class="audit-list">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- Banned users modal -->
+  <div id="banned-modal" class="modal-backdrop hidden">
+    <div class="modal audit-modal">
+      <div class="audit-header">
+        <h2>🚫 Utilisateurs bannis</h2>
+        <button id="banned-close" class="btn-ghost">Fermer</button>
+      </div>
+      <div id="banned-list" class="audit-list">Chargement…</div>
     </div>
   </div>
 
