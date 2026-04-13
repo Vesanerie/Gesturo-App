@@ -116,8 +116,13 @@
   justify-content: center;
 }
 
-.cc-draw-btn {
-  background: #2983eb;
+.cc-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.cc-draw-btn, .cc-share-btn {
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -127,8 +132,11 @@
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
 }
+.cc-draw-btn { background: #2983eb; }
 .cc-draw-btn:hover { background: #4499f5; }
-.cc-draw-btn:active { transform: scale(0.97); }
+.cc-share-btn { background: #1a2738; border: 0.5px solid #1e2d40; color: #c8d6e5; }
+.cc-share-btn:hover { background: #243448; }
+.cc-draw-btn:active, .cc-share-btn:active { transform: scale(0.97); }
 
 /* ── Mobile : stack images vertically ── */
 @media (max-width: 767px) {
@@ -137,7 +145,8 @@
   .cc-image-wrap img { max-height: 40vh; }
   .community-compare.cc-single .cc-image-wrap img { max-height: 70vh; }
   .cc-close { top: calc(env(safe-area-inset-top, 0px) + 10px); right: 10px; width: 44px; height: 44px; font-size: 20px; }
-  .cc-draw-btn { min-height: 48px; width: 100%; max-width: 320px; }
+  .cc-actions { flex-direction: column; align-items: center; }
+  .cc-draw-btn, .cc-share-btn { min-height: 48px; width: 100%; max-width: 320px; }
 }
 
 /* ═══ COMMUNITY FEED ═══ */

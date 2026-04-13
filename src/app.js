@@ -1246,6 +1246,38 @@ function drawFromCompare() {
   drawFromRefUrl(_ccCurrentPost.ref_image_url)
 }
 
+async function shareFromCompare() {
+  if (!_ccCurrentPost) return
+  const imgUrl = _ccCurrentPost.image_url
+  const username = _ccCurrentPost.username || 'anonyme'
+  const shareText = '🎨 Mon dessin réalisé avec Gesturo — ' +
+    'l\'app de gesture drawing pour progresser chaque jour !\n\n' +
+    '#gesturo #gesturedrawing #art #sketch #drawing #practice'
+
+  // Web Share API (iOS native share sheet)
+  if (navigator.share && navigator.canShare) {
+    try {
+      const resp = await fetch(imgUrl)
+      const blob = await resp.blob()
+      const file = new File([blob], 'gesturo-drawing.jpg', { type: 'image/jpeg' })
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ text: shareText, files: [file] })
+        return
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return // user cancelled
+    }
+  }
+  // Fallback: copy text + open image in new tab
+  try {
+    await navigator.clipboard.writeText(shareText)
+    window.open(imgUrl, '_blank')
+    alert('Texte copié ! Enregistre l\'image et colle le texte sur Instagram.')
+  } catch (e) {
+    window.electronAPI?.openExternal?.(imgUrl)
+  }
+}
+
 function buildPostCard(post, i) {
   const card = document.createElement('div')
   card.className = 'community-post'
