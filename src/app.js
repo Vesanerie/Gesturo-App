@@ -1448,7 +1448,9 @@ function buildPostCard(post, i) {
   return card
 }
 
+let _communityToken = 0
 async function renderCommunity() {
+  const token = ++_communityToken
   const feed = document.getElementById('community-feed')
   const empty = document.getElementById('community-empty')
   feed.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
@@ -1458,6 +1460,7 @@ async function renderCommunity() {
       window.electronAPI.getInstagramPosts().catch(() => []),
       window.electronAPI.getCommunityPosts().catch(() => ({ posts: [] })),
     ])
+    if (token !== _communityToken) return
 
     // Load challenges (once, cached in _activeChallenges)
     // If none exist, trigger daily-challenge to auto-create one
@@ -1467,6 +1470,7 @@ async function renderCommunity() {
         try { await triggerDailyChallenge(); await loadChallenges() } catch(e) { /* silent */ }
       }
     }
+    if (token !== _communityToken) return
 
     empty.style.display = 'none'
 
@@ -1524,6 +1528,8 @@ async function renderCommunity() {
 
     // Load reactions
     await loadReactions(filtered.map(p => p.id))
+    if (token !== _communityToken) return
+    feed.innerHTML = ''
 
     // If active challenge and no filter, split into challenge/other sections
     const activeChId = !_selectedChallengeFilter && _activeChallenges.length ? _activeChallenges[0].id : null
@@ -1548,7 +1554,10 @@ async function renderCommunity() {
     } else {
       filtered.forEach((post, i) => feed.appendChild(buildPostCard(post, i)))
     }
-  } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
+  } catch(e) {
+    if (token !== _communityToken) return
+    empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.'
+  }
 }
 
 let communityInterval = null
@@ -1577,7 +1586,9 @@ function switchCommunityTab(tab) {
   else if (tab === 'leaderboard') renderLeaderboard()
 }
 
+let _myPostsToken = 0
 async function renderMyPosts() {
+  const token = ++_myPostsToken
   const grid = document.getElementById('community-mine')
   const empty = document.getElementById('community-empty')
   const oldStats = grid.parentNode.querySelector('.my-posts-stats')
@@ -1585,6 +1596,7 @@ async function renderMyPosts() {
   grid.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
   try {
     const res = await window.electronAPI.getCommunityPosts()
+    if (token !== _myPostsToken) return
     const myPosts = (res.posts || []).filter(p => p.user_email === _communityEmail)
     empty.style.display = 'none'
     if (myPosts.length === 0) {
@@ -1593,6 +1605,10 @@ async function renderMyPosts() {
     }
 
     await loadReactions(myPosts.map(p => p.id))
+    if (token !== _myPostsToken) return
+    grid.innerHTML = ''
+    const existingStats = grid.parentNode.querySelector('.my-posts-stats')
+    if (existingStats) existingStats.remove()
 
     // Stats header
     let totalReactions = 0
@@ -1633,7 +1649,10 @@ async function renderMyPosts() {
 
       grid.appendChild(card)
     })
-  } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
+  } catch(e) {
+    if (token !== _myPostsToken) return
+    empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.'
+  }
 }
 
 const LEADERBOARD_MEDALS = ['🥇', '🥈', '🥉']
