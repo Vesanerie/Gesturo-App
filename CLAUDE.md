@@ -398,6 +398,37 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
     `ios/App/App.xcodeproj/project.pbxproj` (4 endroits :
     PBXBuildFile, PBXFileReference, PBXGroup App, PBXSourcesBuildPhase).
 
+- **SQL à lancer dans Supabase pour activer les nouveaux panels admin** :
+  ```sql
+  CREATE TABLE IF NOT EXISTS feature_flags (
+    key text PRIMARY KEY,
+    enabled boolean DEFAULT false,
+    description text,
+    updated_at timestamptz DEFAULT now()
+  );
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key text PRIMARY KEY,
+    value jsonb NOT NULL,
+    updated_at timestamptz DEFAULT now()
+  );
+  CREATE TABLE IF NOT EXISTS client_errors (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_email text,
+    message text NOT NULL,
+    stack text,
+    url text,
+    user_agent text,
+    app_version text,
+    created_at timestamptz DEFAULT now()
+  );
+  ALTER TABLE community_posts ADD COLUMN IF NOT EXISTS featured boolean DEFAULT false;
+  ALTER TABLE profiles ADD COLUMN IF NOT EXISTS featured boolean DEFAULT false;
+  ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active timestamptz;
+  ```
+  Sans ces tables/colonnes, les panels Système/Erreurs et les features
+  featured / last_active ne fonctionneront pas (échec silencieux côté
+  Edge Function, UI affichera "Aucune donnée").
+
 ### Backlog
 - **Phase D — Rotations planifiées** (admin web). Prêt côté DB (tables
   rotations + rotation_files créées). Reste à implémenter :
