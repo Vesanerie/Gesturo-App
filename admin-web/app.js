@@ -2285,6 +2285,23 @@ async function loadUsers() {
       };
       actions.appendChild(btnBan);
 
+      // Delete user (destructive — require retyping email)
+      const btnDel = document.createElement('button');
+      btnDel.textContent = '🗑';
+      btnDel.title = 'Supprimer le compte';
+      btnDel.className = 'btn-ban';
+      btnDel.onclick = async () => {
+        const typed = prompt('⚠ SUPPRESSION DÉFINITIVE ⚠\n\nCeci supprime : compte auth, profil, posts, réactions, favoris, sessions, images R2.\n\nTape exactement l\'email pour confirmer :\n' + u.email);
+        if (typed === null) return;
+        if (typed.trim().toLowerCase() !== u.email.toLowerCase()) { toast('Email incorrect, suppression annulée', 'err'); return; }
+        try {
+          const res = await callUserData('adminDeleteUser', { email: u.email });
+          toast('Compte supprimé (' + res.deletedPosts + ' posts, ' + res.deletedImages + ' images)', 'ok');
+          loadUsers();
+        } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      };
+      actions.appendChild(btnDel);
+
       row.appendChild(actions);
       list.appendChild(row);
     });

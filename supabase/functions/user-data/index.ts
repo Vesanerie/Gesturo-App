@@ -802,6 +802,57 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    if (action === 'adminDeleteUser') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      // Safety : no self-delete
+      if (targetEmail === email) return json({ error: 'Tu ne peux pas supprimer ton propre compte.' }, 400);
+
+      // Get target profile (need id for sessions/favorites + auth user id)
+      const { data: target } = await admin.from('profiles').select('id, email').eq('email', targetEmail).maybeSingle();
+      const targetId = target?.id;
+
+      // 1. Community posts → need R2 image keys for cleanup
+      const { data: posts } = await admin.from('community_posts').select('id, image_key').eq('user_email', targetEmail);
+      const postIds = (posts || []).map((p: any) => p.id);
+      const imageKeys = (posts || []).map((p: any) => p.image_key).filter(Boolean);
+
+      // 2. Delete post reactions : both the user's reactions AND reactions on user's posts
+      await admin.from('post_reactions').delete().eq('user_email', targetEmail);
+      if (postIds.length) await admin.from('post_reactions').delete().in('post_id', postIds);
+
+      // 3. Delete community posts
+      if (postIds.length) await admin.from('community_posts').delete().in('id', postIds);
+
+      // 4. Delete R2 images (silent fail)
+      try { if (imageKeys.length) await deleteKeys(imageKeys); } catch {}
+
+      // 5. Delete favorites + sessions (linked by profile id)
+      if (targetId) {
+        await admin.from('favorites_images').delete().eq('user_id', targetId);
+        await admin.from('sessions').delete().eq('user_id', targetId);
+      }
+
+      // 6. Delete profile row
+      await admin.from('profiles').delete().eq('email', targetEmail);
+
+      // 7. Delete Supabase Auth user (can't log in anymore)
+      try {
+        if (targetId) {
+          await admin.auth.admin.deleteUser(targetId);
+        }
+      } catch (e) {
+        console.warn('[adminDeleteUser] auth delete failed:', (e as Error).message);
+      }
+
+      // 8. Log
+      try { await admin.from('moderation_log').insert({ admin_email: email, action: 'delete_user', target_email: targetEmail, reason: `${postIds.length} posts, ${imageKeys.length} images R2` }); } catch {}
+
+      return json({ ok: true, deletedPosts: postIds.length, deletedImages: imageKeys.length });
+    }
+
     if (action === 'adminToggleAdmin') {
       const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
       if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
