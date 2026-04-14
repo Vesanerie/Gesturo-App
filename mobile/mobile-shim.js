@@ -11,6 +11,10 @@
 
   const Capacitor = window.Capacitor || null;
   const plugins = (Capacitor && Capacitor.Plugins) || {};
+  // Expose platform info for renderer (Android has MLKit document scanner, iOS doesn't)
+  const platform = (Capacitor && Capacitor.getPlatform) ? Capacitor.getPlatform() : 'web';
+  window.__isAndroid = platform === 'android';
+  window.__isIOS = platform === 'ios';
 
   const noop = () => {};
   const reject = (msg) => () => Promise.reject(new Error(msg + ' (not available on mobile)'));
@@ -344,22 +348,22 @@
       }
     },
 
-    // ── Document Scanner (iOS VisionKit / Android MLKit) ──
-    // Requires: npm install @capacitor-mlkit/document-scanner && npx cap sync
-    // Returns { dataUrl, format } or null if cancelled / plugin missing.
+    // ── Document Scanner (@capacitor-mlkit/document-scanner, Android only) ──
+    // Returns { dataUrl, format } or null if cancelled / plugin missing / iOS.
     scanDocument: async () => {
-      const Scanner = plugins.DocumentScanner || plugins.MlkitDocumentScanner;
+      const Scanner = plugins.DocumentScanner;
       if (!Scanner || !Scanner.scanDocument) {
-        alert('Le plugin de scan n\'est pas encore installé.\nInstalle @capacitor-mlkit/document-scanner pour activer cette fonctionnalité.');
+        alert('Le scan de document n\'est pas disponible sur cet appareil.');
         return null;
       }
       try {
         const result = await Scanner.scanDocument({
-          maxPages: 1,
-          resultFormat: 'JPEG',
+          pageLimit: 1,
+          resultFormats: 'JPEG',
+          scannerMode: 'FULL',
+          galleryImportAllowed: false,
         });
-        // Result shape depends on plugin version — try common paths
-        const uri = result?.scannedImages?.[0] || result?.pages?.[0] || result?.uri;
+        const uri = result?.scannedImages?.[0];
         if (!uri) return null;
         if (typeof uri === 'string' && uri.startsWith('data:')) {
           return { dataUrl: uri, format: 'jpeg' };

@@ -88,6 +88,7 @@
     }
   },
   "dependencies": {
+    "@capacitor-mlkit/document-scanner": "^8.0.1",
     "@capacitor/share": "^8.0.1",
     "@supabase/supabase-js": "^2.101.1",
     "electron-updater": "^6.8.3"

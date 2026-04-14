@@ -987,7 +987,7 @@ function openCommunityUpload() {
   _communityBlob = null
   // Show scan button on mobile only
   const scanBtn = document.getElementById('community-scan-btn')
-  if (scanBtn) scanBtn.style.display = _isMobile ? 'inline-flex' : 'none'
+  if (scanBtn) scanBtn.style.display = (_isMobile && window.__isAndroid) ? 'inline-flex' : 'none'
   const desc = document.querySelector('#community-upload-overlay .share-drawing-box p')
   if (desc && _activeChallenges.length) {
     desc.textContent = 'Challenge en cours : ' + _activeChallenges[0].title + ' — ton dessin sera inscrit !'
@@ -1147,7 +1147,7 @@ function openShareDrawing() {
   document.getElementById('share-file-input').value = ''
   // Show scan button on mobile only
   const scanBtn = document.getElementById('share-scan-btn')
-  if (scanBtn) scanBtn.style.display = _isMobile ? 'inline-flex' : 'none'
+  if (scanBtn) scanBtn.style.display = (_isMobile && window.__isAndroid) ? 'inline-flex' : 'none'
   // Update message if challenge is active
   const desc = document.querySelector('.share-drawing-box p')
   if (desc && _activeChallenges.length) {

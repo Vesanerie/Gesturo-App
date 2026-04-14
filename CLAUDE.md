@@ -384,21 +384,16 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   passent avec `approved = false` et la review manuelle via le panel
   admin prend le relais.
 
-- **Activer le mode Scan document (iPad/iPhone)** — le UI est en place
-  (boutons "📷 Photo" / "📄 Scanner" dans les 2 overlays de partage
-  community). Le bridge `scanDocument` est dans `preload.js` (no-op
-  desktop) et `mobile/mobile-shim.js` (cherche `plugins.DocumentScanner`
-  ou `plugins.MlkitDocumentScanner`). Pour activer le vrai scan avec
-  détection de contours + correction de perspective (comme l'app Notes
-  d'Apple) :
-  ```bash
-  npm install @capacitor-mlkit/document-scanner
-  npx cap sync ios
-  npx cap sync android
-  ```
-  Ensuite rebuild l'app (Xcode pour iOS, Android Studio pour Android).
-  En attendant, le bouton Scanner affiche un alert « plugin pas
-  installé » — le bouton Photo continue de marcher via `<input capture>`.
+- **Mode Scan document — Android OK, iOS à faire** — `@capacitor-mlkit/
+  document-scanner` est installé. Il utilise Google MLKit Document
+  Scanner qui ne supporte **que Android**. Le bouton "📄 Scanner"
+  s'affiche donc uniquement sur Android (check via `window.__isAndroid`
+  exposé par `mobile-shim.js`). iPad/iPhone voient juste "📷 Photo".
+  Pour ajouter le scan sur iOS, il faut soit :
+  1. Écrire un plugin Capacitor custom utilisant VNDocumentCamera
+     ViewController (VisionKit d'Apple)
+  2. Trouver un plugin cross-platform type `capacitor-plugin-document-
+     scanner` (vérifier compat et maintenance avant d'installer)
 
 ### Backlog
 - **Phase D — Rotations planifiées** (admin web). Prêt côté DB (tables
