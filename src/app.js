@@ -2373,14 +2373,19 @@ async function loadAnnouncement() {
     // Show it
     const banner = document.getElementById('announcement-banner')
     if (!banner) return
-    banner.className = 'announcement-banner kind-' + (ann.kind || 'info')
+    const kind = ann.kind || 'info'
+    banner.className = 'announcement-backdrop kind-' + kind
     banner.dataset.id = ann.id
+    // Icon per kind
+    const ICONS = { info: '💙', warning: '⚠️', success: '✨' }
+    const iconEl = document.getElementById('announcement-icon')
+    if (iconEl) iconEl.textContent = ICONS[kind] || '💙'
     document.getElementById('announcement-message').textContent = ann.message
     const link = document.getElementById('announcement-link')
     if (ann.link_url) {
       link.href = ann.link_url
       link.textContent = ann.link_label || 'En savoir plus →'
-      link.style.display = 'inline'
+      link.style.display = 'inline-block'
     } else {
       link.style.display = 'none'
     }

@@ -326,57 +326,85 @@ body::after {
   }
 }
 
-/* ═══ Announcement banner (top of app) ═══ */
-.announcement-banner {
+/* ═══ Announcement modal (center screen) ═══ */
+.announcement-backdrop {
   position: fixed;
-  top: 0; left: 0; right: 0;
-  padding: 10px 44px 10px 20px;
-  background: rgba(41, 131, 235, 0.15);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(41, 131, 235, 0.4);
-  color: #e6edf5;
-  font-size: 13px;
+  inset: 0;
+  background: rgba(5, 10, 18, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  padding: 20px;
+  animation: announce-fade 0.25s ease-out;
+}
+@keyframes announce-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.announcement-card {
+  position: relative;
+  background: var(--bg-card, #131f2e);
+  border: 1px solid rgba(41, 131, 235, 0.4);
+  border-radius: 16px;
+  padding: 36px 28px 28px;
+  max-width: 420px;
+  width: 100%;
   text-align: center;
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  animation: announce-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.announcement-banner.kind-warning {
-  background: rgba(240, 192, 64, 0.15);
-  border-bottom-color: rgba(240, 192, 64, 0.5);
+@keyframes announce-pop {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
-.announcement-banner.kind-success {
-  background: rgba(95, 207, 127, 0.15);
-  border-bottom-color: rgba(95, 207, 127, 0.5);
+.announcement-backdrop.kind-warning .announcement-card { border-color: rgba(240, 192, 64, 0.5); }
+.announcement-backdrop.kind-success .announcement-card { border-color: rgba(95, 207, 127, 0.5); }
+.announcement-icon {
+  font-size: 42px;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+.announcement-message {
+  color: #e6edf5;
+  font-size: 16px;
+  line-height: 1.45;
+  margin: 0 0 18px;
+  white-space: pre-line;
 }
 .announcement-link {
+  display: inline-block;
+  background: var(--primary, #2983eb);
   color: #fff;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-size: 14px;
+  padding: 10px 22px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: opacity 0.15s;
 }
-.announcement-link:hover { opacity: 0.8; }
+.announcement-link:hover { opacity: 0.85; }
+.announcement-backdrop.kind-warning .announcement-link { background: var(--warm, #f0c040); color: #0a1520; }
+.announcement-backdrop.kind-success .announcement-link { background: #5fcf7f; color: #0a1520; }
 .announcement-close {
   position: absolute;
+  top: 10px;
   right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
   background: transparent;
   border: none;
-  color: inherit;
-  font-size: 22px;
+  color: #6a8aa8;
+  font-size: 26px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0.7;
-  padding: 4px 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
 }
-.announcement-close:hover { opacity: 1; }
+.announcement-close:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
 @media (max-width: 767px) {
-  .announcement-banner { font-size: 12px; padding: 8px 40px 8px 14px; }
-  .announcement-close { font-size: 20px; }
+  .announcement-card { padding: 32px 22px 24px; }
+  .announcement-message { font-size: 15px; }
+  .announcement-icon { font-size: 38px; }
 }
