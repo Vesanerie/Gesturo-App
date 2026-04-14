@@ -1401,6 +1401,9 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-' + panel));
       if (panel === 'challenges') loadChallengeList();
       if (panel === 'moderation') { loadModerationPosts(); loadModerationStats(); }
+      if (panel === 'users') loadUsers();
+      if (panel === 'analytics') loadAnalytics();
+      if (panel === 'announcements') loadAnnouncements();
     });
   });
 });
@@ -2168,6 +2171,272 @@ document.addEventListener('DOMContentLoaded', () => {
   // Typing in input clears active tag
   $('reject-reason-input').addEventListener('input', () => {
     document.querySelectorAll('.reject-tag').forEach(t => t.classList.remove('active'));
+  });
+});
+
+// ── USERS PANEL ─────────────────────────────────────────────────────────
+let _usersOffset = 0;
+const _usersLimit = 50;
+let _usersSearch = '';
+let _usersFilterPlan = 'all';
+let _usersFilterBanned = 'all';
+let _usersFilterAdmin = 'all';
+let _usersSearchTimer = null;
+
+async function loadUsers() {
+  const list = $('users-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('adminListUsers', {
+      offset: _usersOffset, limit: _usersLimit,
+      search: _usersSearch,
+      plan: _usersFilterPlan,
+      banned: _usersFilterBanned,
+      admin: _usersFilterAdmin,
+    });
+    const users = data.users || [];
+    const total = data.total || 0;
+    $('users-count').textContent = total + ' utilisateur(s)';
+    $('users-page-info').textContent = users.length
+      ? `${_usersOffset + 1}–${_usersOffset + users.length} sur ${total}`
+      : '';
+    $('users-prev').disabled = _usersOffset === 0;
+    $('users-next').disabled = _usersOffset + users.length >= total;
+    list.innerHTML = '';
+    if (users.length === 0) { list.innerHTML = '<div class="mod-empty">Aucun utilisateur.</div>'; return; }
+    users.forEach(u => {
+      const row = document.createElement('div');
+      row.className = 'user-row';
+      const isPro = u.plan === 'pro';
+      const isBanned = !!u.banned;
+      const isAdmin = !!u.is_admin;
+      const createdAt = u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      const proExp = u.pro_expires_at ? ' · expire ' + new Date(u.pro_expires_at).toLocaleDateString('fr-FR') : (isPro ? ' · à vie' : '');
+      row.innerHTML =
+        '<div class="user-row-info">' +
+          '<div class="user-row-username">' + escapeHtml(u.username || '—') + '</div>' +
+          '<div class="user-row-email">' + escapeHtml(u.email) + '</div>' +
+          '<div class="user-row-meta">' +
+            '<span class="user-tag ' + (isPro ? 'pro' : 'free') + '">' + (isPro ? 'Pro' : 'Free') + '</span>' +
+            (isAdmin ? '<span class="user-tag admin">Admin</span>' : '') +
+            (isBanned ? '<span class="user-tag banned">Banni</span>' : '') +
+            '<span class="user-tag date">inscrit ' + createdAt + proExp + '</span>' +
+          '</div>' +
+        '</div>';
+      const actions = document.createElement('div');
+      actions.className = 'user-row-actions';
+
+      // Profile button (opens existing user profile modal)
+      const btnProfile = document.createElement('button');
+      btnProfile.textContent = '👁 Voir';
+      btnProfile.onclick = () => openUserProfile(u.email);
+      actions.appendChild(btnProfile);
+
+      // Pro toggle
+      const btnPro = document.createElement('button');
+      if (isPro) {
+        btnPro.textContent = 'Retirer Pro';
+        btnPro.onclick = async () => {
+          if (!confirm('Retirer Pro à ' + u.email + ' ?')) return;
+          try { await callUserData('adminRevokePro', { email: u.email }); toast('Pro retiré', 'ok'); loadUsers(); }
+          catch (e) { toast('Erreur : ' + e.message, 'err'); }
+        };
+      } else {
+        btnPro.textContent = '✨ Donner Pro';
+        btnPro.className = 'btn-pro-on';
+        btnPro.onclick = async () => {
+          const exp = prompt('Pro à vie ? Laisse vide et OK.\nOu entre une date d\'expiration (YYYY-MM-DD) :', '');
+          if (exp === null) return; // cancelled
+          let expiresAt = null;
+          if (exp.trim()) {
+            const d = new Date(exp.trim());
+            if (isNaN(d.getTime())) { toast('Date invalide', 'err'); return; }
+            expiresAt = d.toISOString();
+          }
+          try { await callUserData('adminGrantPro', { email: u.email, expiresAt }); toast('Pro accordé ✨', 'ok'); loadUsers(); }
+          catch (e) { toast('Erreur : ' + e.message, 'err'); }
+        };
+      }
+      actions.appendChild(btnPro);
+
+      // Admin toggle
+      const btnAdmin = document.createElement('button');
+      btnAdmin.textContent = isAdmin ? 'Retirer admin' : '👑 Admin';
+      btnAdmin.onclick = async () => {
+        const msg = isAdmin ? 'Retirer les droits admin de ' + u.email + ' ?' : 'Donner les droits admin à ' + u.email + ' ?';
+        if (!confirm(msg)) return;
+        try { await callUserData('adminToggleAdmin', { email: u.email, makeAdmin: !isAdmin }); toast('OK', 'ok'); loadUsers(); }
+        catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      };
+      actions.appendChild(btnAdmin);
+
+      // Ban / Unban
+      const btnBan = document.createElement('button');
+      btnBan.textContent = isBanned ? 'Débloquer' : '🚫 Bannir';
+      if (!isBanned) btnBan.className = 'btn-ban';
+      btnBan.onclick = async () => {
+        const msg = isBanned ? 'Débloquer ' + u.email + ' ?' : 'Bannir ' + u.email + ' ?';
+        if (!confirm(msg)) return;
+        try {
+          await callUserData(isBanned ? 'adminUnbanUser' : 'adminBanUser', { email: u.email });
+          toast(isBanned ? 'Débloqué' : 'Banni', 'ok');
+          loadUsers();
+        } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      };
+      actions.appendChild(btnBan);
+
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = 'Erreur : ' + e.message; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('users-search').addEventListener('input', () => {
+    clearTimeout(_usersSearchTimer);
+    _usersSearchTimer = setTimeout(() => {
+      _usersSearch = $('users-search').value.trim();
+      _usersOffset = 0;
+      loadUsers();
+    }, 400);
+  });
+  ['plan', 'banned', 'admin'].forEach(k => {
+    $('users-filter-' + k).addEventListener('change', () => {
+      if (k === 'plan') _usersFilterPlan = $('users-filter-plan').value;
+      if (k === 'banned') _usersFilterBanned = $('users-filter-banned').value;
+      if (k === 'admin') _usersFilterAdmin = $('users-filter-admin').value;
+      _usersOffset = 0;
+      loadUsers();
+    });
+  });
+  $('users-prev').addEventListener('click', () => {
+    _usersOffset = Math.max(0, _usersOffset - _usersLimit);
+    loadUsers();
+  });
+  $('users-next').addEventListener('click', () => {
+    _usersOffset += _usersLimit;
+    loadUsers();
+  });
+});
+
+// ── ANALYTICS PANEL ─────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const kpis = $('analytics-kpis');
+  kpis.innerHTML = '<div class="mod-empty">Chargement…</div>';
+  const days = parseInt($('analytics-range').value) || 30;
+  try {
+    const d = await callUserData('adminGetAnalytics', { days });
+    kpis.innerHTML =
+      kpiCard('Utilisateurs', d.totalUsers, '+' + d.signupsPeriod + ' sur ' + days + 'j') +
+      kpiCard('Pro', d.proUsers, d.conversionRate + '% de conversion', 'warm') +
+      kpiCard('Sessions totales', d.totalSessions) +
+      kpiCard('Sessions ' + days + 'j', d.sessionsPeriod, 'moy. ' + d.avgDurationMin + ' min/session') +
+      kpiCard('Posts community', d.totalPosts) +
+      kpiCard('Inscriptions ' + days + 'j', d.signupsPeriod, '', 'ok');
+    renderBarChart('chart-signups', d.days.map(x => ({ label: x.date, value: x.signups })));
+    renderBarChart('chart-sessions', d.days.map(x => ({ label: x.date, value: x.sessions })));
+  } catch (e) { kpis.innerHTML = '<div class="mod-empty">Erreur : ' + escapeHtml(e.message) + '</div>'; }
+}
+
+function kpiCard(label, value, sub, tone) {
+  return '<div class="kpi-card">' +
+    '<div class="kpi-label">' + label + '</div>' +
+    '<div class="kpi-value' + (tone ? ' ' + tone : '') + '">' + value + '</div>' +
+    (sub ? '<div class="kpi-sub">' + sub + '</div>' : '') +
+  '</div>';
+}
+
+function renderBarChart(containerId, data) {
+  const container = $(containerId);
+  container.innerHTML = '';
+  const max = Math.max(1, ...data.map(d => d.value));
+  data.forEach(d => {
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    bar.dataset.value = d.value;
+    bar.style.height = Math.max(2, (d.value / max) * 100) + '%';
+    const tip = document.createElement('div');
+    tip.className = 'chart-tooltip';
+    const dt = new Date(d.label);
+    tip.textContent = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' : ' + d.value;
+    bar.appendChild(tip);
+    container.appendChild(bar);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('analytics-range').addEventListener('change', loadAnalytics);
+  $('analytics-refresh').addEventListener('click', loadAnalytics);
+});
+
+// ── ANNOUNCEMENTS PANEL ─────────────────────────────────────────────────
+async function loadAnnouncements() {
+  const list = $('ann-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('adminListAnnouncements');
+    const items = data.announcements || [];
+    if (items.length === 0) { list.innerHTML = '<div class="mod-empty">Aucune annonce.</div>'; return; }
+    list.innerHTML = '';
+    items.forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'ann-row' + (a.active ? ' active' : '');
+      const expires = a.expires_at ? ' · expire le ' + new Date(a.expires_at).toLocaleDateString('fr-FR') : '';
+      const created = new Date(a.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      row.innerHTML =
+        '<div class="ann-row-info">' +
+          '<div class="ann-row-msg">' +
+            '<span class="ann-row-kind ' + (a.kind || 'info') + '">' + (a.kind || 'info') + '</span>' +
+            escapeHtml(a.message) +
+          '</div>' +
+          '<div class="ann-row-meta">' +
+            '<span class="ann-row-status ' + (a.active ? 'active' : 'inactive') + '">' + (a.active ? 'Active' : 'Inactive') + '</span>' +
+            ' · créée le ' + created + expires +
+          '</div>' +
+        '</div>';
+      const actions = document.createElement('div');
+      actions.className = 'ann-row-actions';
+      const btnToggle = document.createElement('button');
+      btnToggle.textContent = a.active ? 'Désactiver' : 'Activer';
+      btnToggle.onclick = async () => {
+        try { await callUserData('adminToggleAnnouncement', { id: a.id, active: !a.active }); loadAnnouncements(); }
+        catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      };
+      const btnDel = document.createElement('button');
+      btnDel.textContent = '🗑';
+      btnDel.onclick = async () => {
+        if (!confirm('Supprimer cette annonce ?')) return;
+        try { await callUserData('adminDeleteAnnouncement', { id: a.id }); toast('Supprimée', 'ok'); loadAnnouncements(); }
+        catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      };
+      actions.appendChild(btnToggle);
+      actions.appendChild(btnDel);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = 'Erreur : ' + e.message; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('ann-create-btn').addEventListener('click', async () => {
+    const message = $('ann-message').value.trim();
+    const kind = $('ann-kind').value;
+    const link_url = $('ann-link-url').value.trim() || null;
+    const link_label = $('ann-link-label').value.trim() || null;
+    const expRaw = $('ann-expires').value;
+    const expires_at = expRaw ? new Date(expRaw).toISOString() : null;
+    const msg = $('ann-form-msg');
+    if (!message) { setMsg(msg, 'Le message est requis.', 'err'); return; }
+    setMsg(msg, 'Publication…');
+    try {
+      await callUserData('adminCreateAnnouncement', { message, kind, link_url, link_label, expires_at });
+      setMsg(msg, '✓ Annonce publiée !', 'ok');
+      $('ann-message').value = '';
+      $('ann-link-url').value = '';
+      $('ann-link-label').value = '';
+      $('ann-expires').value = '';
+      loadAnnouncements();
+    } catch (e) { setMsg(msg, 'Erreur : ' + e.message, 'err'); }
   });
 });
 
