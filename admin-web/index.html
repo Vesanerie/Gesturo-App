@@ -190,9 +190,14 @@
           <option value="yes">Admins uniquement</option>
           <option value="no">Users uniquement</option>
         </select>
+        <div class="users-view-toggle" title="Mode d'affichage">
+          <button class="users-view-btn active" data-view="list" title="Liste détaillée">📋</button>
+          <button class="users-view-btn" data-view="compact" title="Compact (tableau)">📊</button>
+          <button class="users-view-btn" data-view="cards" title="Cartes">📇</button>
+        </div>
         <span id="users-count" class="muted"></span>
       </div>
-      <div id="users-list" class="users-list">Chargement…</div>
+      <div id="users-list" class="users-list" data-view="list">Chargement…</div>
       <div class="users-pagination">
         <button id="users-prev" class="btn-secondary" disabled>← Précédent</button>
         <span id="users-page-info" class="muted"></span>

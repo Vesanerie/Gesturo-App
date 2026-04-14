@@ -2292,6 +2292,23 @@ async function loadUsers() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Restore saved view mode
+  const savedView = localStorage.getItem('gesturo-admin-users-view') || 'list';
+  const initBtn = document.querySelector('.users-view-btn[data-view="' + savedView + '"]');
+  if (initBtn) {
+    document.querySelectorAll('.users-view-btn').forEach(b => b.classList.remove('active'));
+    initBtn.classList.add('active');
+    $('users-list').dataset.view = savedView;
+  }
+  // View toggle
+  document.querySelectorAll('.users-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      document.querySelectorAll('.users-view-btn').forEach(b => b.classList.toggle('active', b === btn));
+      $('users-list').dataset.view = view;
+      localStorage.setItem('gesturo-admin-users-view', view);
+    });
+  });
   $('users-search').addEventListener('input', () => {
     clearTimeout(_usersSearchTimer);
     _usersSearchTimer = setTimeout(() => {

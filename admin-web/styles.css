@@ -412,6 +412,34 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .user-row-actions .btn-ban:hover { background: var(--danger); color: #fff; }
 .users-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 14px 24px; border-top: 1px solid var(--border); }
 
+/* View toggle */
+.users-view-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.users-view-btn { background: var(--bg-2); border: none; color: var(--muted); padding: 8px 12px; font-size: 14px; cursor: pointer; border-right: 1px solid var(--border); }
+.users-view-btn:last-child { border-right: none; }
+.users-view-btn:hover { color: var(--text); }
+.users-view-btn.active { background: var(--accent); color: #fff; }
+
+/* COMPACT view : table-like, dense */
+.users-list[data-view="compact"] { gap: 0; padding: 0 24px 16px; }
+.users-list[data-view="compact"] .user-row { padding: 8px 14px; border-radius: 0; border-left: none; border-right: none; border-top: none; background: transparent; gap: 10px; }
+.users-list[data-view="compact"] .user-row:first-child { border-top: 1px solid var(--border); }
+.users-list[data-view="compact"] .user-row:hover { background: var(--bg-2); }
+.users-list[data-view="compact"] .user-row-info { flex-direction: row; align-items: center; gap: 14px; overflow: hidden; }
+.users-list[data-view="compact"] .user-row-username { min-width: 140px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.users-list[data-view="compact"] .user-row-email { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.users-list[data-view="compact"] .user-row-meta { margin-top: 0; flex-shrink: 0; }
+.users-list[data-view="compact"] .user-tag.date { display: none; }
+.users-list[data-view="compact"] .user-row-actions button { padding: 5px 10px; font-size: 11px; }
+
+/* CARDS view : grid */
+.users-list[data-view="cards"] { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 16px 24px; }
+.users-list[data-view="cards"] .user-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 16px; }
+.users-list[data-view="cards"] .user-row-info { text-align: center; gap: 6px; }
+.users-list[data-view="cards"] .user-row-username { font-size: 16px; }
+.users-list[data-view="cards"] .user-row-meta { justify-content: center; }
+.users-list[data-view="cards"] .user-row-actions { justify-content: center; border-top: 1px solid var(--border); padding-top: 10px; }
+.users-list[data-view="cards"] .user-row-actions button { flex: 1; min-width: 0; font-size: 11px; padding: 7px 8px; }
+
 /* ═══ Analytics panel ═══ */
 .analytics-header { display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-bottom: 1px solid var(--border); }
 .analytics-header h2 { font-size: 16px; font-weight: 600; flex: 1; margin: 0; }
