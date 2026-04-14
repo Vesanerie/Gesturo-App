@@ -21,6 +21,9 @@
 .share-upload-label { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: #0d1825; border: 1px dashed #2983eb44; border-radius: 10px; padding: 20px 28px; font-size: 14px; color: #2983eb; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
 .share-upload-label:hover { background: #162030; border-color: #2983eb; }
 .share-upload-label input[type="file"] { display: none; }
+#community-upload-choices, #share-upload-choices { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.share-scan-btn { background: #0d1825; border: 1px dashed #f0c04044; color: #f0c040; font-family: inherit; font-size: 14px; }
+.share-scan-btn:hover { background: #162030; border-color: #f0c040; }
 #share-preview-img { display: block; max-width: 100%; max-height: 240px; border-radius: 8px; margin: 14px auto 0; object-fit: contain; }
 #share-status { font-size: 13px; color: #6a8aaa; margin-top: 10px; }
 .share-actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }

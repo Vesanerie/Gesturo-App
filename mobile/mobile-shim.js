@@ -344,6 +344,37 @@
       }
     },
 
+    // ── Document Scanner (iOS VisionKit / Android MLKit) ──
+    // Requires: npm install @capacitor-mlkit/document-scanner && npx cap sync
+    // Returns { dataUrl, format } or null if cancelled / plugin missing.
+    scanDocument: async () => {
+      const Scanner = plugins.DocumentScanner || plugins.MlkitDocumentScanner;
+      if (!Scanner || !Scanner.scanDocument) {
+        alert('Le plugin de scan n\'est pas encore installé.\nInstalle @capacitor-mlkit/document-scanner pour activer cette fonctionnalité.');
+        return null;
+      }
+      try {
+        const result = await Scanner.scanDocument({
+          maxPages: 1,
+          resultFormat: 'JPEG',
+        });
+        // Result shape depends on plugin version — try common paths
+        const uri = result?.scannedImages?.[0] || result?.pages?.[0] || result?.uri;
+        if (!uri) return null;
+        if (typeof uri === 'string' && uri.startsWith('data:')) {
+          return { dataUrl: uri, format: 'jpeg' };
+        }
+        // File URI → read via Filesystem
+        const FS = plugins.Filesystem;
+        if (!FS) return null;
+        const file = await FS.readFile({ path: uri });
+        return { dataUrl: 'data:image/jpeg;base64,' + file.data, format: 'jpeg' };
+      } catch (e) {
+        console.warn('[scanDocument] error:', e.message);
+        return null;
+      }
+    },
+
     // ── Share (native share sheet via Capacitor) ──
     shareImage: async ({ imageUrl, text }) => {
       const FS = plugins.Filesystem;

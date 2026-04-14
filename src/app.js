@@ -985,12 +985,67 @@ function openCommunityUpload() {
   document.getElementById('community-upload-label').style.display = 'inline-flex'
   document.getElementById('community-file-input').value = ''
   _communityBlob = null
+  // Show scan button on mobile only
+  const scanBtn = document.getElementById('community-scan-btn')
+  if (scanBtn) scanBtn.style.display = _isMobile ? 'inline-flex' : 'none'
   const desc = document.querySelector('#community-upload-overlay .share-drawing-box p')
   if (desc && _activeChallenges.length) {
     desc.textContent = 'Challenge en cours : ' + _activeChallenges[0].title + ' — ton dessin sera inscrit !'
   } else if (desc) {
     desc.textContent = 'Prends en photo ton croquis pour le montrer à la communauté !'
   }
+}
+
+// ── Scan via document scanner plugin (iOS / Android) ──
+async function scanCommunityDrawing() {
+  if (!window.electronAPI?.scanDocument) { alert('Scan non disponible sur cet appareil.'); return }
+  const res = await window.electronAPI.scanDocument()
+  if (!res || !res.dataUrl) return
+  // Load the scanned image into the existing flow
+  const img = new Image()
+  img.onload = function() {
+    const canvas = document.createElement('canvas')
+    const maxW = 1200
+    let w = img.width, h = img.height
+    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
+    canvas.width = w; canvas.height = h
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+    canvas.toBlob(function(blob) {
+      _communityBlob = blob
+      const preview = document.getElementById('community-preview-img')
+      preview.src = URL.createObjectURL(blob)
+      preview.style.display = 'block'
+      document.getElementById('community-upload-label').style.display = 'none'
+      document.getElementById('community-scan-btn').style.display = 'none'
+      document.getElementById('community-upload-actions').style.display = 'flex'
+    }, 'image/jpeg', 0.9)
+  }
+  img.src = res.dataUrl
+}
+
+async function scanShareDrawing() {
+  if (!window.electronAPI?.scanDocument) { alert('Scan non disponible sur cet appareil.'); return }
+  const res = await window.electronAPI.scanDocument()
+  if (!res || !res.dataUrl) return
+  const img = new Image()
+  img.onload = function() {
+    const canvas = document.createElement('canvas')
+    const maxW = 1200
+    let w = img.width, h = img.height
+    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW }
+    canvas.width = w; canvas.height = h
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+    canvas.toBlob(function(blob) {
+      _shareBlob = blob
+      const preview = document.getElementById('share-preview-img')
+      preview.src = URL.createObjectURL(blob)
+      preview.style.display = 'block'
+      document.getElementById('share-upload-label').style.display = 'none'
+      document.getElementById('share-scan-btn').style.display = 'none'
+      document.getElementById('share-actions').style.display = 'flex'
+    }, 'image/jpeg', 0.9)
+  }
+  img.src = res.dataUrl
 }
 
 function closeCommunityUpload() {
@@ -1090,6 +1145,9 @@ function openShareDrawing() {
   document.getElementById('share-status').style.display = 'none'
   document.getElementById('share-upload-label').style.display = 'inline-flex'
   document.getElementById('share-file-input').value = ''
+  // Show scan button on mobile only
+  const scanBtn = document.getElementById('share-scan-btn')
+  if (scanBtn) scanBtn.style.display = _isMobile ? 'inline-flex' : 'none'
   // Update message if challenge is active
   const desc = document.querySelector('.share-drawing-box p')
   if (desc && _activeChallenges.length) {

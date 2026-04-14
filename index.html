@@ -298,11 +298,16 @@
         <div class="share-drawing-box">
           <h3>Partage ton dessin</h3>
           <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
-          <label class="share-upload-label" id="community-upload-label">
-            <input type="file" accept="image/jpeg,image/png" capture="environment" id="community-file-input" onchange="handleCommunityFile(this)">
-            <span class="share-upload-text-mobile">Prendre une photo</span>
-            <span class="share-upload-text-desktop">Choisir une photo</span>
-          </label>
+          <div id="community-upload-choices">
+            <label class="share-upload-label" id="community-upload-label">
+              <input type="file" accept="image/jpeg,image/png" capture="environment" id="community-file-input" onchange="handleCommunityFile(this)">
+              <span class="share-upload-text-mobile">📷 Photo</span>
+              <span class="share-upload-text-desktop">Choisir une photo</span>
+            </label>
+            <button class="share-upload-label share-scan-btn" id="community-scan-btn" onclick="scanCommunityDrawing()" style="display:none;">
+              📄 Scanner
+            </button>
+          </div>
           <img id="community-preview-img" style="display:none;">
           <div id="community-upload-status" style="display:none;"></div>
           <div class="share-actions" style="display:none;" id="community-upload-actions">
@@ -461,11 +466,16 @@
       <div class="share-drawing-box">
         <h3>Partage ton dessin</h3>
         <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
-        <label class="share-upload-label" id="share-upload-label">
-          <input type="file" accept="image/jpeg,image/png" capture="environment" id="share-file-input" onchange="handleShareFile(this)">
-          <span class="share-upload-text-mobile">Prendre une photo</span>
-          <span class="share-upload-text-desktop">Choisir une photo</span>
-        </label>
+        <div id="share-upload-choices">
+          <label class="share-upload-label" id="share-upload-label">
+            <input type="file" accept="image/jpeg,image/png" capture="environment" id="share-file-input" onchange="handleShareFile(this)">
+            <span class="share-upload-text-mobile">📷 Photo</span>
+            <span class="share-upload-text-desktop">Choisir une photo</span>
+          </label>
+          <button class="share-upload-label share-scan-btn" id="share-scan-btn" onclick="scanShareDrawing()" style="display:none;">
+            📄 Scanner
+          </button>
+        </div>
         <canvas id="share-preview-canvas" style="display:none;"></canvas>
         <img id="share-preview-img" style="display:none;">
         <div id="share-status" style="display:none;"></div>

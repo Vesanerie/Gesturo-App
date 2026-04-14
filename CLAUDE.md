@@ -384,6 +384,22 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
   passent avec `approved = false` et la review manuelle via le panel
   admin prend le relais.
 
+- **Activer le mode Scan document (iPad/iPhone)** — le UI est en place
+  (boutons "📷 Photo" / "📄 Scanner" dans les 2 overlays de partage
+  community). Le bridge `scanDocument` est dans `preload.js` (no-op
+  desktop) et `mobile/mobile-shim.js` (cherche `plugins.DocumentScanner`
+  ou `plugins.MlkitDocumentScanner`). Pour activer le vrai scan avec
+  détection de contours + correction de perspective (comme l'app Notes
+  d'Apple) :
+  ```bash
+  npm install @capacitor-mlkit/document-scanner
+  npx cap sync ios
+  npx cap sync android
+  ```
+  Ensuite rebuild l'app (Xcode pour iOS, Android Studio pour Android).
+  En attendant, le bouton Scanner affiche un alert « plugin pas
+  installé » — le bouton Photo continue de marcher via `<input capture>`.
+
 ### Backlog
 - **Phase D — Rotations planifiées** (admin web). Prêt côté DB (tables
   rotations + rotation_files créées). Reste à implémenter :
