@@ -231,23 +231,21 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
   .config-inner h1 { font-size: 38px; letter-spacing: -1px; }
   .config-inner .subtitle { font-size: 12px; margin-bottom: 18px; }
 
-  /* Mode tabs : strip scrollable horizontalement, snap par onglet */
+  /* Mode tabs : 4 onglets visibles (Poses/Animation/Cinéma/Favoris)
+     distribués équitablement sur toute la largeur — plus de scroll. */
   #screen-config .mode-tabs {
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: hidden;
     border-radius: 12px;
   }
-  #screen-config .mode-tabs::-webkit-scrollbar { display: none; }
   #screen-config .mode-tab {
-    flex: none;
-    min-width: auto;
-    padding: 0 18px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 4px;
     height: 48px;
-    font-size: 13px;
-    scroll-snap-align: start;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   /* Moodboard utilise une <webview> Electron qui n'existe pas en Android
      WebView. On cache l'onglet sur mobile pour éviter un crash si tap. */
