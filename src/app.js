@@ -312,6 +312,9 @@ function toggleFlipMode() {
   const toggle = document.getElementById('flip-toggle')
   const knob = document.getElementById('flip-knob')
   const label = document.getElementById('flip-label')
+  // Toggle classe .on (utilisée par le CSS mobile/tablet pour l'état iOS-like)
+  toggle.classList.toggle('on', flipModeEnabled)
+  // Inline styles conservés pour le rendu desktop (non overridés par le CSS)
   if (flipModeEnabled) {
     toggle.style.background = '#fff'; knob.style.left = '21px'; knob.style.background = '#111'
     label.textContent = 'Activé'; label.style.color = '#fff'
