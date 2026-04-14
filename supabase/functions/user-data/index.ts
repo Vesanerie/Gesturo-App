@@ -995,6 +995,240 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    // ── Feature Flags (lus par tous, écrits par admin) ──
+    if (action === 'getFeatureFlags') {
+      try {
+        const { data } = await admin.from('feature_flags').select('key, enabled, description');
+        const flags: Record<string, boolean> = {};
+        (data || []).forEach((f: any) => { flags[f.key] = !!f.enabled; });
+        return json({ flags, raw: data || [] });
+      } catch { return json({ flags: {}, raw: [] }); }
+    }
+
+    if (action === 'adminSetFeatureFlag') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { key, enabled, description } = payload || {};
+      if (!key) return json({ error: 'missing key' }, 400);
+      try {
+        await admin.from('feature_flags').upsert({
+          key, enabled: !!enabled, description: description || null, updated_at: new Date().toISOString(),
+        });
+        return json({ ok: true });
+      } catch (e) { return json({ error: (e as Error).message }, 500); }
+    }
+
+    if (action === 'adminDeleteFeatureFlag') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { key } = payload || {};
+      if (!key) return json({ error: 'missing key' }, 400);
+      try { await admin.from('feature_flags').delete().eq('key', key); return json({ ok: true }); }
+      catch (e) { return json({ error: (e as Error).message }, 500); }
+    }
+
+    // ── App Settings (mode maintenance etc.) ──
+    if (action === 'getAppSettings') {
+      try {
+        const { data } = await admin.from('app_settings').select('key, value');
+        const settings: Record<string, any> = {};
+        (data || []).forEach((s: any) => { settings[s.key] = s.value; });
+        return json({ settings });
+      } catch { return json({ settings: {} }); }
+    }
+
+    if (action === 'adminSetAppSetting') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { key, value } = payload || {};
+      if (!key) return json({ error: 'missing key' }, 400);
+      try {
+        await admin.from('app_settings').upsert({ key, value, updated_at: new Date().toISOString() });
+        return json({ ok: true });
+      } catch (e) { return json({ error: (e as Error).message }, 500); }
+    }
+
+    // ── Error Log (client reporte, admin lit) ──
+    if (action === 'logClientError') {
+      // Public — tout user peut remonter une erreur
+      const { message, stack, url, userAgent, appVersion } = payload || {};
+      if (!message) return json({ ok: false, error: 'missing message' });
+      try {
+        await admin.from('client_errors').insert({
+          user_email: email,
+          message: String(message).slice(0, 1000),
+          stack: stack ? String(stack).slice(0, 4000) : null,
+          url: url ? String(url).slice(0, 500) : null,
+          user_agent: userAgent ? String(userAgent).slice(0, 300) : null,
+          app_version: appVersion ? String(appVersion).slice(0, 50) : null,
+        });
+      } catch {}
+      return json({ ok: true });
+    }
+
+    if (action === 'adminListErrors') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 100, 1), 500);
+      try {
+        const { data } = await admin.from('client_errors').select('*')
+          .order('created_at', { ascending: false }).limit(reqLimit);
+        return json({ errors: data || [] });
+      } catch { return json({ errors: [] }); }
+    }
+
+    if (action === 'adminClearErrors') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      try {
+        const before = payload?.before || null;
+        let q = admin.from('client_errors').delete();
+        if (before) q = q.lt('created_at', before);
+        else q = q.neq('id', '00000000-0000-0000-0000-000000000000'); // delete all
+        await q;
+        return json({ ok: true });
+      } catch (e) { return json({ error: (e as Error).message }, 500); }
+    }
+
+    // ── Community : featured post (admin) + activity tracking ──
+    if (action === 'adminToggleFeaturedPost') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { postId, featured } = payload || {};
+      if (!postId) return json({ error: 'missing postId' }, 400);
+      // If featuring : unfeature all others first (one featured post at a time)
+      if (featured) await admin.from('community_posts').update({ featured: false }).neq('id', postId);
+      const { error } = await admin.from('community_posts').update({ featured: !!featured }).eq('id', postId);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === 'adminToggleFeaturedUser') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { email: targetEmail, featured } = payload || {};
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      const { error } = await admin.from('profiles').update({ featured: !!featured }).eq('email', targetEmail);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    // Track user activity (call from app on session start)
+    if (action === 'pingActivity') {
+      try {
+        await admin.from('profiles').update({ last_active: new Date().toISOString() }).eq('email', email);
+      } catch {}
+      return json({ ok: true });
+    }
+
+    // ── Top users + inactive users ──
+    if (action === 'adminGetTopUsers') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const sortBy = payload?.sortBy || 'sessions'; // 'sessions' | 'posts' | 'oldest'
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 20, 1), 100);
+
+      const { data: allProfiles } = await admin.from('profiles').select('id, email, username, plan, created_at, last_active');
+      if (!allProfiles) return json({ users: [] });
+
+      // Count sessions and posts per user
+      const { data: sessions } = await admin.from('sessions').select('user_id');
+      const sessionCount: Record<string, number> = {};
+      (sessions || []).forEach((s: any) => { sessionCount[s.user_id] = (sessionCount[s.user_id] || 0) + 1; });
+
+      const { data: posts } = await admin.from('community_posts').select('user_email');
+      const postCount: Record<string, number> = {};
+      (posts || []).forEach((p: any) => { postCount[p.user_email] = (postCount[p.user_email] || 0) + 1; });
+
+      const enriched = allProfiles.map((u: any) => ({
+        ...u,
+        sessions_count: sessionCount[u.id] || 0,
+        posts_count: postCount[u.email] || 0,
+      }));
+
+      if (sortBy === 'sessions') enriched.sort((a, b) => b.sessions_count - a.sessions_count);
+      else if (sortBy === 'posts') enriched.sort((a, b) => b.posts_count - a.posts_count);
+      else if (sortBy === 'oldest') enriched.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      else if (sortBy === 'recent') enriched.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      return json({ users: enriched.slice(0, reqLimit) });
+    }
+
+    if (action === 'adminGetInactiveUsers') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const days = Math.min(Math.max(parseInt(payload?.days) || 30, 1), 365);
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+      const cutoffISO = cutoff.toISOString();
+      // Users whose last_active is null OR < cutoff
+      const { data } = await admin.from('profiles')
+        .select('id, email, username, plan, created_at, last_active')
+        .or(`last_active.is.null,last_active.lt.${cutoffISO}`)
+        .order('last_active', { ascending: true, nullsFirst: true })
+        .limit(500);
+      return json({ users: data || [], days });
+    }
+
+    // ── Retention cohorts (weekly cohort analysis) ──
+    if (action === 'adminGetRetention') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const weeks = Math.min(Math.max(parseInt(payload?.weeks) || 8, 2), 26);
+      const { data: allProfiles } = await admin.from('profiles').select('id, created_at, last_active');
+      if (!allProfiles) return json({ cohorts: [] });
+      const now = Date.now();
+      const WEEK_MS = 7 * 24 * 3600 * 1000;
+      // Group users by cohort week (week of signup)
+      const cohortsMap: Record<string, { total: number; active: number; label: string }> = {};
+      allProfiles.forEach((u: any) => {
+        const signup = new Date(u.created_at).getTime();
+        const weeksAgo = Math.floor((now - signup) / WEEK_MS);
+        if (weeksAgo < 0 || weeksAgo > weeks) return;
+        const key = 'w-' + weeksAgo;
+        if (!cohortsMap[key]) {
+          const d = new Date(now - weeksAgo * WEEK_MS);
+          cohortsMap[key] = { total: 0, active: 0, label: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) };
+        }
+        cohortsMap[key].total++;
+        // Active = last_active dans les 14 derniers jours
+        const isActive = u.last_active && (now - new Date(u.last_active).getTime()) < 14 * 24 * 3600 * 1000;
+        if (isActive) cohortsMap[key].active++;
+      });
+      const cohorts = Object.entries(cohortsMap)
+        .map(([k, v]) => ({ week: parseInt(k.replace('w-', '')), ...v, retention: v.total ? Math.round(v.active / v.total * 100) : 0 }))
+        .sort((a, b) => b.week - a.week);
+      return json({ cohorts });
+    }
+
+    // ── CSV Export ──
+    if (action === 'adminExportCSV') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const kind = payload?.kind || 'users'; // 'users' | 'posts' | 'sessions'
+      let rows: any[] = [];
+      let headers: string[] = [];
+      if (kind === 'users') {
+        headers = ['email', 'username', 'plan', 'banned', 'is_admin', 'created_at', 'last_active'];
+        const { data } = await admin.from('profiles').select(headers.join(','));
+        rows = data || [];
+      } else if (kind === 'posts') {
+        headers = ['id', 'user_email', 'username', 'approved', 'featured', 'challenge_id', 'created_at'];
+        const { data } = await admin.from('community_posts').select(headers.join(','));
+        rows = data || [];
+      } else if (kind === 'sessions') {
+        headers = ['id', 'user_id', 'duration_seconds', 'photo_count', 'category', 'created_at'];
+        const { data } = await admin.from('sessions').select(headers.join(','));
+        rows = data || [];
+      }
+      const esc = (v: any) => {
+        if (v === null || v === undefined) return '';
+        const s = String(v).replace(/"/g, '""');
+        return /[",\n]/.test(s) ? `"${s}"` : s;
+      };
+      const csv = [headers.join(','), ...rows.map(r => headers.map(h => esc(r[h])).join(','))].join('\n');
+      return json({ csv, count: rows.length, kind });
+    }
+
     // ── Proxy image as base64 (mobile can't fetch R2 due to CORS) ──
     if (action === 'proxyImage') {
       const { imageUrl } = payload || {};
