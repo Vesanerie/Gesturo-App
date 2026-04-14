@@ -1644,7 +1644,14 @@ async function renderLeaderboard() {
   container.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
   try {
     const res = await window.electronAPI.getCommunityLeaderboard()
-    const list = res.leaderboard || []
+    const rawList = res.leaderboard || []
+    // Dédupe par username (bug backend intermittent : entries dupliquées)
+    const seen = new Set()
+    const list = rawList.filter(e => {
+      const key = (e.username || '').toLowerCase()
+      if (!key || seen.has(key)) return false
+      seen.add(key); return true
+    })
     empty.style.display = 'none'
     if (list.length === 0) {
       container.innerHTML = '<div class="mine-empty">Pas encore de classement.<br>Partage tes dessins pour apparaitre ici !</div>'
