@@ -1638,14 +1638,18 @@ async function renderMyPosts() {
 
 const LEADERBOARD_MEDALS = ['🥇', '🥈', '🥉']
 
+let _leaderboardToken = 0
 async function renderLeaderboard() {
+  const token = ++_leaderboardToken
   const container = document.getElementById('community-leaderboard')
   const empty = document.getElementById('community-empty')
   container.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
   try {
     const res = await window.electronAPI.getCommunityLeaderboard()
+    // Race guard : si un autre renderLeaderboard a été lancé entre temps, on abandonne
+    if (token !== _leaderboardToken) return
     const rawList = res.leaderboard || []
-    // Dédupe par username (bug backend intermittent : entries dupliquées)
+    // Dédupe défensif par username (ceinture + bretelles)
     const seen = new Set()
     const list = rawList.filter(e => {
       const key = (e.username || '').toLowerCase()
@@ -1682,8 +1686,14 @@ async function renderLeaderboard() {
       row.appendChild(stats)
       table.appendChild(row)
     })
+    // Dernière vérif avant append : race guard
+    if (token !== _leaderboardToken) return
+    container.innerHTML = ''
     container.appendChild(table)
-  } catch(e) { empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.' }
+  } catch(e) {
+    if (token !== _leaderboardToken) return
+    empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.'
+  }
 }
 
 function selectSubMode(mode) {
