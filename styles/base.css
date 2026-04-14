@@ -325,3 +325,58 @@ body::after {
     font-size: 14px;
   }
 }
+
+/* ═══ Announcement banner (top of app) ═══ */
+.announcement-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  padding: 10px 44px 10px 20px;
+  background: rgba(41, 131, 235, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(41, 131, 235, 0.4);
+  color: #e6edf5;
+  font-size: 13px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  text-align: center;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
+.announcement-banner.kind-warning {
+  background: rgba(240, 192, 64, 0.15);
+  border-bottom-color: rgba(240, 192, 64, 0.5);
+}
+.announcement-banner.kind-success {
+  background: rgba(95, 207, 127, 0.15);
+  border-bottom-color: rgba(95, 207, 127, 0.5);
+}
+.announcement-link {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.announcement-link:hover { opacity: 0.8; }
+.announcement-close {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 4px 8px;
+}
+.announcement-close:hover { opacity: 1; }
+@media (max-width: 767px) {
+  .announcement-banner { font-size: 12px; padding: 8px 40px 8px 14px; }
+  .announcement-close { font-size: 20px; }
+}

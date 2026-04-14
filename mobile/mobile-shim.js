@@ -290,6 +290,13 @@
         return data || { postsCount: 0, reactionsGivenCount: 0, challengesCount: 0 };
       } catch (e) { return { postsCount: 0, reactionsGivenCount: 0, challengesCount: 0 }; }
     },
+    getActiveAnnouncement: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getActiveAnnouncement' } });
+        return data || { announcement: null };
+      } catch (e) { return { announcement: null }; }
+    },
     getReactions: async (postIds) => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();

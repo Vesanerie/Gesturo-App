@@ -30,6 +30,13 @@
 </head>
 <body>
 
+<!-- Announcement banner (hidden by default, filled via JS if active) -->
+<div id="announcement-banner" class="announcement-banner" style="display:none;">
+  <span id="announcement-message"></span>
+  <a id="announcement-link" class="announcement-link" target="_blank" rel="noopener" style="display:none;"></a>
+  <button id="announcement-close" class="announcement-close" aria-label="Fermer" onclick="dismissAnnouncement()">&times;</button>
+</div>
+
 <canvas id="bubbles-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:1;"></canvas>
 
 <!-- ══ BOUTON OPTIONS ══ -->

@@ -215,6 +215,7 @@ window.addEventListener('DOMContentLoaded', () => {
       }
       loadR2(isPro)
       syncFavsFromServer()
+      loadAnnouncement()
     })
     window.electronAPI.onAutoLoad(f => { isR2Mode = false; loadFolder(f) })
   }
@@ -2359,6 +2360,42 @@ function saveFavs(favs) {
 }
 
 // Merge remote favs with local on boot (called after auth)
+// ── Announcement banner ──
+async function loadAnnouncement() {
+  try {
+    if (!window.electronAPI?.getActiveAnnouncement) return
+    const res = await window.electronAPI.getActiveAnnouncement()
+    const ann = res?.announcement
+    if (!ann) return
+    // Check if user dismissed this specific announcement
+    const dismissedId = localStorage.getItem('gesturo-dismissed-announcement')
+    if (dismissedId === String(ann.id)) return
+    // Show it
+    const banner = document.getElementById('announcement-banner')
+    if (!banner) return
+    banner.className = 'announcement-banner kind-' + (ann.kind || 'info')
+    banner.dataset.id = ann.id
+    document.getElementById('announcement-message').textContent = ann.message
+    const link = document.getElementById('announcement-link')
+    if (ann.link_url) {
+      link.href = ann.link_url
+      link.textContent = ann.link_label || 'En savoir plus →'
+      link.style.display = 'inline'
+    } else {
+      link.style.display = 'none'
+    }
+    banner.style.display = 'flex'
+  } catch (e) { /* silent */ }
+}
+
+function dismissAnnouncement() {
+  const banner = document.getElementById('announcement-banner')
+  if (!banner) return
+  const id = banner.dataset.id
+  if (id) localStorage.setItem('gesturo-dismissed-announcement', String(id))
+  banner.style.display = 'none'
+}
+
 async function syncFavsFromServer() {
   try {
     if (!window.electronAPI?.getFavorites) return

@@ -836,6 +836,14 @@ ipcMain.handle('get-my-stats', async () => {
   }
 })
 
+ipcMain.handle('get-active-announcement', async () => {
+  try {
+    return await callUserData('getActiveAnnouncement')
+  } catch (e) {
+    return { announcement: null }
+  }
+})
+
 ipcMain.handle('delete-community-post', async (_e, postId) => {
   try {
     return await callUserData('deleteCommunityPost', { postId })
