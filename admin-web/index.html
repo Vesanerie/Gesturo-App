@@ -33,6 +33,8 @@
         <button class="admin-nav-btn" data-panel="users">👥 Utilisateurs</button>
         <button class="admin-nav-btn" data-panel="analytics">📈 Stats</button>
         <button class="admin-nav-btn" data-panel="announcements">📣 Annonces</button>
+        <button class="admin-nav-btn" data-panel="system">🛠 Système</button>
+        <button class="admin-nav-btn" data-panel="errors">🐛 Erreurs <span id="errors-badge" class="mod-badge hidden">0</span></button>
       </div>
       <div id="global-stats" class="global-stats muted" title="Cliquer pour rafraîchir">📊 Calcul…</div>
       <div class="user">
@@ -227,6 +229,48 @@
           <div id="chart-sessions" class="analytics-chart"></div>
         </div>
       </div>
+
+      <div class="analytics-extras">
+        <div class="analytics-chart-card">
+          <h3>🏆 Top utilisateurs</h3>
+          <div class="top-users-toolbar">
+            <select id="top-users-sort">
+              <option value="sessions">Plus de sessions</option>
+              <option value="posts">Plus de posts</option>
+              <option value="oldest">Plus anciens</option>
+              <option value="recent">Plus récents</option>
+            </select>
+          </div>
+          <div id="top-users-list" class="top-users-list"></div>
+        </div>
+        <div class="analytics-chart-card">
+          <h3>💤 Utilisateurs inactifs</h3>
+          <div class="top-users-toolbar">
+            <select id="inactive-days">
+              <option value="14">Inactifs depuis 14 jours</option>
+              <option value="30" selected>Inactifs depuis 30 jours</option>
+              <option value="60">Inactifs depuis 60 jours</option>
+              <option value="90">Inactifs depuis 90 jours</option>
+            </select>
+          </div>
+          <div id="inactive-users-list" class="top-users-list"></div>
+        </div>
+      </div>
+
+      <div class="analytics-chart-card" style="margin: 0 24px 24px;">
+        <h3>📊 Rétention par cohorte hebdomadaire</h3>
+        <p class="muted" style="font-size:11px;margin-bottom:10px;">% d'utilisateurs encore actifs (vus dans les 14 derniers jours) par semaine d'inscription.</p>
+        <div id="retention-cohorts" class="retention-cohorts"></div>
+      </div>
+
+      <div class="analytics-chart-card" style="margin: 0 24px 24px;">
+        <h3>📥 Export CSV</h3>
+        <div class="export-buttons">
+          <button class="btn-secondary" data-export="users">📋 Exporter les utilisateurs</button>
+          <button class="btn-secondary" data-export="posts">🖼 Exporter les posts</button>
+          <button class="btn-secondary" data-export="sessions">⏱ Exporter les sessions</button>
+        </div>
+      </div>
     </div><!-- /panel-analytics -->
 
     <!-- ═ ANNOUNCEMENTS PANEL ═ -->
@@ -268,6 +312,47 @@
         </div>
       </div>
     </div><!-- /panel-announcements -->
+
+    <!-- ═ SYSTEM PANEL (maintenance + feature flags) ═ -->
+    <div id="panel-system" class="admin-panel hidden">
+      <div class="system-section">
+        <h2>🚧 Mode maintenance</h2>
+        <p class="muted">Quand activé, tous les users voient un écran "Gesturo revient bientôt" au démarrage.</p>
+        <div class="maintenance-toggle">
+          <label class="switch-row">
+            <input type="checkbox" id="maintenance-enabled">
+            <span>Activer le mode maintenance</span>
+          </label>
+          <div class="form-group">
+            <label for="maintenance-msg">Message affiché aux users</label>
+            <input id="maintenance-msg" type="text" maxlength="200" placeholder="Ex : Mise à jour en cours, retour dans 30 min">
+          </div>
+          <button id="maintenance-save" class="add-btn">Enregistrer</button>
+          <div id="maintenance-msg-status" class="msg"></div>
+        </div>
+      </div>
+      <div class="system-section">
+        <h2>🎚️ Feature Flags</h2>
+        <p class="muted">Activer/désactiver des features de l'app sans redéployer.</p>
+        <div class="flag-form">
+          <input id="flag-key" type="text" placeholder="clé (ex: scan_document)" autocomplete="off">
+          <input id="flag-desc" type="text" placeholder="description (optionnel)" autocomplete="off">
+          <label><input type="checkbox" id="flag-enabled"> Activé</label>
+          <button id="flag-create-btn" class="add-btn">Créer / Mettre à jour</button>
+        </div>
+        <div id="flags-list" class="flags-list">Chargement…</div>
+      </div>
+    </div><!-- /panel-system -->
+
+    <!-- ═ ERRORS PANEL ═ -->
+    <div id="panel-errors" class="admin-panel hidden">
+      <div class="errors-toolbar">
+        <h2>🐛 Erreurs client remontées</h2>
+        <button id="errors-refresh" class="btn-secondary">↻ Actualiser</button>
+        <button id="errors-clear" class="btn-danger">🗑 Tout vider</button>
+      </div>
+      <div id="errors-list" class="errors-list">Chargement…</div>
+    </div><!-- /panel-errors -->
 
   </section>
 

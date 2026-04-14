@@ -1404,6 +1404,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (panel === 'users') loadUsers();
       if (panel === 'analytics') loadAnalytics();
       if (panel === 'announcements') loadAnnouncements();
+      if (panel === 'system') { loadMaintenanceState(); loadFeatureFlags(); }
+      if (panel === 'errors') loadErrors();
     });
   });
 });
@@ -2472,6 +2474,238 @@ document.addEventListener('DOMContentLoaded', () => {
       loadAnnouncements();
     } catch (e) { setMsg(msg, 'Erreur : ' + e.message, 'err'); }
   });
+});
+
+// ── SYSTEM PANEL : Maintenance + Feature Flags ──────────────────────────
+async function loadMaintenanceState() {
+  try {
+    const data = await callUserData('getAppSettings');
+    const m = data.settings?.maintenance || { enabled: false, message: '' };
+    $('maintenance-enabled').checked = !!m.enabled;
+    $('maintenance-msg').value = m.message || '';
+  } catch {}
+}
+
+async function saveMaintenance() {
+  const enabled = $('maintenance-enabled').checked;
+  const message = $('maintenance-msg').value.trim();
+  const status = $('maintenance-msg-status');
+  setMsg(status, 'Enregistrement…');
+  try {
+    await callUserData('adminSetAppSetting', { key: 'maintenance', value: { enabled, message } });
+    setMsg(status, '✓ Mode maintenance ' + (enabled ? 'ACTIVÉ' : 'désactivé'), 'ok');
+  } catch (e) { setMsg(status, 'Erreur : ' + e.message, 'err'); }
+}
+
+async function loadFeatureFlags() {
+  const list = $('flags-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('getFeatureFlags');
+    const flags = data.raw || [];
+    if (flags.length === 0) { list.innerHTML = '<div class="mod-empty">Aucun flag.</div>'; return; }
+    list.innerHTML = '';
+    flags.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'flag-row' + (f.enabled ? ' enabled' : '');
+      row.innerHTML =
+        '<span class="flag-row-key">' + escapeHtml(f.key) + '</span>' +
+        '<span class="flag-row-desc">' + escapeHtml(f.description || '') + '</span>' +
+        '<span class="flag-row-status ' + (f.enabled ? 'on' : 'off') + '">' + (f.enabled ? 'ON' : 'OFF') + '</span>';
+      const actions = document.createElement('div');
+      actions.className = 'flag-row-actions';
+      const btnToggle = document.createElement('button');
+      btnToggle.textContent = f.enabled ? 'Désactiver' : 'Activer';
+      btnToggle.onclick = async () => {
+        try { await callUserData('adminSetFeatureFlag', { key: f.key, enabled: !f.enabled, description: f.description }); loadFeatureFlags(); }
+        catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      };
+      const btnDel = document.createElement('button');
+      btnDel.textContent = '🗑';
+      btnDel.onclick = async () => {
+        if (!confirm('Supprimer le flag « ' + f.key + ' » ?')) return;
+        try { await callUserData('adminDeleteFeatureFlag', { key: f.key }); loadFeatureFlags(); }
+        catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      };
+      actions.appendChild(btnToggle);
+      actions.appendChild(btnDel);
+      row.appendChild(actions);
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = 'Erreur : ' + e.message; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('maintenance-save').addEventListener('click', saveMaintenance);
+  $('flag-create-btn').addEventListener('click', async () => {
+    const key = $('flag-key').value.trim();
+    const description = $('flag-desc').value.trim();
+    const enabled = $('flag-enabled').checked;
+    if (!key) { toast('La clé est requise', 'err'); return; }
+    try {
+      await callUserData('adminSetFeatureFlag', { key, description, enabled });
+      toast('Flag enregistré', 'ok');
+      $('flag-key').value = ''; $('flag-desc').value = ''; $('flag-enabled').checked = false;
+      loadFeatureFlags();
+    } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+  });
+});
+
+// ── ERRORS PANEL ─────────────────────────────────────────────────────────
+async function loadErrors() {
+  const list = $('errors-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('adminListErrors', { limit: 200 });
+    const errs = data.errors || [];
+    const badge = $('errors-badge');
+    if (errs.length > 0) { badge.textContent = errs.length; badge.classList.remove('hidden'); }
+    else badge.classList.add('hidden');
+    if (errs.length === 0) { list.innerHTML = '<div class="mod-empty">Aucune erreur 👌</div>'; return; }
+    list.innerHTML = '';
+    errs.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'error-row';
+      const dt = new Date(e.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      row.innerHTML =
+        '<div class="error-row-head">' +
+          '<span class="error-row-msg">' + escapeHtml(e.message || '—') + '</span>' +
+          '<span class="error-row-date">' + dt + '</span>' +
+        '</div>' +
+        '<div class="error-row-meta">' +
+          (e.user_email ? '<span>👤 ' + escapeHtml(e.user_email) + '</span>' : '') +
+          (e.url ? '<span>🔗 ' + escapeHtml(e.url) + '</span>' : '') +
+          (e.app_version ? '<span>v' + escapeHtml(e.app_version) + '</span>' : '') +
+          (e.user_agent ? '<span>📱 ' + escapeHtml(e.user_agent.slice(0, 60)) + '</span>' : '') +
+        '</div>' +
+        (e.stack ? '<div class="error-row-stack collapsed" onclick="this.classList.toggle(\'collapsed\')">' + escapeHtml(e.stack) + '</div>' : '');
+      list.appendChild(row);
+    });
+  } catch (e) { list.textContent = 'Erreur : ' + e.message; }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('errors-refresh').addEventListener('click', loadErrors);
+  $('errors-clear').addEventListener('click', async () => {
+    if (!confirm('Vider toutes les erreurs ?')) return;
+    try { await callUserData('adminClearErrors'); toast('Vidé', 'ok'); loadErrors(); }
+    catch (e) { toast('Erreur : ' + e.message, 'err'); }
+  });
+});
+
+// ── ANALYTICS EXTRAS : Top users / Inactive / Retention / Export CSV ─────
+async function loadTopUsers() {
+  const list = $('top-users-list');
+  list.innerHTML = '<div class="mod-empty">Chargement…</div>';
+  try {
+    const sortBy = $('top-users-sort').value;
+    const data = await callUserData('adminGetTopUsers', { sortBy, limit: 20 });
+    const users = data.users || [];
+    list.innerHTML = '';
+    users.forEach((u, i) => {
+      const row = document.createElement('div');
+      row.className = 'top-user-row';
+      const since = u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }) : '';
+      const stat = sortBy === 'sessions' ? `${u.sessions_count}s`
+                 : sortBy === 'posts' ? `${u.posts_count}p`
+                 : '';
+      row.innerHTML =
+        '<span class="top-user-rank">#' + (i + 1) + '</span>' +
+        '<span class="top-user-name">' + escapeHtml(u.username || u.email) + '</span>' +
+        (stat ? '<span class="top-user-stat">' + stat + '</span>' : '') +
+        '<span class="top-user-since">' + since + '</span>';
+      row.onclick = () => openUserProfile(u.email);
+      list.appendChild(row);
+    });
+    if (users.length === 0) list.innerHTML = '<div class="mod-empty">Aucun user.</div>';
+  } catch (e) { list.innerHTML = '<div class="mod-empty">Erreur : ' + escapeHtml(e.message) + '</div>'; }
+}
+
+async function loadInactiveUsers() {
+  const list = $('inactive-users-list');
+  list.innerHTML = '<div class="mod-empty">Chargement…</div>';
+  try {
+    const days = parseInt($('inactive-days').value);
+    const data = await callUserData('adminGetInactiveUsers', { days });
+    const users = data.users || [];
+    list.innerHTML = '';
+    users.slice(0, 50).forEach((u, i) => {
+      const row = document.createElement('div');
+      row.className = 'top-user-row';
+      const lastSeen = u.last_active
+        ? 'vu ' + new Date(u.last_active).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+        : 'jamais vu';
+      row.innerHTML =
+        '<span class="top-user-rank">' + (i + 1) + '</span>' +
+        '<span class="top-user-name">' + escapeHtml(u.username || u.email) + '</span>' +
+        '<span class="top-user-since">' + lastSeen + '</span>';
+      row.onclick = () => openUserProfile(u.email);
+      list.appendChild(row);
+    });
+    if (users.length === 0) list.innerHTML = '<div class="mod-empty">Personne d\'inactif 🎉</div>';
+  } catch (e) { list.innerHTML = '<div class="mod-empty">Erreur : ' + escapeHtml(e.message) + '</div>'; }
+}
+
+async function loadRetention() {
+  const wrap = $('retention-cohorts');
+  wrap.innerHTML = '<div class="mod-empty">Chargement…</div>';
+  try {
+    const data = await callUserData('adminGetRetention', { weeks: 12 });
+    const cohorts = data.cohorts || [];
+    wrap.innerHTML = '';
+    if (cohorts.length === 0) { wrap.innerHTML = '<div class="mod-empty">Pas assez de données.</div>'; return; }
+    cohorts.forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'retention-row';
+      const weekLabel = c.week === 0 ? 'Cette sem.' : '–' + c.week + ' sem.';
+      row.innerHTML =
+        '<span class="retention-week">' + weekLabel + '</span>' +
+        '<span class="retention-count">' + c.active + '/' + c.total + '</span>' +
+        '<div class="retention-bar-wrap"><div class="retention-bar" style="width:' + c.retention + '%"></div></div>' +
+        '<span class="retention-pct">' + c.retention + '%</span>';
+      wrap.appendChild(row);
+    });
+  } catch (e) { wrap.innerHTML = '<div class="mod-empty">Erreur : ' + escapeHtml(e.message) + '</div>'; }
+}
+
+async function exportCSV(kind) {
+  try {
+    toast('Préparation de l\'export...');
+    const data = await callUserData('adminExportCSV', { kind });
+    const blob = new Blob([data.csv || ''], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'gesturo-' + kind + '-' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('✓ Exporté ' + data.count + ' lignes', 'ok');
+  } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+}
+
+// Wrap loadAnalytics to also load extras
+const _origLoadAnalytics = loadAnalytics;
+loadAnalytics = async function() {
+  await _origLoadAnalytics();
+  loadTopUsers();
+  loadInactiveUsers();
+  loadRetention();
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('top-users-sort').addEventListener('change', loadTopUsers);
+  $('inactive-days').addEventListener('change', loadInactiveUsers);
+  document.querySelectorAll('[data-export]').forEach(btn => {
+    btn.addEventListener('click', () => exportCSV(btn.dataset.export));
+  });
+  // Auto-load errors badge at startup (after a delay)
+  setTimeout(async () => {
+    try {
+      const d = await callUserData('adminListErrors', { limit: 1 });
+      const badge = $('errors-badge');
+      if (d.errors && d.errors.length) { badge.textContent = '!'; badge.classList.remove('hidden'); }
+    } catch {}
+  }, 1500);
 });
 
 init();
