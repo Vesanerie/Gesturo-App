@@ -405,7 +405,12 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
   }
 
   /* ── Card "Photos par session / Ordre / Images à l'envers" ──
-     Rangées alignées label-gauche / contrôle-droite, style iOS list. */
+     Rangées alignées label-gauche / contrôle-droite, style iOS list.
+     Cette card n'a pas de h3 → l'accordéon ne wrappe pas en .card-body,
+     donc on remet le padding horizontal directement. */
+  #screen-config #custom-count-options {
+    padding: 4px 18px;
+  }
   #screen-config #custom-count-options .row {
     flex-wrap: nowrap;
     justify-content: space-between;
