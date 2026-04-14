@@ -749,6 +749,201 @@ if (action === 'getStreak') {
       return json({ pending: pending || 0, approvedToday: approvedToday || 0, totalApproved: totalApproved || 0, totalPosts: totalPosts || 0 });
     }
 
+    // ── Admin: Users management ──
+    if (action === 'adminListUsers') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 50, 1), 200);
+      const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
+      const search = (payload?.search || '').trim().toLowerCase();
+      const filterPlan = payload?.plan || 'all';       // 'all' | 'free' | 'pro'
+      const filterBanned = payload?.banned || 'all';   // 'all' | 'yes' | 'no'
+      const filterAdmin = payload?.admin || 'all';     // 'all' | 'yes' | 'no'
+      let query = admin.from('profiles')
+        .select('id, email, username, plan, pro_expires_at, banned, is_admin, created_at', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(reqOffset, reqOffset + reqLimit - 1);
+      if (search) query = query.or(`email.ilike.%${search}%,username.ilike.%${search}%`);
+      if (filterPlan === 'free') query = query.or('plan.is.null,plan.eq.free');
+      else if (filterPlan === 'pro') query = query.eq('plan', 'pro');
+      if (filterBanned === 'yes') query = query.eq('banned', true);
+      else if (filterBanned === 'no') query = query.or('banned.is.null,banned.eq.false');
+      if (filterAdmin === 'yes') query = query.eq('is_admin', true);
+      else if (filterAdmin === 'no') query = query.or('is_admin.is.null,is_admin.eq.false');
+      const { data, count, error } = await query;
+      if (error) return json({ error: error.message }, 500);
+      return json({ users: data || [], total: count || 0, limit: reqLimit, offset: reqOffset });
+    }
+
+    if (action === 'adminGrantPro') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      const expiresAt = payload?.expiresAt || null; // ISO date or null = never expires
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      const { error } = await admin.from('profiles')
+        .update({ plan: 'pro', pro_expires_at: expiresAt })
+        .eq('email', targetEmail);
+      if (error) return json({ error: error.message }, 500);
+      try { await admin.from('moderation_log').insert({ admin_email: email, action: 'grant_pro', target_email: targetEmail, reason: expiresAt ? `expires ${expiresAt}` : 'lifetime' }); } catch {}
+      return json({ ok: true });
+    }
+
+    if (action === 'adminRevokePro') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      const { error } = await admin.from('profiles')
+        .update({ plan: 'free', pro_expires_at: null })
+        .eq('email', targetEmail);
+      if (error) return json({ error: error.message }, 500);
+      try { await admin.from('moderation_log').insert({ admin_email: email, action: 'revoke_pro', target_email: targetEmail }); } catch {}
+      return json({ ok: true });
+    }
+
+    if (action === 'adminToggleAdmin') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const targetEmail = payload?.email;
+      const makeAdmin = !!payload?.makeAdmin;
+      if (!targetEmail) return json({ error: 'missing email' }, 400);
+      // Safety : an admin cannot remove their own admin rights
+      if (targetEmail === email && !makeAdmin) return json({ error: 'Tu ne peux pas retirer tes propres droits admin.' }, 400);
+      const { error } = await admin.from('profiles').update({ is_admin: makeAdmin }).eq('email', targetEmail);
+      if (error) return json({ error: error.message }, 500);
+      try { await admin.from('moderation_log').insert({ admin_email: email, action: makeAdmin ? 'grant_admin' : 'revoke_admin', target_email: targetEmail }); } catch {}
+      return json({ ok: true });
+    }
+
+    // ── Admin: Analytics ──
+    if (action === 'adminGetAnalytics') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const daysBack = Math.min(Math.max(parseInt(payload?.days) || 30, 1), 90);
+      const sinceDate = new Date(); sinceDate.setDate(sinceDate.getDate() - daysBack);
+      sinceDate.setHours(0, 0, 0, 0);
+      const sinceISO = sinceDate.toISOString();
+
+      // Totals
+      const { count: totalUsers } = await admin.from('profiles').select('id', { count: 'exact', head: true });
+      const { count: proUsers } = await admin.from('profiles').select('id', { count: 'exact', head: true }).eq('plan', 'pro');
+      const { count: totalSessions } = await admin.from('sessions').select('id', { count: 'exact', head: true });
+      const { count: totalPosts } = await admin.from('community_posts').select('id', { count: 'exact', head: true });
+
+      // Daily signups
+      const { data: recentSignups } = await admin.from('profiles')
+        .select('created_at').gte('created_at', sinceISO).order('created_at');
+      const signupsByDay: Record<string, number> = {};
+      (recentSignups || []).forEach((u: any) => {
+        const day = new Date(u.created_at).toISOString().split('T')[0];
+        signupsByDay[day] = (signupsByDay[day] || 0) + 1;
+      });
+
+      // Daily sessions
+      const { data: recentSessions } = await admin.from('sessions')
+        .select('created_at, duration_seconds').gte('created_at', sinceISO).order('created_at');
+      const sessionsByDay: Record<string, number> = {};
+      let totalDuration = 0;
+      (recentSessions || []).forEach((s: any) => {
+        const day = new Date(s.created_at).toISOString().split('T')[0];
+        sessionsByDay[day] = (sessionsByDay[day] || 0) + 1;
+        totalDuration += s.duration_seconds || 0;
+      });
+      const avgDurationMin = recentSessions && recentSessions.length
+        ? Math.round(totalDuration / recentSessions.length / 60)
+        : 0;
+
+      // Build ordered day list (fill gaps with 0)
+      const days: Array<{ date: string; signups: number; sessions: number }> = [];
+      for (let i = daysBack; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        days.push({
+          date: key,
+          signups: signupsByDay[key] || 0,
+          sessions: sessionsByDay[key] || 0,
+        });
+      }
+
+      return json({
+        totalUsers: totalUsers || 0,
+        proUsers: proUsers || 0,
+        conversionRate: totalUsers ? Math.round((proUsers || 0) / totalUsers * 1000) / 10 : 0, // %
+        totalSessions: totalSessions || 0,
+        totalPosts: totalPosts || 0,
+        sessionsPeriod: recentSessions?.length || 0,
+        signupsPeriod: recentSignups?.length || 0,
+        avgDurationMin,
+        days,
+      });
+    }
+
+    // ── Announcements ──
+    if (action === 'getActiveAnnouncement') {
+      // Public — any logged user can fetch the active banner
+      try {
+        const nowISO = new Date().toISOString();
+        const { data } = await admin.from('announcements')
+          .select('id, message, kind, link_url, link_label, created_at, expires_at')
+          .eq('active', true)
+          .or(`expires_at.is.null,expires_at.gt.${nowISO}`)
+          .order('created_at', { ascending: false })
+          .limit(1).maybeSingle();
+        return json({ announcement: data || null });
+      } catch { return json({ announcement: null }); }
+    }
+
+    if (action === 'adminListAnnouncements') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      try {
+        const { data } = await admin.from('announcements').select('*').order('created_at', { ascending: false });
+        return json({ announcements: data || [] });
+      } catch { return json({ announcements: [] }); }
+    }
+
+    if (action === 'adminCreateAnnouncement') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { message, kind, link_url, link_label, expires_at } = payload || {};
+      if (!message) return json({ error: 'missing message' }, 400);
+      // Deactivate all previous active announcements (only one active at a time)
+      await admin.from('announcements').update({ active: false }).eq('active', true);
+      const { data: ann, error } = await admin.from('announcements').insert({
+        message: String(message).slice(0, 500),
+        kind: kind || 'info',           // 'info' | 'warning' | 'success'
+        link_url: link_url || null,
+        link_label: link_label || null,
+        expires_at: expires_at || null,
+        active: true,
+      }).select('id').single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, id: ann.id });
+    }
+
+    if (action === 'adminToggleAnnouncement') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { id, active } = payload || {};
+      if (!id) return json({ error: 'missing id' }, 400);
+      // If activating, deactivate all others
+      if (active) await admin.from('announcements').update({ active: false }).neq('id', id);
+      const { error } = await admin.from('announcements').update({ active: !!active }).eq('id', id);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === 'adminDeleteAnnouncement') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { id } = payload || {};
+      if (!id) return json({ error: 'missing id' }, 400);
+      const { error } = await admin.from('announcements').delete().eq('id', id);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
     // ── Proxy image as base64 (mobile can't fetch R2 due to CORS) ──
     if (action === 'proxyImage') {
       const { imageUrl } = payload || {};
