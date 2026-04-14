@@ -730,6 +730,8 @@ async function selectSeq(seq, el) {
 
 // ══ MODES ══
 function switchMainMode(mode) {
+  // Skip si on est déjà dans ce mode — évite de relancer un render sur tap répété
+  if (mainMode === mode) return
   mainMode = mode
   document.getElementById('tab-pose').classList.toggle('active', mode === 'pose')
   document.getElementById('tab-anim').classList.toggle('active', mode === 'anim')
@@ -1573,6 +1575,8 @@ function startCommunityRefresh() {
 }
 
 function switchCommunityTab(tab) {
+  // Skip si on est déjà sur ce tab — évite relance + flash DOM sur tapotage
+  if (_communityTab === tab) return
   _communityTab = tab
   document.getElementById('ctab-feed').classList.toggle('active', tab === 'feed')
   document.getElementById('ctab-mine').classList.toggle('active', tab === 'mine')
