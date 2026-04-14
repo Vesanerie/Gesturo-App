@@ -348,9 +348,30 @@
       }
     },
 
-    // ── Document Scanner (@capacitor-mlkit/document-scanner, Android only) ──
-    // Returns { dataUrl, format } or null if cancelled / plugin missing / iOS.
+    // ── Document Scanner ──
+    // iOS    : plugin custom VisionKitScanner (VNDocumentCameraViewController) → base64 direct
+    // Android: @capacitor-mlkit/document-scanner (Google MLKit) → file URI à lire
+    // Returns { dataUrl, format } or null if cancelled / plugin missing.
     scanDocument: async () => {
+      // iOS : VisionKit natif (on reçoit directement du base64)
+      if (window.__isIOS) {
+        const VK = plugins.VisionKitScanner;
+        if (!VK || !VK.scanDocument) {
+          alert('Le scan n\'est pas disponible sur cet appareil.');
+          return null;
+        }
+        try {
+          const result = await VK.scanDocument();
+          const base64 = result?.scannedImages?.[0];
+          if (!base64) return null; // user cancelled
+          return { dataUrl: 'data:image/jpeg;base64,' + base64, format: 'jpeg' };
+        } catch (e) {
+          console.warn('[scanDocument iOS] error:', e.message);
+          return null;
+        }
+      }
+
+      // Android : MLKit
       const Scanner = plugins.DocumentScanner;
       if (!Scanner || !Scanner.scanDocument) {
         alert('Le scan de document n\'est pas disponible sur cet appareil.');
@@ -374,7 +395,7 @@
         const file = await FS.readFile({ path: uri });
         return { dataUrl: 'data:image/jpeg;base64,' + file.data, format: 'jpeg' };
       } catch (e) {
-        console.warn('[scanDocument] error:', e.message);
+        console.warn('[scanDocument Android] error:', e.message);
         return null;
       }
     },
