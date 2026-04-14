@@ -343,6 +343,187 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - Le user sait `git push` mais préfère que je le fasse pour lui après
   validation.
 
+## Admin Web — features complètes (session avril 2026)
+
+Session de gros build. L'admin web a été transformée d'un simple
+navigateur de fichiers R2 en un outil complet de gestion pour Gesturo.
+Toutes les features sont **live** sur `gesturo-admin.pages.dev`.
+
+### Navigation admin — 8 onglets
+
+1. **📂 Fichiers** — R2 browser (Sessions/ + Animations/, archive, upload, etc.) — existait déjà
+2. **🏆 Challenges** — CRUD challenges + R2 image picker pour ref — existait déjà
+3. **🛡️ Modération** — gestion des posts communauté (nouveau, complet)
+4. **👥 Utilisateurs** — liste globale + actions (nouveau)
+5. **📈 Stats** — analytics + insights (nouveau)
+6. **📣 Annonces** — bannière/modale pour pousser des messages (nouveau)
+7. **🛠 Système** — mode maintenance + feature flags (nouveau)
+8. **🐛 Erreurs** — log des erreurs JS remontées par les users (nouveau)
+
+### 🛡️ Modération (panel complet)
+
+**Filtres + affichage** :
+- Filtres : En attente / Approuvés / Tous
+- Recherche par username/email (debounce 400ms)
+- Bouton ⚡ **Speed Review** — mode plein écran, image par image, A/R au clavier
+- Bouton 📜 **Historique modération** — toutes les actions (approve/reject/ban/unban/grant_pro/...) loguées
+- Bouton 🚫 **Bannis** — liste des users bannis avec bouton "Débloquer"
+- Header stats : pending / approuvés aujourd'hui / total approuvés / total posts
+- Raccourcis clavier : ← → naviguer, A approuver, R rejeter, Espace sélectionner
+
+**Par post** :
+- Card avec thumbnail (clic → lightbox, comparaison ref vs dessin si challenge)
+- Clic sur username → ouvre le profil user (infos, historique, posts, ban/unban)
+- Boutons : ✓ Approuver / ✕ Rejeter / 🚫 Bloquer user
+- **Raison du rejet** : modale avec 8 tags cliquables (Pas un dessin, Photo/selfie,
+  Contenu inapproprié, Spam, Screenshot, Hors sujet, Doublon, Qualité trop basse)
+  + champ texte libre
+
+**Batch** :
+- Checkbox pour sélection multi → Approuver / Rejeter N posts
+- Rejet supprime le post + les réactions + l'image R2 définitivement
+
+**Auto-approve de confiance** :
+- Dès qu'un user a **≥ 1 post approuvé**, ses prochains posts sont
+  auto-approuvés (`approved = true` direct à l'insertion).
+- Réduit la friction pour les users légitimes, seul le 1er post nécessite review.
+
+### 👥 Utilisateurs (panel complet)
+
+- Liste paginée (50/page) avec pagination prev/next
+- Search par email/username (debounce 400ms)
+- Filtres : plan (all/free/pro), banned (all/yes/no), admin (all/yes/no)
+- **3 modes d'affichage** (toggle persisté localStorage) :
+  - 📋 Liste (détaillée, actions à droite)
+  - 📊 Compact (dense type tableau)
+  - 📇 Cartes (grille de cards)
+- Par user :
+  - Tags : Free/Pro/Admin/Banni + date d'inscription
+  - 👁 **Voir** — ouvre profile modal (posts, historique modération)
+  - ✨ **Donner Pro** / Retirer Pro (avec prompt expiration optionnelle)
+  - 👑 **Admin toggle** (refuse si self)
+  - 🚫 **Bannir** / Débloquer
+  - 🗑 **Supprimer** (cascade complète : auth, profil, posts, R2, réactions,
+    favoris, sessions + prompt de confirmation par retypage email)
+
+### 📈 Stats (panel complet)
+
+**KPIs** (6 cards) :
+- Utilisateurs totaux (+ signups période)
+- Pro users + taux de conversion %
+- Sessions totales
+- Sessions période + durée moyenne
+- Posts community
+- Inscriptions période
+
+**Charts** :
+- Inscriptions par jour (bar chart)
+- Sessions par jour (bar chart)
+- Sélecteur période : 7 / 30 / 90 jours
+
+**Extras** :
+- 🏆 **Top utilisateurs** — sort par sessions / posts / oldest / recent (clic → profil)
+- 💤 **Utilisateurs inactifs** — 14 / 30 / 60 / 90 jours (basé sur `last_active`)
+- 📊 **Rétention par cohorte hebdomadaire** — % d'users inscrits en semaine N
+  qui sont encore actifs (last_active ≤ 14j)
+- 📥 **Export CSV** — users / posts / sessions → téléchargement direct
+
+### 📣 Annonces
+
+- Form : message + type (info/warning/success) + lien optionnel + date d'expiration
+- Liste : toggle activer/désactiver + supprimer
+- **Une seule annonce active à la fois** (créer/activer désactive les autres)
+- Côté app Gesturo :
+  - Modale **centrée** avec icône par type (💙 info / ⚠️ warning / ✨ success)
+  - CTA coloré selon le type
+  - Animation fade + pop cubic-bezier
+  - Dismiss par × ou clic extérieur → localStorage par ID (ne revient pas)
+  - **Temps réel** : poll toutes les 5 min + refetch sur `window.focus`
+
+### 🛠 Système
+
+**Mode maintenance** :
+- Checkbox "Activer" + message custom
+- Stocké dans `app_settings.maintenance = { enabled, message }`
+- Côté app : overlay bloquant plein écran "Gesturo revient bientôt"
+  avec animation rotation et le message custom
+
+**Feature Flags** :
+- Create/update flag (key + description + enabled)
+- Liste avec toggle instantané + delete
+- Côté app : `window.__featureFlags` + helper `window.isFeatureEnabled('key')`
+- Permet de gater des features sans redéployer
+
+### 🐛 Erreurs
+
+- Liste des erreurs JS remontées depuis les apps users
+- Stack trace cliquable (collapsed → expand)
+- Meta : email user, URL, version app, user agent
+- Badge rouge dans la nav si erreurs présentes
+- Bouton 🗑 "Tout vider"
+- **Côté app** : global listeners `window.onerror` + `unhandledrejection`
+  → appel automatique `logClientError` (throttle 10s pour éviter spam)
+
+### App Gesturo — intégrations côté client
+
+- **pingActivity** : update `profiles.last_active` à chaque auth (pour insights)
+- **loadFeatureFlagsFromServer** : charge les flags au boot → `window.__featureFlags`
+- **Error reporting** : global listeners + throttle
+- **Modération auto des images** (code prêt, nécessite clé API Anthropic — cf. section "À faire plus tard")
+- **Scan document** : bouton 📄 Scanner sur iPad/iPhone (VisionKit) + Android (MLKit)
+- **Annonces temps réel** : poll 5 min + refocus
+
+### Tables Supabase créées dans cette session
+
+```sql
+-- Modération logging
+CREATE TABLE moderation_log (id uuid PK, admin_email, action, target_email,
+  post_id, reason, created_at);
+
+-- Annonces
+CREATE TABLE announcements (id uuid PK, message, kind, link_url, link_label,
+  active, expires_at, created_at);
+
+-- Feature flags + app settings + errors
+CREATE TABLE feature_flags (key PK, enabled, description, updated_at);
+CREATE TABLE app_settings (key PK, value jsonb, updated_at);
+CREATE TABLE client_errors (id uuid PK, user_email, message, stack, url,
+  user_agent, app_version, created_at);
+
+-- Columns ajoutées
+ALTER TABLE profiles ADD COLUMN banned boolean DEFAULT false;
+ALTER TABLE profiles ADD COLUMN featured boolean DEFAULT false;
+ALTER TABLE profiles ADD COLUMN last_active timestamptz;
+ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
+```
+
+### Features conçues mais PAS encore livrées (à ajouter un jour)
+
+- **📧 Email user direct** (support, réponses ciblées)
+  — nécessite SMTP config ou API externe (Resend / Postmark / Mailgun)
+  — alternative simple : utiliser `admin.auth.admin.sendMagicLink` qui marche
+    déjà dans Supabase mais c'est limité
+- **📬 Broadcast email** (à tous / Pro uniquement / Free uniquement)
+  — même contrainte SMTP
+  — idéal pour annonces majeures, changements d'abonnement, campagnes
+- **💰 Stripe dashboard** (derniers paiements, MRR, failed payments, refunds)
+  — nécessite lire l'intégration Stripe existante (`stripe-webhook/`) et
+    ajouter une action `adminGetStripeData` qui liste `stripe.subscriptions.list()`
+    et `stripe.paymentIntents.list()` via STRIPE_SECRET_KEY déjà en secret
+  — utile quand la base Pro grandit
+- **📌 Featured posts dans le feed** — le backend est fait (`adminToggleFeatured
+  Post` + colonne `featured`), mais il manque :
+  - Bouton "📌 Épingler" dans le panel Modération (sur chaque card)
+  - Logique côté app pour afficher le featured en tête du feed community
+- **⭐ Featured user badge** — backend fait (`adminToggleFeaturedUser` +
+  `profiles.featured`), manque :
+  - Bouton dans le user profile modal de l'admin
+  - Badge "Coup de cœur" visible dans le feed community à côté du username
+- **🌐 Bannière d'annonce sur gesturo.fr** — actuellement l'annonce ne
+  s'affiche que dans l'app desktop/mobile. Si tu veux la même sur le
+  landing page, il faudrait reprendre le HTML/CSS de la modale dans
+  le site gesturo.fr + fetch via l'Edge Function.
+
 ## TODO connus / pas encore faits
 
 ### Priorité immédiate (P0 audit)
