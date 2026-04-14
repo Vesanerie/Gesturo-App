@@ -30,6 +30,15 @@
 </head>
 <body>
 
+<!-- Maintenance overlay (blocks app if admin toggled maintenance mode on) -->
+<div id="maintenance-overlay" class="maintenance-overlay" style="display:none;">
+  <div class="maintenance-card">
+    <div class="maintenance-icon">🛠️</div>
+    <h2>Gestur<span class="gesturo-o">o</span> revient bientôt</h2>
+    <p id="maintenance-overlay-msg">Mise à jour en cours…</p>
+  </div>
+</div>
+
 <!-- Announcement modal (center screen, hidden by default) -->
 <div id="announcement-banner" class="announcement-backdrop" style="display:none;" onclick="if(event.target===this)dismissAnnouncement()">
   <div class="announcement-card">

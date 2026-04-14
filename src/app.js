@@ -216,6 +216,12 @@ window.addEventListener('DOMContentLoaded', () => {
       loadR2(isPro)
       syncFavsFromServer()
       loadAnnouncement()
+      checkMaintenanceMode()
+      pingUserActivity()
+      loadFeatureFlagsFromServer()
+      // Poll announcements toutes les 5 min + quand l'app revient au focus
+      setInterval(loadAnnouncement, 5 * 60 * 1000)
+      window.addEventListener('focus', loadAnnouncement)
     })
     window.electronAPI.onAutoLoad(f => { isR2Mode = false; loadFolder(f) })
   }
@@ -2360,6 +2366,73 @@ function saveFavs(favs) {
 }
 
 // Merge remote favs with local on boot (called after auth)
+// ── Maintenance mode check ──
+async function checkMaintenanceMode() {
+  try {
+    if (!window.electronAPI?.getAppSettings) return
+    const res = await window.electronAPI.getAppSettings()
+    const m = res?.settings?.maintenance
+    if (m && m.enabled) {
+      const overlay = document.getElementById('maintenance-overlay')
+      const msg = document.getElementById('maintenance-overlay-msg')
+      if (msg) msg.textContent = m.message || 'Mise à jour en cours…'
+      if (overlay) overlay.style.display = 'flex'
+    }
+  } catch { /* silent */ }
+}
+
+// ── Ping activity (update last_active on profile) ──
+async function pingUserActivity() {
+  try { if (window.electronAPI?.pingActivity) await window.electronAPI.pingActivity() } catch {}
+}
+
+// ── Feature flags (read-only côté app) ──
+window.__featureFlags = {}
+async function loadFeatureFlagsFromServer() {
+  try {
+    if (!window.electronAPI?.getFeatureFlags) return
+    const res = await window.electronAPI.getFeatureFlags()
+    window.__featureFlags = res?.flags || {}
+  } catch {}
+}
+// Helper : isFeatureEnabled('scan_document') côté app
+window.isFeatureEnabled = function(key) { return !!window.__featureFlags[key] }
+
+// ── Error reporting ──
+let _lastReportedError = 0
+window.addEventListener('error', (e) => {
+  // Throttle : max 1 erreur reportée toutes les 10s
+  const now = Date.now()
+  if (now - _lastReportedError < 10000) return
+  _lastReportedError = now
+  try {
+    if (!window.electronAPI?.logClientError) return
+    window.electronAPI.logClientError({
+      message: e.message || 'unknown error',
+      stack: e.error?.stack || null,
+      url: e.filename || location.href,
+      userAgent: navigator.userAgent,
+      appVersion: '0.2.2', // TODO: get from package.json at build
+    })
+  } catch {}
+})
+window.addEventListener('unhandledrejection', (e) => {
+  const now = Date.now()
+  if (now - _lastReportedError < 10000) return
+  _lastReportedError = now
+  try {
+    if (!window.electronAPI?.logClientError) return
+    const reason = e.reason instanceof Error ? e.reason : new Error(String(e.reason))
+    window.electronAPI.logClientError({
+      message: reason.message || 'unhandled rejection',
+      stack: reason.stack || null,
+      url: location.href,
+      userAgent: navigator.userAgent,
+      appVersion: '0.2.2',
+    })
+  } catch {}
+})
+
 // ── Announcement banner ──
 async function loadAnnouncement() {
   try {

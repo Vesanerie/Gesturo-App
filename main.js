@@ -837,11 +837,28 @@ ipcMain.handle('get-my-stats', async () => {
 })
 
 ipcMain.handle('get-active-announcement', async () => {
-  try {
-    return await callUserData('getActiveAnnouncement')
-  } catch (e) {
-    return { announcement: null }
-  }
+  try { return await callUserData('getActiveAnnouncement') }
+  catch (e) { return { announcement: null } }
+})
+
+ipcMain.handle('get-app-settings', async () => {
+  try { return await callUserData('getAppSettings') }
+  catch (e) { return { settings: {} } }
+})
+
+ipcMain.handle('get-feature-flags', async () => {
+  try { return await callUserData('getFeatureFlags') }
+  catch (e) { return { flags: {} } }
+})
+
+ipcMain.handle('ping-activity', async () => {
+  try { return await callUserData('pingActivity') }
+  catch (e) { return { ok: false } }
+})
+
+ipcMain.handle('log-client-error', async (_e, data) => {
+  try { return await callUserData('logClientError', data) }
+  catch (e) { return { ok: false } }
 })
 
 ipcMain.handle('delete-community-post', async (_e, postId) => {

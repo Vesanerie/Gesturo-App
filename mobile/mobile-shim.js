@@ -297,6 +297,34 @@
         return data || { announcement: null };
       } catch (e) { return { announcement: null }; }
     },
+    getAppSettings: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getAppSettings' } });
+        return data || { settings: {} };
+      } catch (e) { return { settings: {} }; }
+    },
+    getFeatureFlags: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getFeatureFlags' } });
+        return data || { flags: {} };
+      } catch (e) { return { flags: {} }; }
+    },
+    pingActivity: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        await sb.functions.invoke('user-data', { body: { action: 'pingActivity' } });
+        return { ok: true };
+      } catch (e) { return { ok: false }; }
+    },
+    logClientError: async (data) => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        await sb.functions.invoke('user-data', { body: { action: 'logClientError', payload: data } });
+        return { ok: true };
+      } catch (e) { return { ok: false }; }
+    },
     getReactions: async (postIds) => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();

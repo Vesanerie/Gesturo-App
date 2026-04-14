@@ -326,6 +326,44 @@ body::after {
   }
 }
 
+/* ═══ Maintenance overlay (blocks app when admin enables maintenance mode) ═══ */
+.maintenance-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0a1520;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.maintenance-card {
+  text-align: center;
+  max-width: 420px;
+}
+.maintenance-icon {
+  font-size: 72px;
+  line-height: 1;
+  margin-bottom: 20px;
+  animation: maintenance-spin 3s ease-in-out infinite;
+}
+@keyframes maintenance-spin {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+.maintenance-card h2 {
+  color: #fff;
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.maintenance-card p {
+  color: #6a8aa8;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.gesturo-o { color: var(--warm, #f0c040); }
+
 /* ═══ Announcement modal (center screen) ═══ */
 .announcement-backdrop {
   position: fixed;
