@@ -30,6 +30,9 @@
         <button class="admin-nav-btn active" data-panel="files">📂 Fichiers</button>
         <button class="admin-nav-btn" data-panel="challenges">🏆 Challenges</button>
         <button class="admin-nav-btn" data-panel="moderation">🛡️ Modération <span id="mod-badge" class="mod-badge hidden">0</span></button>
+        <button class="admin-nav-btn" data-panel="users">👥 Utilisateurs</button>
+        <button class="admin-nav-btn" data-panel="analytics">📈 Stats</button>
+        <button class="admin-nav-btn" data-panel="announcements">📣 Annonces</button>
       </div>
       <div id="global-stats" class="global-stats muted" title="Cliquer pour rafraîchir">📊 Calcul…</div>
       <div class="user">
@@ -167,6 +170,99 @@
       <div class="mod-kbd-hint muted">Raccourcis : ← → naviguer · A approuver · R rejeter · Espace sélectionner</div>
       <div id="mod-grid" class="mod-grid"></div>
     </div><!-- /panel-moderation -->
+
+    <!-- ═ USERS PANEL ═ -->
+    <div id="panel-users" class="admin-panel hidden">
+      <div class="users-toolbar">
+        <input id="users-search" type="search" placeholder="🔍 Rechercher email / username…" autocomplete="off">
+        <select id="users-filter-plan">
+          <option value="all">Tous les plans</option>
+          <option value="free">Free</option>
+          <option value="pro">Pro</option>
+        </select>
+        <select id="users-filter-banned">
+          <option value="all">Tous</option>
+          <option value="yes">Bannis uniquement</option>
+          <option value="no">Non bannis</option>
+        </select>
+        <select id="users-filter-admin">
+          <option value="all">Admins &amp; users</option>
+          <option value="yes">Admins uniquement</option>
+          <option value="no">Users uniquement</option>
+        </select>
+        <span id="users-count" class="muted"></span>
+      </div>
+      <div id="users-list" class="users-list">Chargement…</div>
+      <div class="users-pagination">
+        <button id="users-prev" class="btn-secondary" disabled>← Précédent</button>
+        <span id="users-page-info" class="muted"></span>
+        <button id="users-next" class="btn-secondary" disabled>Suivant →</button>
+      </div>
+    </div><!-- /panel-users -->
+
+    <!-- ═ ANALYTICS PANEL ═ -->
+    <div id="panel-analytics" class="admin-panel hidden">
+      <div class="analytics-header">
+        <h2>Statistiques</h2>
+        <select id="analytics-range">
+          <option value="7">7 derniers jours</option>
+          <option value="30" selected>30 derniers jours</option>
+          <option value="90">90 derniers jours</option>
+        </select>
+        <button id="analytics-refresh" class="btn-secondary">↻ Actualiser</button>
+      </div>
+      <div id="analytics-kpis" class="analytics-kpis">Chargement…</div>
+      <div class="analytics-charts">
+        <div class="analytics-chart-card">
+          <h3>Inscriptions par jour</h3>
+          <div id="chart-signups" class="analytics-chart"></div>
+        </div>
+        <div class="analytics-chart-card">
+          <h3>Sessions par jour</h3>
+          <div id="chart-sessions" class="analytics-chart"></div>
+        </div>
+      </div>
+    </div><!-- /panel-analytics -->
+
+    <!-- ═ ANNOUNCEMENTS PANEL ═ -->
+    <div id="panel-announcements" class="admin-panel hidden">
+      <div class="announcements-layout">
+        <div class="challenge-form-card">
+          <h2>Nouvelle annonce</h2>
+          <div class="form-group">
+            <label for="ann-message">Message</label>
+            <input id="ann-message" type="text" maxlength="500" placeholder="Ex : Maintenance ce soir à 22h" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="ann-kind">Type</label>
+            <select id="ann-kind">
+              <option value="info">💙 Info</option>
+              <option value="success">💚 Succès</option>
+              <option value="warning">💛 Attention</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="ann-link-url">Lien (optionnel)</label>
+            <input id="ann-link-url" type="url" placeholder="https://…" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="ann-link-label">Texte du lien (optionnel)</label>
+            <input id="ann-link-label" type="text" maxlength="40" placeholder="Ex : En savoir plus" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="ann-expires">Expire le (optionnel)</label>
+            <input id="ann-expires" type="datetime-local">
+          </div>
+          <button id="ann-create-btn" class="add-btn">Publier l'annonce</button>
+          <div id="ann-form-msg" class="msg"></div>
+          <p class="muted" style="margin-top:10px;font-size:12px;">Une seule annonce peut être active à la fois. Publier en active désactive les précédentes.</p>
+        </div>
+        <div class="challenge-list-card">
+          <h2>Annonces</h2>
+          <div id="ann-list" class="ch-list">Chargement…</div>
+        </div>
+      </div>
+    </div><!-- /panel-announcements -->
 
   </section>
 
