@@ -145,9 +145,38 @@ body::after {
      status bar iOS (notch / Dynamic Island) sur tous les formats */
   #options-btn, #discord-btn, #profile-btn {
     top: calc(env(safe-area-inset-top, 0px) + 14px) !important;
+    z-index: 501 !important; /* au-dessus du bandeau top-fade */
   }
   #options-dropdown {
     top: calc(env(safe-area-inset-top, 0px) + 52px) !important;
+    z-index: 502 !important;
+  }
+
+  /* Bandeau opaque collé en haut qui cache le scroll qui passe sous
+     les boutons fixes (Discord, Options). Sans ça, le contenu qui
+     défile autour des boutons donne l'illusion qu'ils bougent. */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(env(safe-area-inset-top, 0px) + 58px);
+    background: linear-gradient(180deg,
+      rgba(15, 25, 35, 0.92) 0%,
+      rgba(15, 25, 35, 0.85) 70%,
+      rgba(15, 25, 35, 0) 100%);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    pointer-events: none;
+    z-index: 150;
+  }
+  /* Cacher le bandeau sur les écrans plein-photo (Session, Animation, Cinéma)
+     — ils ont déjà leurs propres pills flottants avec blur. */
+  body:has(#screen-session.active)::before,
+  body:has(#screen-anim.active)::before,
+  body:has(#screen-cinema.active)::before {
+    display: none;
   }
 }
 
