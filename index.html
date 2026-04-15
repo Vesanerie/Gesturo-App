@@ -28,6 +28,22 @@
   <link rel="stylesheet" href="styles/components/profile.css">
   <link rel="stylesheet" href="styles/components/onboarding.css">
   <link rel="stylesheet" href="styles/accessibility.css">
+  <link rel="stylesheet" href="styles/theme-light.css">
+  <script>
+    // Appliquer le thème AVANT le premier paint pour éviter un flash dark→light.
+    // Lu en localStorage (clé gd4_theme). Valeurs : 'light' | 'dark' (défaut dark).
+    (function() {
+      try {
+        if (localStorage.getItem('gd4_theme') === 'light') {
+          document.documentElement.classList.add('theme-light-preload');
+          document.addEventListener('DOMContentLoaded', function() {
+            document.body.classList.add('theme-light');
+            document.documentElement.classList.remove('theme-light-preload');
+          });
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
 
@@ -66,6 +82,7 @@
 <button id="options-btn" aria-label="Options" onclick="toggleOptions()">⋯</button>
 <div id="options-dropdown">
   <div class="opt-item" onclick="toggleOptions(); switchMainMode('hist')">📈 Historique</div>
+  <div class="opt-item" onclick="toggleTheme()" id="opt-theme">☀️ Mode Jour</div>
   <div class="opt-item" onclick="toggleLegacyUi()" id="opt-legacy-ui">👁 Design ancien</div>
   <div class="opt-item" onclick="handleLogout()">🚪 Se déconnecter</div>
   <div class="opt-item danger" onclick="confirmResetHistory()">🗑 Réinitialiser l'historique</div>
@@ -75,9 +92,6 @@
 <!-- ══ CONFIG ══ -->
 <div class="screen active" id="screen-config">
   <div class="config-inner">
-    <h1>Gestur<span>o</span></h1>
-    <p class="subtitle">30 secondes pour devenir un dieu du dessin</p>
-
     <div class="card" id="admin-source-card" style="display:none;">
       <h3>Base de données</h3>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
@@ -257,12 +271,12 @@
           <div class="hsc-val" id="hist-total-mins">0</div>
           <div class="hsc-label">Minutes dessinées</div>
         </div>
-        <div class="hist-stat-card hist-stat-clickable" onclick="toggleBadgesPanel()">
+        <div class="hist-stat-card">
           <div class="hsc-val" id="hist-badges-count">0 / 10</div>
-          <div class="hsc-label">🏆 Badges <span style="font-size:10px;opacity:0.5;">›</span></div>
+          <div class="hsc-label">🏆 Badges</div>
         </div>
       </div>
-      <div id="badges-panel" style="display:none;margin-bottom:14px;background:#131f2e;border:0.5px solid #1e2d40;border-radius:12px;padding:16px;">
+      <div id="badges-panel" style="margin-bottom:14px;background:#131f2e;border:0.5px solid #1e2d40;border-radius:12px;padding:16px;">
         <div id="badges-grid"></div>
       </div>
       <div class="hist-period-tabs">
@@ -478,7 +492,7 @@
       </div>
     </div>
     <div class="end-btns">
-      <button class="end-btn end-btn-primary" id="btn-new-session" onclick="showScreen('screen-config'); if(mainMode==='cinema') switchMainMode('cinema')">Nouvelle session</button>
+      <button class="end-btn end-btn-primary" id="btn-new-session" onclick="showScreen('screen-config'); if(mainMode==='cinema') switchMainMode('cinema')">Retour au menu</button>
       <button class="end-btn" onclick="replaySession()">Recommencer</button>
       <button class="end-btn end-btn-share" id="btn-share-drawing" onclick="openShareDrawing()">Partager mon dessin</button>
     </div>
@@ -563,7 +577,7 @@
 </div>
 
 <!-- COMMUNITY COMPARE OVERLAY -->
-<div id="community-compare" class="community-compare" style="display:none;" onclick="if(event.target===this)closeCommunityCompare()">
+<div id="community-compare" class="community-compare" style="display:none;" onclick="if(!event.target.closest('button, a'))closeCommunityCompare()">
   <button class="cc-close" onclick="closeCommunityCompare()">✕</button>
   <div class="cc-content">
     <div class="cc-images">
@@ -622,11 +636,7 @@
     <div class="profile-avatar" id="profile-avatar">?</div>
     <div class="profile-field">
       <label>Pseudo</label>
-      <div class="profile-username-row">
-        <input id="profile-username" type="text" maxlength="30" placeholder="Ton pseudo">
-        <button id="profile-save-username" class="profile-save-btn" onclick="saveProfileUsername()">OK</button>
-      </div>
-      <div id="profile-username-msg" class="profile-msg"></div>
+      <div class="profile-value" id="profile-username">—</div>
     </div>
     <div class="profile-field">
       <label>Email</label>
