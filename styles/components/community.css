@@ -1,3 +1,28 @@
+/* ═══ PULL-TO-REFRESH (indicateur sur l'onglet Communauté) ═══ */
+#ptr-indicator {
+  position: relative;
+  height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #2983eb;
+  pointer-events: none;
+  transition: height 0.25s ease, opacity 0.2s;
+  opacity: 0;
+}
+#ptr-indicator.ptr-active { opacity: 1; }
+#ptr-indicator.ptr-refreshing { height: 52px; opacity: 1; }
+#ptr-indicator .ptr-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ptr-spin 0.7s linear infinite;
+}
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
+
 /* ═══ COMMUNITY COMPARE (clic sur un post) ═══ */
 .community-compare {
   position: fixed;

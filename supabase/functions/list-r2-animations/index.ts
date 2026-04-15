@@ -28,6 +28,33 @@ Deno.serve(async (req) => {
         results.push({ path: `${publicUrl}/${Key}`, sequence: sequenceName, isR2: true });
       }
     }
+
+    // FREE users : on renvoie AUSSI les sequences Pro mais en "teaser locked"
+    // (1 preview frame par séquence + flag locked). Permet au client d'afficher
+    // la grille complète avec cadenas → inciter à upgrader. Sécurité : on
+    // n'expose que la 1ère frame de chaque seq, pas tous les paths → un user
+    // FREE ne peut pas reconstituer la séquence en brute-forçant les URLs.
+    if (!isPro) {
+      const proObjects = await listAll('Animations/current/pro/');
+      const seenSeqs = new Set<string>();
+      for (const { Key } of proObjects) {
+        const parts = Key.split('/');
+        if (parts.length < 5) continue;
+        const fileName = parts[parts.length - 1];
+        if (fileName.startsWith('.')) continue;
+        if (!IMAGE_EXTS.includes(extOf(fileName))) continue;
+        const navParts = parts.slice(1, parts.length - 1);
+        const sequenceName = navParts.join('/');
+        if (seenSeqs.has(sequenceName)) continue;
+        seenSeqs.add(sequenceName);
+        results.push({
+          path: `${publicUrl}/${Key}`,
+          sequence: sequenceName,
+          isR2: true,
+          locked: true,
+        });
+      }
+    }
     return new Response(JSON.stringify(results), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' },
     });

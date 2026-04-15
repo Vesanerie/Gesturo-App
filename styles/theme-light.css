@@ -1,0 +1,1025 @@
+/* ═══════════════════════════════════════════════════════════════════
+   THEME LIGHT (Jour) — override du thème Nuit par défaut
+
+   Activé via <body class="theme-light">. Persisté en localStorage
+   (clé gd4_theme). L'absence de classe = mode Nuit (inchangé).
+
+   Stratégie : on redéfinit les CSS vars de :root + on surcharge les
+   couleurs hardcodées principales sur les sélecteurs structurels.
+   Pas exhaustif à 100% — certains inline styles JS (chips, badges,
+   overlays modaux) peuvent rester sombres ; ça sera ajusté au besoin.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Anti-flash : appliqué sur <html> par le script inline en <head>, AVANT
+   que body ne soit parsé. Évite le flash sombre→clair au boot. */
+html.theme-light-preload { background: #f6f7f9; }
+html.theme-light-preload body { background: #f6f7f9; }
+
+body.theme-light {
+  /* Override des CSS vars définies dans base.css :root */
+  --bg-body: #f6f7f9;
+  --bg-screen: #f0f2f5;
+  --bg-card: #ffffff;
+  --bg-hover: #eef1f5;
+  --border: #dde2e9;
+  --surface-light: rgba(255, 255, 255, 0.7);
+  --surface-medium: rgba(255, 255, 255, 0.85);
+  --surface-heavy: rgba(255, 255, 255, 0.95);
+
+  background: #f6f7f9;
+  color: #1a2838;
+}
+
+/* Noise overlays : beaucoup trop sombres en mode clair, on les atténue */
+body.theme-light::before { opacity: 0.015; }
+body.theme-light::after { opacity: 0.012; }
+
+/* ── Typographie globale ── */
+body.theme-light h1,
+body.theme-light h2,
+body.theme-light h3 {
+  color: #0a1520;
+}
+body.theme-light .subtitle,
+body.theme-light .config-inner .subtitle {
+  color: #5a6b7f;
+}
+
+/* ── Écrans ── */
+body.theme-light .screen {
+  background: #f6f7f9;
+}
+body.theme-light #screen-config {
+  background: #f6f7f9;
+}
+
+/* ── Cards ── */
+body.theme-light .card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #1a2838;
+  box-shadow: 0 1px 3px rgba(10, 21, 32, 0.04);
+}
+body.theme-light .card h3 {
+  color: #5a6b7f;
+}
+
+/* ── Sidebar desktop (≥1400px) ── */
+body.theme-light #screen-config .mode-tabs {
+  background: #ffffff;
+  border-right: 1px solid #dde2e9;
+}
+body.theme-light #screen-config .mode-tabs::before {
+  color: #0a1520;
+}
+body.theme-light #screen-config .mode-tabs::after {
+  background: #dde2e9;
+}
+body.theme-light #screen-config .mode-tab {
+  color: #5a6b7f;
+}
+body.theme-light #screen-config .mode-tab:hover {
+  background: rgba(41, 131, 235, 0.08);
+  color: #0a1520;
+}
+body.theme-light #screen-config .mode-tab.active {
+  background: rgba(41, 131, 235, 0.12);
+  color: #0a1520;
+}
+
+/* ── Mode tabs (tablet / desktop horizontal) ── */
+body.theme-light .mode-tabs {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .mode-tab {
+  color: #5a6b7f;
+}
+body.theme-light .mode-tab.active {
+  color: #0a1520;
+}
+
+/* ── Catégories (cat-chip, cards cat) ── */
+body.theme-light .cat-chip {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #1a2838;
+}
+body.theme-light .cat-chip:hover {
+  background: #f0f4f8;
+}
+body.theme-light .cat-back-btn {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #1a2838;
+}
+
+/* ── Chips (durée, FPS) ── */
+body.theme-light .chip {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #1a2838;
+}
+body.theme-light .chip.selected,
+body.theme-light .chip.active {
+  background: #2983eb;
+  color: #ffffff;
+  border-color: #2983eb;
+}
+
+/* ── Sub-mode cards ── */
+body.theme-light .sub-mode-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #1a2838;
+}
+body.theme-light .sub-mode-card .t { color: #0a1520; }
+body.theme-light .sub-mode-card .d { color: #5a6b7f; }
+body.theme-light .sub-mode-card.active,
+body.theme-light .sub-mode-card.selected {
+  border-color: #2983eb;
+  background: rgba(41, 131, 235, 0.06);
+}
+
+/* ── Boutons globaux (options, discord, profile) ── */
+body.theme-light #options-btn,
+body.theme-light #profile-btn {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #1a2838;
+}
+body.theme-light #options-btn:hover,
+body.theme-light #profile-btn:hover {
+  background: #f0f4f8;
+}
+body.theme-light #discord-btn {
+  background: #ffffff !important;
+  border-color: #dde2e9 !important;
+  color: #5a6b7f !important;
+}
+
+/* ── Dropdown options ── */
+body.theme-light #options-dropdown {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  box-shadow: 0 10px 30px rgba(10, 21, 32, 0.12);
+}
+body.theme-light #options-dropdown .opt-item {
+  color: #1a2838;
+}
+body.theme-light #options-dropdown .opt-item:hover {
+  background: #f0f4f8;
+}
+
+/* ── Start bar (sticky bottom) ── */
+/* Note : le CSS de base utilise un gradient linear-gradient(transparent, #0f1923)
+   qui fait un fond sombre en light mode. On remplace par un gradient clair. */
+body.theme-light #start-bar {
+  background: linear-gradient(transparent, rgba(246, 247, 249, 0.95) 40%) !important;
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+          backdrop-filter: blur(var(--blur-lg));
+}
+
+/* ── Inputs & selects ── */
+body.theme-light input[type="text"],
+body.theme-light input[type="email"],
+body.theme-light input[type="password"],
+body.theme-light input[type="number"],
+body.theme-light input[type="search"],
+body.theme-light select,
+body.theme-light textarea {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #1a2838;
+}
+body.theme-light input::placeholder,
+body.theme-light textarea::placeholder {
+  color: #8a9aad;
+}
+
+/* ── Range sliders ── */
+body.theme-light input[type="range"]::-webkit-slider-runnable-track {
+  background: #dde2e9;
+}
+body.theme-light input[type="range"]::-webkit-slider-thumb {
+  background: #2983eb;
+  border: 2px solid #ffffff;
+}
+
+/* ── Bottom tab bar (mobile) ── */
+body.theme-light #bottom-tab-bar {
+  background: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid #dde2e9;
+}
+body.theme-light .bottom-tab {
+  color: #5a6b7f;
+}
+body.theme-light .bottom-tab.active {
+  color: #2983eb;
+  background: rgba(41, 131, 235, 0.08);
+}
+
+/* ── Text helpers (colors common in inline styles) ── */
+body.theme-light [style*="color:#555"] { color: #5a6b7f !important; }
+body.theme-light [style*="color:#3a5570"] { color: #5a6b7f !important; }
+body.theme-light [style*="color:#8aacd4"] { color: #5a6b7f !important; }
+body.theme-light [style*="color:#8aaccc"] { color: #5a6b7f !important; }
+body.theme-light [style*="color:#fff"]:not([style*="background"]):not(.chip):not(.cat-chip) {
+  /* Laisser les boutons colorés (background coloré) garder leur texte blanc */
+}
+
+/* ── Bubbles canvas (home animation) : plus doux en fond clair ── */
+body.theme-light #bubbles-canvas { opacity: 0.4; }
+
+/* ── Top fade bandeau (mobile) ── */
+@media (max-width: 767px) {
+  body.theme-light::before {
+    background: linear-gradient(180deg,
+      rgba(246, 247, 249, 0.92) 0%,
+      rgba(246, 247, 249, 0.85) 70%,
+      rgba(246, 247, 249, 0) 100%);
+  }
+}
+
+/* ── Profile modal, onboarding, community : surfaces card-like ── */
+body.theme-light .profile-modal,
+body.theme-light .profile-card,
+body.theme-light .onboarding-card,
+body.theme-light .auth-card {
+  background: #ffffff;
+  color: #1a2838;
+  border: 1px solid #dde2e9;
+}
+
+/* ── Streak / week-bar ── */
+body.theme-light #week-bar {
+  background: transparent;
+  border: none;
+}
+body.theme-light .week-day {
+  background: #dde2e9;
+}
+body.theme-light .week-day.future {
+  background: #e8ecf1;
+}
+/* .week-day.done et .today restent en warm gold — inchangé */
+
+/* ── Boutons +/- inline (changeLoops etc) : ces boutons ont un style
+   inline hardcodé dans index.html. Override via attribute selector. ── */
+body.theme-light button[style*="#2e2e2e"] {
+  background: #ffffff !important;
+  border-color: #dde2e9 !important;
+  color: #1a2838 !important;
+}
+body.theme-light button[style*="#2e2e2e"]:hover {
+  background: #f0f4f8 !important;
+}
+
+/* Le span "loop-count-val" a color:#fff inline — inverse en light */
+body.theme-light #loop-count-val {
+  color: #0a1520 !important;
+}
+
+/* ── Écran Cinéma : liste de films ── */
+body.theme-light #screen-cinema {
+  background: #f6f7f9;
+}
+body.theme-light .film-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .film-card:hover {
+  border-color: #2983eb;
+}
+body.theme-light .film-card-thumb-placeholder {
+  background: #f0f4f8;
+}
+body.theme-light .film-card-title {
+  color: #0a1520;
+}
+body.theme-light .film-card-frames {
+  color: #5a6b7f;
+}
+body.theme-light #cinema-count-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light #cinema-count-card h3 {
+  color: #5a6b7f;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FAVORIS
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light #screen-favs {
+  background: #f6f7f9;
+}
+body.theme-light #favs-inner h2 {
+  color: #0a1520;
+}
+body.theme-light #favs-subtitle,
+body.theme-light #favs-empty {
+  color: #5a6b7f;
+}
+body.theme-light .fav-item {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .fav-item .fav-label {
+  background: rgba(10, 21, 32, 0.75);
+  color: #f0c040;
+}
+body.theme-light .fav-item .fav-remove-btn,
+body.theme-light .fav-item .fav-pin-btn {
+  background: rgba(255, 255, 255, 0.9);
+  color: #5a6b7f;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .fav-star-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #dde2e9;
+  color: #5a6b7f;
+}
+body.theme-light .fav-star-btn.active {
+  color: #f0c040;
+  border-color: #f0c040;
+  background: rgba(240, 192, 64, 0.12);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HISTORIQUE
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light .hist-stat-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .hist-stat-card .hsc-val {
+  color: #0a1520;
+}
+body.theme-light .hist-stat-card .hsc-label {
+  color: #5a6b7f;
+}
+body.theme-light .hist-stat-card.streak .hsc-val {
+  color: #f0c040;
+}
+body.theme-light .hist-period-tab {
+  border: 1px solid #dde2e9;
+  background: #ffffff;
+  color: #5a6b7f;
+}
+body.theme-light .hist-period-tab:hover {
+  background: #f0f4f8;
+}
+body.theme-light .hist-period-tab.active {
+  background: rgba(41, 131, 235, 0.12);
+  color: #0a1520;
+  border-color: #2983eb;
+}
+body.theme-light .hist-session-row {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .hist-session-info {
+  color: #1a2838;
+}
+body.theme-light .hist-session-meta,
+body.theme-light .hist-session-time {
+  color: #5a6b7f;
+}
+body.theme-light #hist-empty {
+  color: #5a6b7f;
+}
+body.theme-light .week-activity {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .wa-label,
+body.theme-light .wa-count {
+  color: #5a6b7f;
+}
+body.theme-light .wa-track {
+  background: rgba(10, 21, 32, 0.06);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BADGES (panel + cards)
+   ══════════════════════════════════════════════════════════════ */
+/* Le panel a un style inline hardcodé (background:#131f2e...) dans
+   index.html. Override via ID + !important. */
+body.theme-light #badges-panel {
+  background: #ffffff !important;
+  border: 1px solid #dde2e9 !important;
+}
+
+/* Cards verrouillées (locked, grisées) : fond gris clair au lieu de dark */
+body.theme-light .badge-card {
+  background: #f0f4f8;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+}
+body.theme-light .badge-card:not(.unlocked) {
+  /* Le gris clair rend déjà bien l'effet "verrouillé" sans le dark */
+  opacity: 0.5;
+}
+/* Card unlocked : fond doré très clair + halo or chaud */
+body.theme-light .badge-card.unlocked {
+  background: rgba(240, 192, 64, 0.12);
+  border-color: #f0c040;
+  color: #0a1520;
+}
+body.theme-light .badge-card.unlocked:hover {
+  border-color: #e5a020;
+}
+
+/* Modale de détail du badge */
+body.theme-light .badge-detail-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  box-shadow: 0 20px 60px rgba(10, 21, 32, 0.15);
+}
+body.theme-light .badge-detail-name {
+  color: #0a1520;
+}
+body.theme-light .badge-detail-desc {
+  color: #5a6b7f;
+}
+body.theme-light .badge-detail-locked {
+  color: #8a9aad;
+}
+/* .badge-detail-date reste en warm gold — inchangé */
+
+/* ══════════════════════════════════════════════════════════════
+   COMMUNAUTÉ (feed, leaderboard, challenges, mes dessins)
+   ══════════════════════════════════════════════════════════════ */
+/* Sub-tabs (Feed / Mes dessins / Leaderboard) */
+body.theme-light .community-tabs {
+  border: 1px solid #dde2e9;
+}
+body.theme-light .community-tab {
+  background: #ffffff;
+  color: #5a6b7f;
+}
+body.theme-light .community-tab:hover {
+  background: #f0f4f8;
+}
+body.theme-light .community-tab.active {
+  background: rgba(41, 131, 235, 0.12);
+  color: #0a1520;
+}
+
+/* Post cards */
+body.theme-light .community-post {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .community-post:hover {
+  border-color: rgba(41, 131, 235, 0.4);
+}
+body.theme-light .community-post-img {
+  background: #f0f4f8;
+}
+body.theme-light .community-post-user {
+  color: #0a1520;
+}
+body.theme-light .community-post-date {
+  color: #5a6b7f;
+}
+body.theme-light .community-post-likes {
+  color: #5a6b7f;
+}
+
+/* Réactions emoji */
+body.theme-light .community-reaction-btn {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #5a6b7f;
+}
+body.theme-light .community-reaction-btn:hover {
+  background: #f0f4f8;
+  border-color: rgba(41, 131, 235, 0.4);
+}
+body.theme-light .community-reaction-btn.active {
+  background: rgba(41, 131, 235, 0.12);
+  border-color: #2983eb;
+}
+body.theme-light .community-reaction-btn .count {
+  color: #5a6b7f;
+}
+
+/* Ref row (post lié à un challenge) */
+body.theme-light .community-post-ref {
+  background: #f0f4f8;
+  border-top: 1px solid #dde2e9;
+}
+body.theme-light .community-ref-label {
+  color: #5a6b7f;
+}
+
+/* Challenge cards */
+body.theme-light .challenge-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%);
+  border: 1px solid rgba(41, 131, 235, 0.3);
+}
+body.theme-light .challenge-ref {
+  background: #f0f4f8;
+}
+body.theme-light .challenge-info h3 {
+  color: #0a1520;
+}
+body.theme-light .challenge-participants {
+  color: #5a6b7f;
+}
+
+/* Challenge hero banner */
+body.theme-light .challenge-hero-card {
+  border-color: rgba(41, 131, 235, 0.3);
+}
+/* Le gradient overlay de la hero reste sombre — il passe sur une image,
+   c'est ce qui garantit la lisibilité du texte blanc au-dessus */
+
+/* Challenge select */
+body.theme-light #challenge-select {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a6b7f' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+/* Feed separators */
+body.theme-light .feed-separator {
+  color: #5a6b7f;
+}
+body.theme-light .feed-separator::after {
+  background: #dde2e9;
+}
+
+/* Mes dessins — empty */
+body.theme-light .mine-empty {
+  color: #5a6b7f;
+}
+
+/* My posts stats header */
+body.theme-light .my-posts-stats {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+}
+
+/* Community CTA */
+body.theme-light .community-cta {
+  color: #5a6b7f;
+}
+body.theme-light .community-cta strong {
+  color: #0a1520;
+}
+
+/* Leaderboard */
+body.theme-light .leaderboard-row {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .leaderboard-row:hover {
+  border-color: rgba(41, 131, 235, 0.4);
+}
+body.theme-light .leaderboard-top {
+  background: rgba(41, 131, 235, 0.08);
+  border-color: rgba(41, 131, 235, 0.3);
+}
+body.theme-light .leaderboard-rank {
+  color: #5a6b7f;
+}
+body.theme-light .leaderboard-name {
+  color: #0a1520;
+}
+body.theme-light .leaderboard-stats {
+  color: #5a6b7f;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RECAP (écran de fin de session) — #screen-end
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light #screen-end {
+  background: #f6f7f9;
+}
+body.theme-light .end-header {
+  border-bottom: 1px solid #dde2e9;
+  background: #ffffff;
+}
+body.theme-light .end-header h2 {
+  color: #0a1520;
+}
+body.theme-light .end-stat {
+  color: #5a6b7f;
+}
+body.theme-light .end-stat strong {
+  color: #0a1520;
+}
+body.theme-light .end-btn {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #1a2838;
+}
+body.theme-light .end-btn:hover {
+  background: #f0f4f8;
+}
+body.theme-light .end-btn-share {
+  border-color: rgba(41, 131, 235, 0.4);
+  color: #2983eb;
+  background: rgba(41, 131, 235, 0.08);
+}
+body.theme-light .end-btn-share:hover {
+  background: rgba(41, 131, 235, 0.15);
+}
+/* .end-btn-primary reste bleu plein — inchangé */
+body.theme-light .recap-item {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+}
+body.theme-light .recap-item .recap-duration,
+body.theme-light .recap-item .recap-num {
+  background: rgba(10, 21, 32, 0.7);
+  color: #e6edf5;
+}
+
+/* Share drawing overlay */
+body.theme-light .share-drawing-box {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+}
+body.theme-light .share-drawing-box h3 {
+  color: #0a1520;
+}
+body.theme-light .share-drawing-box p,
+body.theme-light #share-status {
+  color: #5a6b7f;
+}
+body.theme-light .share-upload-label {
+  background: #f0f4f8;
+  border: 1px dashed rgba(41, 131, 235, 0.4);
+  color: #2983eb;
+}
+body.theme-light .share-upload-label:hover {
+  background: #e8eff7;
+  border-color: #2983eb;
+}
+body.theme-light .share-scan-btn {
+  background: #f0f4f8;
+  border: 1px dashed rgba(240, 192, 64, 0.4);
+  color: #c89020;
+}
+body.theme-light .share-scan-btn:hover {
+  background: #e8eff7;
+  border-color: #f0c040;
+}
+body.theme-light .share-close {
+  color: #5a6b7f;
+}
+body.theme-light .share-close:hover {
+  color: #0a1520;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROFILE MODAL + USERNAME MODAL
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light .profile-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  box-shadow: 0 20px 60px rgba(10, 21, 32, 0.15);
+}
+body.theme-light .profile-close {
+  color: #5a6b7f;
+}
+body.theme-light .profile-close:hover {
+  color: #0a1520;
+}
+body.theme-light .profile-field label {
+  color: #5a6b7f;
+}
+body.theme-light .profile-value {
+  color: #0a1520;
+}
+body.theme-light .profile-username-row input {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+}
+body.theme-light .profile-username-row input:focus {
+  border-color: #2983eb;
+}
+body.theme-light .profile-stats {
+  border: 1px solid #dde2e9;
+}
+body.theme-light .profile-stat {
+  background: #f6f7f9;
+}
+body.theme-light .profile-stat + .profile-stat {
+  border-left: 1px solid #dde2e9;
+}
+body.theme-light .profile-stat-value {
+  color: #0a1520;
+}
+body.theme-light .profile-stat-label {
+  color: #5a6b7f;
+}
+body.theme-light .profile-logout-btn {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #e24b4a;
+}
+body.theme-light .profile-logout-btn:hover {
+  background: rgba(226, 75, 74, 0.08);
+}
+
+/* Username modal (post-signup) */
+body.theme-light .username-modal-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  box-shadow: 0 24px 64px rgba(10, 21, 32, 0.18);
+}
+body.theme-light .username-modal-title {
+  color: #0a1520;
+}
+body.theme-light .username-modal-subtitle {
+  color: #5a6b7f;
+}
+body.theme-light .username-modal-input {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+}
+body.theme-light .username-modal-input:focus {
+  border-color: #2983eb;
+}
+body.theme-light .username-modal-input::placeholder {
+  color: #8a9aad;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   AUTH (login / signup / reset)
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light .auth-screen {
+  background: #f6f7f9;
+}
+body.theme-light .auth-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  box-shadow: 0 16px 48px rgba(10, 21, 32, 0.12);
+}
+body.theme-light .auth-logo-text {
+  color: #0a1520;
+}
+body.theme-light .auth-subtitle {
+  color: #5a6b7f;
+}
+body.theme-light .auth-form input {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+}
+body.theme-light .auth-form input:focus {
+  border-color: #2983eb;
+}
+body.theme-light .auth-form input::placeholder {
+  color: #8a9aad;
+}
+body.theme-light .auth-input-icon {
+  color: #8a9aad;
+}
+body.theme-light .auth-separator {
+  color: #5a6b7f;
+}
+body.theme-light .auth-separator::before,
+body.theme-light .auth-separator::after {
+  background: #dde2e9;
+}
+body.theme-light .auth-switch {
+  color: #5a6b7f;
+}
+body.theme-light .auth-forgot {
+  color: #5a6b7f;
+}
+/* .auth-btn-google reste avec son background blanc — inchangé */
+
+/* ══════════════════════════════════════════════════════════════
+   ONBOARDING (tour 4 slides)
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light .onboarding-overlay {
+  background: rgba(10, 21, 32, 0.35);
+}
+body.theme-light .onboarding-card {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  box-shadow: 0 24px 64px rgba(10, 21, 32, 0.2);
+}
+body.theme-light .onboarding-skip {
+  color: #5a6b7f;
+}
+body.theme-light .onboarding-skip:hover {
+  color: #0a1520;
+  background: rgba(10, 21, 32, 0.04);
+}
+body.theme-light .onboarding-logo {
+  color: #0a1520;
+}
+body.theme-light .onboarding-title {
+  color: #0a1520;
+}
+body.theme-light .onboarding-subtitle {
+  color: #5a6b7f;
+}
+body.theme-light .onboarding-nav {
+  border-top: 1px solid #dde2e9;
+  background: #f6f7f9;
+}
+body.theme-light .onboarding-arrow {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #5a6b7f;
+}
+body.theme-light .onboarding-arrow:hover {
+  background: #f0f4f8;
+  border-color: #2983eb;
+}
+body.theme-light .onboarding-arrow:disabled:hover {
+  background: #ffffff;
+  border-color: #dde2e9;
+}
+body.theme-light .onboarding-dot {
+  background: #dde2e9;
+}
+body.theme-light .onboarding-dot.active {
+  background: #2983eb;
+}
+body.theme-light .onboarding-dot:hover:not(.active) {
+  background: #c8d0da;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SHARE POSE SELECTOR (étape 1 du partage depuis Recap)
+   Modale créée dynamiquement, styles inline → override via ID.
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light #share-pose-selector {
+  background: rgba(10, 21, 32, 0.45) !important;
+}
+body.theme-light #sps-grid > div {
+  background: #ffffff !important;
+}
+body.theme-light #sps-skip {
+  color: #5a6b7f !important;
+}
+body.theme-light #sps-skip:hover {
+  color: #0a1520 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CONFIRM MODAL (générique) + ALERT MODAL
+   Utilisé par "Se déconnecter", "Réinitialiser historique", "Supprimer
+   dessin", etc. Style 100% inline en JS (showConfirmModal/showAlertModal
+   dans app.js), donc override via ID + !important.
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light #generic-modal-overlay {
+  background: rgba(10, 21, 32, 0.45) !important;
+}
+body.theme-light #generic-modal-overlay > div {
+  background: #ffffff !important;
+  border: 1px solid #dde2e9 !important;
+  box-shadow: 0 20px 60px rgba(10, 21, 32, 0.2) !important;
+}
+body.theme-light #generic-modal-overlay p {
+  color: #0a1520 !important;
+}
+body.theme-light #gm-cancel {
+  background: #ffffff !important;
+  border: 1px solid #dde2e9 !important;
+  color: #1a2838 !important;
+}
+body.theme-light #gm-cancel:hover {
+  background: #f0f4f8 !important;
+}
+/* #gm-confirm et #gm-ok restent en couleur solide (rouge danger ou
+   bleu accent) — inchangés */
+
+/* Modale 2-choix (Ajouter/Remplacer) pour les packs de catégories */
+body.theme-light #generic-modal-overlay p:nth-of-type(2) {
+  color: #5a6b7f !important;
+}
+/* #gm-add reste bleu plein — inchangé */
+body.theme-light #gm-replace {
+  background: #ffffff !important;
+  border: 1px solid #dde2e9 !important;
+  color: #1a2838 !important;
+}
+body.theme-light #gm-replace:hover {
+  background: #f0f4f8 !important;
+}
+body.theme-light #gm-cancel-choice {
+  color: #8a9aad !important;
+}
+body.theme-light #gm-cancel-choice:hover {
+  color: #5a6b7f !important;
+  background: rgba(10, 21, 32, 0.04) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   À PROPOS (about modal)
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light .about-box {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  box-shadow: 0 20px 60px rgba(10, 21, 32, 0.15);
+}
+body.theme-light .about-box h3 {
+  color: #0a1520;
+}
+body.theme-light .about-row {
+  border-bottom: 1px solid #dde2e9;
+}
+body.theme-light .about-row .label {
+  color: #5a6b7f;
+}
+body.theme-light .about-row .value {
+  color: #0a1520;
+}
+body.theme-light .about-row .value.free {
+  color: #5a6b7f;
+}
+/* .value.pro reste en warm gold — inchangé */
+body.theme-light .about-close {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #5a6b7f;
+}
+body.theme-light .about-close:hover {
+  background: #f0f4f8;
+  color: #0a1520;
+}
+/* .about-upgrade reste bleu plein — inchangé */
+
+/* ══════════════════════════════════════════════════════════════
+   PIN MODAL (favoris → moodboard) + pin toast
+   ══════════════════════════════════════════════════════════════ */
+body.theme-light .pin-modal {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  box-shadow: 0 20px 60px rgba(10, 21, 32, 0.18);
+}
+body.theme-light .pin-modal h3 {
+  color: #0a1520;
+}
+body.theme-light .pin-modal-hint {
+  color: #5a6b7f;
+}
+body.theme-light .pin-modal-item {
+  background: #f6f7f9;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+}
+body.theme-light .pin-modal-item:hover {
+  background: #eef1f5;
+  border-color: #2983eb;
+}
+body.theme-light .pin-modal-count {
+  color: #5a6b7f;
+}
+body.theme-light .pin-modal-new-form input {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+}
+body.theme-light .pin-modal-new-form input:focus {
+  border-color: #2983eb;
+}
+body.theme-light .pin-modal-close {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #5a6b7f;
+}
+body.theme-light .pin-modal-close:hover {
+  color: #0a1520;
+  background: #f0f4f8;
+}
+body.theme-light .pin-toast {
+  background: #ffffff;
+  border: 1px solid #dde2e9;
+  color: #0a1520;
+  box-shadow: 0 10px 30px rgba(10, 21, 32, 0.15);
+}
+
+/* ── Écrans Session / Animation : rester sombres pour lisibilité photo ──
+   Les écrans de session (pose, anim, cinema playback) affichent des
+   photos/frames. Le fond sombre met la photo en valeur, c'est un
+   standard UX. On garde inchangé quel que soit le thème. */
+
+/* ── Lightbox / fullscreen photo viewer : rester sombre pour lisibilité ──
+   Le fond sombre derrière une photo est un standard (Apple Photos, Google
+   Photos, Instagram) qui met la photo en valeur. On garde inchangé. */
+
+/* ── Modales confirm/generic : rester sombres est OK en light mode aussi,
+   mais on les adoucit ── */
+body.theme-light .confirm-modal,
+body.theme-light #end-confirm-modal {
+  /* pas d'override — les modales dark sur un fond light créent un bon contraste */
+}
