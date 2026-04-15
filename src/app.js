@@ -2934,6 +2934,27 @@ function resetGrid() { gridMode = 0; applyGrid() }
 
 // ══ OPTIONS ══
 function toggleOptions() { document.getElementById('options-dropdown').classList.toggle('open') }
+
+// ── Toggle UI legacy (ancien design) ──
+const LEGACY_UI_KEY = 'gd4_legacy_ui'
+function applyLegacyUi() {
+  const legacy = localStorage.getItem(LEGACY_UI_KEY) === '1'
+  document.body.classList.toggle('legacy-ui', legacy)
+  const label = document.getElementById('opt-legacy-ui')
+  if (label) label.textContent = legacy ? '✨ Design amélioré' : '👁 Design ancien'
+}
+function toggleLegacyUi() {
+  const now = localStorage.getItem(LEGACY_UI_KEY) === '1' ? '0' : '1'
+  localStorage.setItem(LEGACY_UI_KEY, now)
+  applyLegacyUi()
+  toggleOptions()
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyLegacyUi)
+} else {
+  applyLegacyUi()
+}
+
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown')) document.getElementById('options-dropdown').classList.remove('open')
 })

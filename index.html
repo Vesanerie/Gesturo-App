@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="styles/components/auth.css">
   <link rel="stylesheet" href="styles/components/profile.css">
   <link rel="stylesheet" href="styles/components/onboarding.css">
+  <link rel="stylesheet" href="styles/accessibility.css">
 </head>
 <body>
 
@@ -65,6 +66,7 @@
 <button id="options-btn" aria-label="Options" onclick="toggleOptions()">⋯</button>
 <div id="options-dropdown">
   <div class="opt-item" onclick="toggleOptions(); switchMainMode('hist')">📈 Historique</div>
+  <div class="opt-item" onclick="toggleLegacyUi()" id="opt-legacy-ui">👁 Design ancien</div>
   <div class="opt-item" onclick="handleLogout()">🚪 Se déconnecter</div>
   <div class="opt-item danger" onclick="confirmResetHistory()">🗑 Réinitialiser l'historique</div>
   <div class="opt-item" onclick="showAbout()">ℹ️ À propos</div>

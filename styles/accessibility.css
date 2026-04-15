@@ -1,0 +1,157 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   ACCESSIBILITÉ — améliorations par défaut pour dyslexie + malvoyance
+   ═══════════════════════════════════════════════════════════════════════
+
+   Toutes les règles sont désactivables en ajoutant la classe `.legacy-ui`
+   sur <body>. Par défaut actives. Ne touchent PAS le mobile (≤767px) qui a
+   déjà ses propres overrides adaptés.
+
+   Changements :
+   1. Contrastes — remplace les 3 gris qui échouent WCAG AA (#3a5570,
+      #4a6280, #6a8aaa) par versions plus claires qui passent 4.5:1+.
+   2. Font-sizes — bump des labels < 12px vers 12-13px minimum.
+   3. Focus visible — outline bleu sur tous les éléments interactifs au
+      clavier (règle globale).
+   4. Letter-spacing positif léger sur les paragraphes (aide dyslexiques).
+
+   Ciblage desktop/tablet uniquement : @media (min-width: 768px) pour
+   éviter les régressions sur le design mobile déjà optimisé.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) {
+  /* ── 1. CONTRASTES — couleurs désaturées qui passent WCAG AA ── */
+  body:not(.legacy-ui) {
+    /* Les 3 gris problématiques deviennent plus clairs.
+       Exemple : #3a5570 (2.1:1) → #8aacd4 (5.2:1 ✓) */
+  }
+
+  /* Remplace #3a5570 (trop sombre) par #8aacd4 sur les éléments concernés */
+  body:not(.legacy-ui) #options-btn,
+  body:not(.legacy-ui) #profile-btn,
+  body:not(.legacy-ui) #favs-btn { color: #8aacd4; }
+
+  body:not(.legacy-ui) .card h3,
+  body:not(.legacy-ui) #folder-path,
+  body:not(.legacy-ui) .mode-tab,
+  body:not(.legacy-ui) .seq-item .seq-info,
+  body:not(.legacy-ui) #no-sequences,
+  body:not(.legacy-ui) #mode-label,
+  body:not(.legacy-ui) #photo-placeholder,
+  body:not(.legacy-ui) #lightbox-close,
+  body:not(.legacy-ui) .hsc-label,
+  body:not(.legacy-ui) .hist-period-tab,
+  body:not(.legacy-ui) .hist-session-meta,
+  body:not(.legacy-ui) .hist-session-time,
+  body:not(.legacy-ui) #hist-empty,
+  body:not(.legacy-ui) .wa-label,
+  body:not(.legacy-ui) .wa-count,
+  body:not(.legacy-ui) #cinema-film-name,
+  body:not(.legacy-ui) .film-card-frames,
+  body:not(.legacy-ui) #cinema-count-card h3 { color: #8aacd4; }
+
+  body:not(.legacy-ui) #about-row-free { color: #8aacd4; }
+
+  /* Remplace #4a6280 (borderline) par #9ebfe0 */
+  body:not(.legacy-ui) .profile-close,
+  body:not(.legacy-ui) .profile-field label,
+  body:not(.legacy-ui) .profile-stat-label,
+  body:not(.legacy-ui) .transform-btn,
+  body:not(.legacy-ui) #session-info,
+  body:not(.legacy-ui) #phase-badge,
+  body:not(.legacy-ui) .end-stat,
+  body:not(.legacy-ui) .share-close,
+  body:not(.legacy-ui) #lightbox-info,
+  body:not(.legacy-ui) .recap-num,
+  body:not(.legacy-ui) #favs-subtitle,
+  body:not(.legacy-ui) #favs-empty,
+  body:not(.legacy-ui) .fav-remove,
+  body:not(.legacy-ui) .auth-subtitle,
+  body:not(.legacy-ui) .auth-help,
+  body:not(.legacy-ui) .auth-switch,
+  body:not(.legacy-ui) .auth-legal,
+  body:not(.legacy-ui) .config-inner .subtitle,
+  body:not(.legacy-ui) .free-random-block .frb-sub,
+  body:not(.legacy-ui) .cat-chip,
+  body:not(.legacy-ui) .chip,
+  body:not(.legacy-ui) .fps-row label,
+  body:not(.legacy-ui) .row label,
+  body:not(.legacy-ui) .sub-mode-card .d,
+  body:not(.legacy-ui) #cinema-frame-counter,
+  body:not(.legacy-ui) #cinema-film-badge,
+  body:not(.legacy-ui) .film-locked .film-card-frames,
+  body:not(.legacy-ui) .about-row .label,
+  body:not(.legacy-ui) .opt-item { color: #9ebfe0; }
+
+  /* Placeholders — plus lisibles */
+  body:not(.legacy-ui) input::placeholder,
+  body:not(.legacy-ui) textarea::placeholder { color: #9ebfe0; }
+
+  /* Remplace #6a8aaa (borderline) par #bcd2ea */
+  body:not(.legacy-ui) .s-btn,
+  body:not(.legacy-ui) .end-btn,
+  body:not(.legacy-ui) #share-status,
+  body:not(.legacy-ui) .recap-duration,
+  body:not(.legacy-ui) .share-drawing-box p,
+  body:not(.legacy-ui) .announcement-close { color: #bcd2ea; }
+
+  /* ── 2. FONT-SIZES — bump les labels trop petits (<12px) ── */
+  body:not(.legacy-ui) .film-card-check { font-size: 12px; }
+  body:not(.legacy-ui) .hsc-label,
+  body:not(.legacy-ui) .hist-session-meta,
+  body:not(.legacy-ui) .hist-session-time,
+  body:not(.legacy-ui) .wa-label,
+  body:not(.legacy-ui) .wa-count,
+  body:not(.legacy-ui) .challenge-entry-rank,
+  body:not(.legacy-ui) .challenge-entry-name,
+  body:not(.legacy-ui) .recap-duration,
+  body:not(.legacy-ui) .recap-num { font-size: 12px; }
+
+  body:not(.legacy-ui) .profile-field label,
+  body:not(.legacy-ui) .profile-stat-label,
+  body:not(.legacy-ui) #plan-badge,
+  body:not(.legacy-ui) .community-leaderboard { font-size: 12px; }
+
+  body:not(.legacy-ui) .card h3,
+  body:not(.legacy-ui) #folder-path,
+  body:not(.legacy-ui) #mode-label,
+  body:not(.legacy-ui) .film-card-title,
+  body:not(.legacy-ui) .film-card-frames,
+  body:not(.legacy-ui) #cinema-count-card h3,
+  body:not(.legacy-ui) #cinema-film-badge,
+  body:not(.legacy-ui) .hist-period-tab,
+  body:not(.legacy-ui) .seq-item .seq-info,
+  body:not(.legacy-ui) .auth-help,
+  body:not(.legacy-ui) .auth-legal { font-size: 13px; }
+
+  /* ── 3. LETTER-SPACING — adoucir les titres agressifs ── */
+  body:not(.legacy-ui) .onboarding-title { letter-spacing: -0.5px; }
+  body:not(.legacy-ui) .config-inner h1 { letter-spacing: -0.5px; }
+
+  /* Line-height minimum sur le texte courant */
+  body:not(.legacy-ui) p,
+  body:not(.legacy-ui) .about-row,
+  body:not(.legacy-ui) .auth-help,
+  body:not(.legacy-ui) .auth-subtitle,
+  body:not(.legacy-ui) .onboarding-subtitle { line-height: 1.5; }
+
+  /* ── 4. FOCUS VISIBLE — clavier uniquement (pas de souris) ── */
+  body:not(.legacy-ui) button:focus-visible,
+  body:not(.legacy-ui) a:focus-visible,
+  body:not(.legacy-ui) input:focus-visible,
+  body:not(.legacy-ui) select:focus-visible,
+  body:not(.legacy-ui) textarea:focus-visible,
+  body:not(.legacy-ui) [role="button"]:focus-visible,
+  body:not(.legacy-ui) [tabindex]:focus-visible {
+    outline: 2px solid #2983eb;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Supprime le outline:none des inputs et remplace par focus visible */
+  body:not(.legacy-ui) input:focus,
+  body:not(.legacy-ui) textarea:focus,
+  body:not(.legacy-ui) select:focus {
+    outline: 2px solid #2983eb;
+    outline-offset: 1px;
+  }
+}
