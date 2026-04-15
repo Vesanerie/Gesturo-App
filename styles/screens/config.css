@@ -813,3 +813,207 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+   DESKTOP (≥1400px) — layout app étalé avec sidebar permanente
+
+   Les béta testeurs trouvaient que l'UI 580px centrée faisait "site web"
+   au lieu de "vraie app". Ici on exploite toute la largeur écran :
+   - Sidebar fixe à gauche (280px) avec navigation
+   - Contenu principal qui s'étale jusqu'à 1400px max (lisibilité)
+   - Catégories en grille multi-colonnes (6-8 au lieu de chip wrap)
+   - Free-mosaic 6 colonnes
+   - Padding généreux sur les côtés
+
+   Compatible avec body.legacy-ui : si activé, tout le bloc est neutralisé
+   et on revient au centrage 580px d'origine.
+   ───────────────────────────────────────────────────────────────────── */
+@media (min-width: 1400px) {
+  body:not(.legacy-ui) {
+    --desktop-sidebar-width: 280px;
+    --desktop-content-max: 1400px;
+  }
+
+  /* ── Zone principale décalée de la sidebar, contenu étalé ── */
+  body:not(.legacy-ui) #screen-config {
+    padding: 40px 60px 40px calc(var(--desktop-sidebar-width) + 60px);
+    align-items: flex-start;
+  }
+  body:not(.legacy-ui) .config-inner {
+    width: 100%;
+    max-width: var(--desktop-content-max);
+    padding-bottom: 140px;
+  }
+  body:not(.legacy-ui) .config-inner h1 {
+    text-align: left;
+    font-size: 64px;
+    margin-bottom: 8px;
+  }
+  body:not(.legacy-ui) .config-inner .subtitle {
+    text-align: left;
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  /* ── Sidebar permanente à gauche (réutilise .mode-tabs) ── */
+  body:not(.legacy-ui) #screen-config .mode-tabs {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--desktop-sidebar-width);
+    flex-direction: column;
+    gap: 6px;
+    padding: 80px 16px 20px 16px;
+    border: none;
+    border-right: 0.5px solid #1e2d40;
+    border-radius: 0;
+    margin-bottom: 0;
+    background: #0c1620;
+    overflow-y: auto;
+    z-index: 400;
+  }
+  body:not(.legacy-ui) #screen-config .mode-tabs::-webkit-scrollbar { display: none; }
+
+  /* Logo en haut de la sidebar */
+  body:not(.legacy-ui) #screen-config .mode-tabs::before {
+    content: 'Gesturo';
+    position: absolute;
+    top: 26px;
+    left: 26px;
+    right: 26px;
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  body:not(.legacy-ui) #screen-config .mode-tabs::after {
+    content: '';
+    position: absolute;
+    top: 66px;
+    left: 16px;
+    right: 16px;
+    height: 0.5px;
+    background: #1e2d40;
+  }
+
+  /* Chaque tab → bouton full-width style iPadOS sidebar */
+  body:not(.legacy-ui) #screen-config .mode-tab {
+    flex: none;
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    padding: 11px 16px 11px 18px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    text-align: left;
+    justify-content: flex-start;
+    font-size: 14px;
+    font-weight: 500;
+    color: #8aacd4;
+    white-space: normal;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    position: relative;
+  }
+  body:not(.legacy-ui) #screen-config .mode-tab:hover {
+    background: rgba(41, 131, 235, 0.08);
+    color: #fff;
+  }
+  body:not(.legacy-ui) #screen-config .mode-tab.active {
+    background: rgba(41, 131, 235, 0.18);
+    color: #fff;
+    font-weight: 600;
+  }
+  body:not(.legacy-ui) #screen-config .mode-tab.active::before {
+    content: '';
+    position: absolute;
+    left: -16px;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    background: #2983eb;
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* Week-bar : reste en haut, occupe toute la largeur dispo */
+  body:not(.legacy-ui) #screen-config #week-bar {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 24px;
+  }
+
+  /* ── Cards plus aérées, padding généreux ── */
+  body:not(.legacy-ui) .card {
+    padding: 28px 32px;
+    margin-bottom: 18px;
+  }
+  body:not(.legacy-ui) .card h3 {
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+
+  /* ── Catégories : grille large 5-6 colonnes au lieu de chip wrap ── */
+  body:not(.legacy-ui) #screen-config #categories-wrap {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  body:not(.legacy-ui) #screen-config .cat-chip {
+    min-height: 48px;
+    padding: 12px 18px;
+    font-size: 14px;
+    justify-content: space-between;
+  }
+
+  /* Free-mosaic : 6 colonnes, tuiles plus grandes */
+  body:not(.legacy-ui) #screen-config .free-mosaic {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+
+  /* Free-random-block : plus d'air */
+  body:not(.legacy-ui) #screen-config .free-random-block {
+    max-width: 500px;
+    padding: 32px 20px 14px;
+  }
+  body:not(.legacy-ui) #screen-config .free-random-block .frb-icon { font-size: 52px; }
+  body:not(.legacy-ui) #screen-config .free-random-block .frb-title { font-size: 20px; }
+  body:not(.legacy-ui) #screen-config .free-random-block .frb-sub { font-size: 15px; }
+
+  /* ── Sub-mode cards : 2 colonnes aérées ── */
+  body:not(.legacy-ui) #screen-config .sub-mode-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  body:not(.legacy-ui) #screen-config .sub-mode-card {
+    padding: 20px 22px;
+    min-height: 88px;
+  }
+
+  /* ── Mode sessions (cards row) : layout 3 colonnes côte à côte ── */
+  body:not(.legacy-ui) #pose-options {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  body:not(.legacy-ui) #pose-options > .card:first-child {
+    grid-column: 1 / -1;
+  }
+
+  /* ── Start bar : sticky bottom, décalée du sidebar ── */
+  body:not(.legacy-ui) #screen-config + #start-bar,
+  body:not(.legacy-ui) #start-bar {
+    left: var(--desktop-sidebar-width);
+    padding: 18px 60px;
+  }
+  body:not(.legacy-ui) #start-bar .btn-start {
+    width: 100%;
+    max-width: var(--desktop-content-max);
+    min-height: 58px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+}
+
