@@ -397,8 +397,10 @@ async function loadR2(isPro) {
     }
     for (const info of anims) {
       const seq = info.sequence; if (!seq) continue
-      if (!sequences[seq]) sequences[seq] = { paths: [], animCategory: info.animCategory || null }
+      if (!sequences[seq]) sequences[seq] = { paths: [], animCategory: info.animCategory || null, locked: !!info.locked }
       sequences[seq].paths.push(info.path)
+      // Si n'importe quel path d'une seq est marqué locked, toute la seq l'est
+      if (info.locked) sequences[seq].locked = true
     }
     // Determine la seule sequence animation accessible aux users FREE :
     // la premiere current/free/* alphabetiquement. Deterministe → meme choix
@@ -458,12 +460,22 @@ function getCatIcon(cat) { return CAT_ICONS[cat.toLowerCase()] || '📁' }
 function getCatLabel(cat) { const labels = { 'animals': 'Animaux', 'jambes-pieds': 'Jambes & Pieds', 'mains': 'Mains', 'nudite': 'Nudité', 'poses-dynamiques': 'Poses Dynamiques', 'visage': 'Visage' }; return labels[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, ' ') }
 const NUDITY_KW = ['nudité', 'nudite', 'nu ', 'nude', 'nsfw']
 function isNudity(n) { return NUDITY_KW.some(k => n.toLowerCase().includes(k)) }
-// Catégories visibles uniquement par les users Pro (lockées pour les FREE)
+// Cats injectées côté client comme teasers lockés (non renvoyées par le
+// backend aux users FREE). Historiquement juste 'nudite' — à étendre si
+// on ajoute d'autres cats cachées dans R2.
 const PRO_CATEGORIES = ['nudite']
 // Catégories visibles uniquement par les users FREE (masquées pour les PRO)
 // Vide pour l'instant — prêt à être rempli quand le catalogue aura un vrai split free/pro
 const FREE_ONLY_CATEGORIES = []
-function isProCategory(cat) { return PRO_CATEGORIES.includes(cat.toLowerCase()) }
+// Whitelist : seules catégories RÉELLEMENT accessibles en FREE. Toutes les
+// autres (mains, jambes-pieds, visage, animals, nudite, etc.) sont lockées
+// et ouvrent la modale upgrade Pro au clic. On utilise une whitelist
+// (plutôt qu'une blacklist) pour que toute nouvelle cat ajoutée au
+// catalogue soit Pro par défaut — fail-safe pour la monétisation.
+const FREE_ACCESSIBLE_CATEGORIES = ['poses-dynamiques']
+function isProCategory(cat) {
+  return !FREE_ACCESSIBLE_CATEGORIES.includes(cat.toLowerCase())
+}
 function isFreeOnlyCategory(cat) { return FREE_ONLY_CATEGORIES.includes(cat.toLowerCase()) }
 
 function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity = false, locked = false) {
@@ -505,14 +517,24 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
 function renderCategories(parentCat = null) {
   const wrap = document.getElementById('categories-wrap')
   wrap.innerHTML = ''
-  const cats = Object.keys(categories).sort()
+  // Tri : cats accessibles d'abord (déverrouillées), puis les lockées —
+  // pour qu'un user FREE voie immédiatement ce qu'il peut utiliser sans
+  // scroller. Pour un user Pro, isCatLocked retourne false partout donc
+  // l'ordre reste alphabétique.
+  const cats = Object.keys(categories).sort((a, b) => {
+    const aLocked = isCatLocked(a)
+    const bLocked = isCatLocked(b)
+    if (aLocked !== bLocked) return aLocked ? 1 : -1
+    return a.localeCompare(b)
+  })
   if (cats.length === 0) { selectedCats = new Set(['Sans catégorie']); return }
   const header = document.createElement('div')
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentCat) {
     header.innerHTML = `<button class="cat-back-btn" onclick="renderCategories(null)"><span class="cat-back-arrow">‹</span> ${getCatLabel(parentCat)}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Sous-collections</span>`
   } else {
-    const allSelected = cats.every(c => selectedCats.has(c))
+    const selectableRoots = cats.filter(c => !isCatLocked(c))
+    const allSelected = selectableRoots.length > 0 && selectableRoots.every(c => selectedCats.has(c))
     header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Collections</span><button id="cat-all" onclick="toggleAllCats()" style="font-size:12px;background:transparent;border:0.5px solid #1e2d40;border-radius:6px;color:${allSelected ? '#2983eb' : '#3a5570'};padding:4px 10px;cursor:pointer;">${allSelected ? '✓ Tout' : 'Tout sélectionner'}</button>`
   }
   wrap.appendChild(header)
@@ -565,43 +587,130 @@ function showUpgradeModal() {
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove() })
 }
 
-function toggleCat(cat, card) {
-  const nudity = isNudity(cat)
-  if (selectedCats.has(cat)) {
-    selectedCats.delete(cat); card.style.borderColor = '#1e2d40'
-    const img = card.querySelector('img'); if (img) img.style.opacity = '0.35'
-    card.lastElementChild.style.display = 'none'
-  } else {
-    selectedCats.add(cat); card.style.borderColor = nudity ? '#E24B4A' : '#2983eb'
+// Applique l'état visuel (border, opacity, check) d'une catégorie card.
+function applyCatVisual(card, selected, nudity) {
+  if (selected) {
+    card.style.borderColor = nudity ? '#E24B4A' : '#2983eb'
     const img = card.querySelector('img'); if (img) img.style.opacity = '1'
     card.lastElementChild.style.display = 'flex'
+  } else {
+    card.style.borderColor = '#1e2d40'
+    const img = card.querySelector('img'); if (img) img.style.opacity = '0.35'
+    card.lastElementChild.style.display = 'none'
   }
-  updateAllBtn()
+}
+
+// Modale à 2 choix positifs (Ajouter / Remplacer) + fermeture. Utilisée
+// quand l'user clique sur un 2e pack alors qu'une sélection existe déjà.
+function showCatChoiceModal(catLabel, onAdd, onReplace) {
+  let overlay = document.getElementById('generic-modal-overlay')
+  if (overlay) overlay.remove()
+  overlay = document.createElement('div')
+  overlay.id = 'generic-modal-overlay'
+  overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(5,12,22,0.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;z-index:9000;padding:24px;'
+  overlay.innerHTML =
+    '<div style="background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:28px;max-width:380px;width:100%;text-align:center;">' +
+    '<p style="font-size:15px;color:#fff;margin:0 0 8px;line-height:1.5;font-weight:600;">Ajouter « ' + catLabel + ' » ?</p>' +
+    '<p style="font-size:13px;color:#8aaccc;margin:0 0 22px;line-height:1.5;">Tu as déjà une sélection. Veux-tu cumuler les packs ou repartir de zéro ?</p>' +
+    '<div style="display:flex;flex-direction:column;gap:8px;">' +
+    '<button id="gm-add" style="width:100%;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:#2983eb;border:none;color:#fff;font-weight:600;cursor:pointer;">➕ Ajouter à la sélection</button>' +
+    '<button id="gm-replace" style="width:100%;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);cursor:pointer;">🔄 Remplacer la sélection</button>' +
+    '<button id="gm-cancel-choice" style="width:100%;min-height:40px;padding:10px;font-size:13px;border-radius:10px;background:transparent;border:none;color:#4a6280;cursor:pointer;">Annuler</button>' +
+    '</div></div>'
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
+  document.body.appendChild(overlay)
+  document.getElementById('gm-add').onclick = () => { overlay.remove(); onAdd() }
+  document.getElementById('gm-replace').onclick = () => { overlay.remove(); onReplace() }
+  document.getElementById('gm-cancel-choice').onclick = () => overlay.remove()
+}
+
+function toggleCat(cat, card) {
+  const nudity = isNudity(cat)
+  // Cas 1 : catégorie déjà sélectionnée → retirer (peut ramener à 0)
+  if (selectedCats.has(cat)) {
+    selectedCats.delete(cat)
+    applyCatVisual(card, false, nudity)
+    updateAllBtn()
+    return
+  }
+  // Cas 2 : rien de sélectionné → ajouter directement
+  if (selectedCats.size === 0) {
+    selectedCats.add(cat)
+    applyCatVisual(card, true, nudity)
+    updateAllBtn()
+    return
+  }
+  // Cas 3 : d'autres packs déjà sélectionnés → demander Ajouter / Remplacer
+  showCatChoiceModal(getCatLabel(cat),
+    () => {
+      // Ajouter à la sélection existante
+      selectedCats.add(cat)
+      applyCatVisual(card, true, nudity)
+      updateAllBtn()
+    },
+    () => {
+      // Remplacer : on clear et on ne garde que celle-ci.
+      // renderCategories() rebuild la grille → visuels réinitialisés proprement.
+      selectedCats.clear()
+      selectedCats.add(cat)
+      renderCategories()
+    }
+  )
 }
 
 function toggleSubCat(parentCat, sub, card) {
-  const key = parentCat + '/' + sub; const nudity = isNudity(parentCat)
+  const key = parentCat + '/' + sub
+  const nudity = isNudity(parentCat)
+  // Cas 1 : déjà sélectionnée → retirer
   if (selectedCats.has(key)) {
-    selectedCats.delete(key); card.style.borderColor = '#1e2d40'
-    const img = card.querySelector('img'); if (img) img.style.opacity = '0.35'
-    card.lastElementChild.style.display = 'none'
-  } else {
-    selectedCats.add(key); card.style.borderColor = nudity ? '#E24B4A' : '#2983eb'
-    const img = card.querySelector('img'); if (img) img.style.opacity = '1'
-    card.lastElementChild.style.display = 'flex'
+    selectedCats.delete(key)
+    applyCatVisual(card, false, nudity)
+    return
   }
+  // Cas 2 : rien de sélectionné → ajouter directement
+  if (selectedCats.size === 0) {
+    selectedCats.add(key)
+    applyCatVisual(card, true, nudity)
+    return
+  }
+  // Cas 3 : d'autres packs sélectionnés → demander
+  showCatChoiceModal(sub,
+    () => {
+      selectedCats.add(key)
+      applyCatVisual(card, true, nudity)
+    },
+    () => {
+      selectedCats.clear()
+      selectedCats.add(key)
+      renderCategories(parentCat)
+    }
+  )
+}
+
+// Retourne true si une catégorie racine est verrouillée (Pro-only pour un
+// user Free, ou flag locked explicite). Même logique que renderCategories.
+function isCatLocked(cat) {
+  const catData = categories[cat]
+  const explicit = !Array.isArray(catData) && catData && catData.locked
+  return explicit || (!currentUserIsPro && isProCategory(cat))
 }
 
 function toggleAllCats() {
-  const cats = Object.keys(categories)
-  const all = cats.every(c => selectedCats.has(c))
-  if (all) { selectedCats.clear() } else { cats.forEach(c => selectedCats.add(c)) }
+  // On ignore les catégories verrouillées : sinon `every()` ne peut jamais
+  // être true pour un user Free (les lockées sont re-supprimées de
+  // selectedCats au render → bascule cassée).
+  const selectable = Object.keys(categories).filter(c => !isCatLocked(c))
+  if (selectable.length === 0) return
+  const all = selectable.every(c => selectedCats.has(c))
+  if (all) selectedCats.clear()
+  else selectable.forEach(c => selectedCats.add(c))
   renderCategories()
 }
 
 function updateAllBtn() {
   const btn = document.getElementById('cat-all'); if (!btn) return
-  const allSelected = Object.keys(categories).every(c => selectedCats.has(c))
+  const selectable = Object.keys(categories).filter(c => !isCatLocked(c))
+  const allSelected = selectable.length > 0 && selectable.every(c => selectedCats.has(c))
   btn.style.color = allSelected ? '#2983eb' : '#3a5570'
   btn.textContent = allSelected ? '✓ Tout' : 'Tout sélectionner'
 }
@@ -636,11 +745,21 @@ function renderSequences(parentPath = null) {
       else if (remaining.length > 1) { const fn = parentPath + '/' + remaining[0]; if (!folders.has(fn)) folders.set(fn, data.paths[0]) }
     } else {
       const tier = seqParts.slice(0, 2).join('/')
-      if (seqParts.length === 3) leafSequences.push(seq)
-      else { if (!folders.has(tier)) folders.set(tier, data.paths[0]) }
+      // Cas spécial : une séquence rangée directement dans current/pro/ (ex.
+      // current/pro/sequence_1, sans sous-dossier Men/Women/etc.) a length=3.
+      // Sans ce garde-fou, elle apparaîtrait comme leaf au root, à côté du
+      // folder "pro" — incohérent visuellement et fait fuiter qu'une seq Pro
+      // existe sans la cacher derrière le cadenas du folder. On la regroupe
+      // toujours sous le folder "current/pro".
+      if (seqParts.length === 3 && tier !== 'current/pro') {
+        leafSequences.push(seq)
+      } else {
+        if (!folders.has(tier)) folders.set(tier, data.paths[0])
+      }
     }
   }
-  folders.forEach((previewUrl, folderPath) => {
+  // Helpers pour render — extraits pour permettre un ordre custom selon plan
+  const renderFolder = (previewUrl, folderPath) => {
     const label = folderPath.split('/').pop()
     const card = buildSeqCard(label, previewUrl, false, false, true)
     card.onclick = () => renderSequences(folderPath)
@@ -649,11 +768,13 @@ function renderSequences(parentPath = null) {
     arrow.style.cssText = 'position:absolute;top:8px;left:8px;background:rgba(5,10,18,0.7);border-radius:4px;padding:2px 6px;font-size:10px;color:#8aaccc;'
     arrow.textContent = count + ' séquences →'
     card.appendChild(arrow); grid.appendChild(card)
-  })
-  leafSequences.forEach(seq => {
+  }
+  const renderLeaf = (seq) => {
     const data = sequences[seq]
     // FREE : seule _freeAllowedSeq est unlocked. Tout le reste = lock + upgrade modal.
-    const isLocked = !currentUserIsPro && isR2Mode && seq !== _freeAllowedSeq
+    // Les seqs Pro apparaissent via le backend avec {locked:true} — on force le lock
+    // même si le client a reçu leur preview (sécu redondante).
+    const isLocked = !currentUserIsPro && isR2Mode && (seq !== _freeAllowedSeq || data.locked)
     const isSelected = selectedSeq === seq
     const previewUrl = isR2Mode ? data.paths[0] : 'file://' + data.paths[0]
     const label = seq.split('/').pop()
@@ -663,7 +784,22 @@ function renderSequences(parentPath = null) {
       selectedSeq = seq; renderSequences(parentPath); selectSeqPreload(seq)
     }
     grid.appendChild(card)
-  })
+  }
+
+  // Ordre : pour un user FREE, on remonte la séquence accessible tout en
+  // haut (avant les folders) pour qu'il voie immédiatement ce qu'il peut
+  // utiliser. Pour un Pro, ordre standard (folders puis leafs).
+  const isFreeView = !currentUserIsPro && isR2Mode
+  if (isFreeView) {
+    const accessibleLeafs = leafSequences.filter(s => s === _freeAllowedSeq && !sequences[s].locked)
+    const lockedLeafs = leafSequences.filter(s => !accessibleLeafs.includes(s))
+    accessibleLeafs.forEach(renderLeaf)
+    folders.forEach(renderFolder)
+    lockedLeafs.forEach(renderLeaf)
+  } else {
+    folders.forEach(renderFolder)
+    leafSequences.forEach(renderLeaf)
+  }
   if (leafSequences.length > 0 && !selectedSeq) {
     const first = leafSequences.find(s => !(!currentUserIsPro && isR2Mode && s !== _freeAllowedSeq)) || leafSequences[0]
     selectedSeq = first; selectSeqPreload(first)
@@ -1150,7 +1286,94 @@ let _lastRefUrl = ''
 let _activeChallenge = null
 function setLastRefUrl(url) { _lastRefUrl = url }
 
+// Ref de la pose sélectionnée par l'user pour le partage (étape "choisis
+// la pose correspondant à ton dessin"). Reset à chaque nouveau partage.
+let _selectedShareRef = null
+
+// Ouvre le partage. Étape 1 : sélection de la pose de référence (parmi
+// celles de la session qui vient de se terminer). Étape 2 : upload du
+// dessin. Si un challenge est actif, on skip la sélection (la ref vient
+// du challenge).
 function openShareDrawing() {
+  _selectedShareRef = null
+  // Challenge actif → ref imposée par le challenge, on skip la sélection
+  if (_activeChallenges.length) {
+    _openShareUploadOverlay()
+    return
+  }
+  // Sinon, on affiche le sélecteur de pose
+  openSharePoseSelector()
+}
+
+// Étape 1 du partage : grille des poses de la session pour que l'user
+// choisisse laquelle correspond à son dessin. On lit directement depuis
+// #recap-grid (source unique, marche pour pose et anim sans différencier).
+function openSharePoseSelector() {
+  const recapItems = document.querySelectorAll('#recap-grid .recap-item')
+  const poses = Array.from(recapItems)
+    .map((item, i) => {
+      const img = item.querySelector('img')
+      // Frames cinema ont la classe cinema-frame (ratio 16/9), le reste
+      // est en 3/4. On propage pour que la miniature de sélection garde
+      // le bon format.
+      const isCinema = item.classList.contains('cinema-frame')
+      return { src: img ? img.src : '', index: i, isCinema }
+    })
+    .filter(p => p.src && !p.src.endsWith('#') && p.src !== window.location.href)
+
+  // Pas de poses exploitables → passer direct à l'upload sans ref
+  if (poses.length === 0) {
+    _openShareUploadOverlay()
+    return
+  }
+
+  let overlay = document.getElementById('share-pose-selector')
+  if (overlay) overlay.remove()
+  overlay = document.createElement('div')
+  overlay.id = 'share-pose-selector'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,10,18,0.9);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;'
+
+  const box = document.createElement('div')
+  box.className = 'share-drawing-box'
+  box.style.cssText = 'max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;gap:14px;padding:28px;overflow:hidden;'
+  box.innerHTML =
+    '<button class="share-close" id="sps-close" aria-label="Fermer">×</button>' +
+    '<h3 style="margin:0;text-align:center;">Choisis la pose correspondante</h3>' +
+    '<p style="margin:0;text-align:center;">Sélectionne la photo qui a servi de référence à ton dessin.</p>' +
+    '<div id="sps-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;overflow-y:auto;padding:4px;"></div>' +
+    '<button id="sps-skip" style="background:transparent;border:none;color:#6a8aaa;font-size:13px;cursor:pointer;padding:8px;text-decoration:underline;">Partager sans référence</button>'
+
+  overlay.appendChild(box)
+  document.body.appendChild(overlay)
+
+  const grid = document.getElementById('sps-grid')
+  poses.forEach(pose => {
+    const item = document.createElement('div')
+    const ratio = pose.isCinema ? '16/9' : '3/4'
+    const label = pose.isCinema ? 'Frame ' : 'Pose '
+    item.style.cssText = 'position:relative;aspect-ratio:' + ratio + ';background:#131f2e;border:1.5px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color 0.15s, transform 0.1s;'
+    item.innerHTML = '<img src="' + pose.src + '" style="width:100%;height:100%;object-fit:cover;display:block;"><div style="position:absolute;bottom:4px;left:4px;background:rgba(10,21,32,0.85);border-radius:4px;padding:2px 6px;font-size:10px;color:#c8d6e5;">' + label + (pose.index + 1) + '</div>'
+    item.onmouseover = () => { item.style.borderColor = '#2983eb'; item.style.transform = 'scale(1.02)' }
+    item.onmouseout = () => { item.style.borderColor = 'transparent'; item.style.transform = 'none' }
+    item.onclick = () => {
+      _selectedShareRef = pose.src
+      overlay.remove()
+      _openShareUploadOverlay()
+    }
+    grid.appendChild(item)
+  })
+
+  document.getElementById('sps-close').onclick = () => overlay.remove()
+  document.getElementById('sps-skip').onclick = () => {
+    _selectedShareRef = null
+    overlay.remove()
+    _openShareUploadOverlay()
+  }
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
+}
+
+// Étape 2 : overlay d'upload du dessin (ancien corps de openShareDrawing).
+function _openShareUploadOverlay() {
   document.getElementById('share-drawing-overlay').style.display = 'flex'
   document.getElementById('share-preview-img').style.display = 'none'
   document.getElementById('share-actions').style.display = 'none'
@@ -1161,7 +1384,7 @@ function openShareDrawing() {
   const scanBtn = document.getElementById('share-scan-btn')
   if (scanBtn) scanBtn.style.display = (_isMobile && (window.__isAndroid || window.__isIOS)) ? 'inline-flex' : 'none'
   // Update message if challenge is active
-  const desc = document.querySelector('.share-drawing-box p')
+  const desc = document.querySelector('#share-drawing-overlay .share-drawing-box p')
   if (desc && _activeChallenges.length) {
     desc.textContent = 'Challenge en cours : ' + _activeChallenges[0].title + ' — ton dessin sera automatiquement inscrit !'
   } else if (desc) {
@@ -1212,7 +1435,9 @@ async function confirmShareDrawing() {
   document.getElementById('share-actions').style.display = 'none'
   try {
     const postData = {
-      refImageUrl: _lastRefUrl || null,
+      // Priorité : pose choisie explicitement par l'user dans la modale
+      // de sélection, sinon fallback sur _lastRefUrl (dernière pose vue).
+      refImageUrl: _selectedShareRef || _lastRefUrl || null,
       username: _communityUsername || (_communityEmail ? _communityEmail.split('@')[0] : 'anonyme'),
     }
     if (_isMobile) postData.imageBase64 = await _blobToBase64(_shareBlob)
@@ -1314,8 +1539,9 @@ function drawFromRefUrl(refUrl) {
 
 function drawFromCompare() {
   if (!_ccCurrentPost || !_ccCurrentPost.ref_image_url) return
+  const refUrl = _ccCurrentPost.ref_image_url
   closeCommunityCompare()
-  drawFromRefUrl(_ccCurrentPost.ref_image_url)
+  drawFromRefUrl(refUrl)
 }
 
 async function shareFromCompare() {
@@ -1585,8 +1811,14 @@ function startCommunityRefresh() {
 }
 
 function switchCommunityTab(tab) {
-  // Skip si on est déjà sur ce tab — évite relance + flash DOM sur tapotage
-  if (_communityTab === tab) return
+  // Re-clic sur le tab déjà actif → refresh la vue (comme Instagram / Twitter).
+  // Sinon (1er clic sur un autre tab) : switch normal.
+  if (_communityTab === tab) {
+    if (tab === 'feed') renderCommunity()
+    else if (tab === 'mine') renderMyPosts()
+    else if (tab === 'leaderboard') renderLeaderboard()
+    return
+  }
   _communityTab = tab
   document.getElementById('ctab-feed').classList.toggle('active', tab === 'feed')
   document.getElementById('ctab-mine').classList.toggle('active', tab === 'mine')
@@ -2819,6 +3051,7 @@ function renderHist() {
   document.getElementById('hist-total-mins').textContent = all.reduce((a, s) => a + (s.minutes || 0), 0)
   const unlockedCount = Object.keys(loadBadges()).length
   document.getElementById('hist-badges-count').textContent = unlockedCount + ' / ' + BADGES_DEF.length
+  renderBadges()
   renderWeekActivity(all)
   renderHistList()
 }
@@ -2935,6 +3168,30 @@ function resetGrid() { gridMode = 0; applyGrid() }
 // ══ OPTIONS ══
 function toggleOptions() { document.getElementById('options-dropdown').classList.toggle('open') }
 
+// ── Toggle thème Jour/Nuit ──
+// Le thème est aussi appliqué par un script inline en <head> AVANT le
+// premier paint (anti-flash). Cette fonction sert au toggle runtime et à
+// mettre à jour le label du menu.
+const THEME_KEY = 'gd4_theme'
+function applyTheme() {
+  const light = localStorage.getItem(THEME_KEY) === 'light'
+  document.body.classList.toggle('theme-light', light)
+  document.documentElement.classList.remove('theme-light-preload')
+  const label = document.getElementById('opt-theme')
+  if (label) label.textContent = light ? '🌙 Mode Nuit' : '☀️ Mode Jour'
+}
+function toggleTheme() {
+  const now = localStorage.getItem(THEME_KEY) === 'light' ? 'dark' : 'light'
+  localStorage.setItem(THEME_KEY, now)
+  applyTheme()
+  toggleOptions()
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyTheme)
+} else {
+  applyTheme()
+}
+
 // ── Toggle UI legacy (ancien design) ──
 const LEGACY_UI_KEY = 'gd4_legacy_ui'
 function applyLegacyUi() {
@@ -2979,8 +3236,7 @@ function openProfile() {
   modal.style.display = 'flex'
   // Fill data
   document.getElementById('profile-email').textContent = _communityEmail || '—'
-  document.getElementById('profile-username').value = _communityUsername || ''
-  document.getElementById('profile-username-msg').textContent = ''
+  document.getElementById('profile-username').textContent = _communityUsername || '—'
   // Avatar: first letter of username
   const avatar = document.getElementById('profile-avatar')
   const initial = (_communityUsername || _communityEmail || '?')[0].toUpperCase()
@@ -3719,5 +3975,104 @@ function toggleBadgesPanel() {
       closeTopOverlay()
     }
     touchTarget = null
+  }, { passive: true })
+})()
+
+// ══ PULL-TO-REFRESH — Communauté ══
+// Scroll vers le haut (tirer depuis scrollTop=0) pour recharger le feed.
+// Marche sur mobile (touch) + desktop (wheel/trackpad). overscroll-behavior
+// sur #screen-config désactive le PTR natif du navigateur pour laisser la
+// main au custom.
+;(function setupCommunityPullToRefresh() {
+  const scrollEl = document.getElementById('screen-config')
+  const feedEl = document.getElementById('community-options')
+  if (!scrollEl || !feedEl) return
+
+  const indicator = document.createElement('div')
+  indicator.id = 'ptr-indicator'
+  indicator.innerHTML = '<div class="ptr-spinner"></div>'
+  feedEl.insertBefore(indicator, feedEl.firstChild)
+
+  const THRESHOLD = 60
+  const MAX = 110
+  let startY = 0
+  let pulling = false
+  let pulled = 0
+  let refreshing = false
+
+  function communityActive() {
+    // L'onglet Communauté est dans l'écran config → on vérifie que le
+    // container est visible ET que l'écran config est actif.
+    return feedEl.style.display !== 'none'
+      && document.getElementById('screen-config').classList.contains('active')
+  }
+
+  function setVisual(px) {
+    indicator.style.height = Math.min(px, MAX) + 'px'
+    const ratio = Math.min(px / THRESHOLD, 1)
+    indicator.style.opacity = String(ratio)
+    indicator.classList.toggle('ptr-active', px > 4)
+  }
+
+  function resetVisual() {
+    indicator.style.height = ''
+    indicator.style.opacity = ''
+    indicator.classList.remove('ptr-active')
+  }
+
+  async function doRefresh() {
+    if (refreshing) return
+    refreshing = true
+    indicator.classList.add('ptr-refreshing')
+    try {
+      if (typeof renderCommunity === 'function') await renderCommunity()
+    } catch (e) { /* silent */ }
+    setTimeout(() => {
+      indicator.classList.remove('ptr-refreshing')
+      resetVisual()
+      refreshing = false
+    }, 400)
+  }
+
+  // ── Touch (mobile) ──
+  scrollEl.addEventListener('touchstart', (e) => {
+    if (!communityActive() || refreshing) return
+    if (scrollEl.scrollTop > 0) return
+    startY = e.touches[0].clientY
+    pulling = true
+  }, { passive: true })
+
+  scrollEl.addEventListener('touchmove', (e) => {
+    if (!pulling) return
+    const delta = e.touches[0].clientY - startY
+    if (delta < 0) { pulling = false; resetVisual(); return }
+    pulled = delta * 0.55  // friction
+    setVisual(pulled)
+  }, { passive: true })
+
+  scrollEl.addEventListener('touchend', () => {
+    if (!pulling) return
+    pulling = false
+    if (pulled >= THRESHOLD) doRefresh()
+    else resetVisual()
+    pulled = 0
+  }, { passive: true })
+
+  // ── Wheel (desktop trackpad : scroll up au-delà de 0) ──
+  let wheelPull = 0
+  let wheelResetTimer = null
+  scrollEl.addEventListener('wheel', (e) => {
+    if (!communityActive() || refreshing) return
+    if (scrollEl.scrollTop > 0) { wheelPull = 0; resetVisual(); return }
+    // deltaY négatif = scroll vers le haut
+    if (e.deltaY >= 0) { wheelPull = 0; resetVisual(); return }
+    wheelPull += Math.abs(e.deltaY)
+    setVisual(wheelPull * 0.6)
+    clearTimeout(wheelResetTimer)
+    wheelResetTimer = setTimeout(() => {
+      if (wheelPull * 0.6 >= THRESHOLD) doRefresh()
+      else resetVisual()
+      wheelPull = 0
+    }, 140)
   }, { passive: true })
 })()
