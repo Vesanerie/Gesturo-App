@@ -1,5 +1,5 @@
 /* ── CONFIG ── */
-#screen-config { background: #0f1923; align-items: center; overflow-y: auto; padding: 40px 20px; }
+#screen-config { background: #0f1923; align-items: center; overflow-y: auto; padding: 40px 20px; overscroll-behavior-y: contain; }
 .config-inner { width: 580px; padding-bottom: 100px; }
 .config-inner h1 { font-family: 'Syne', sans-serif; font-size: clamp(36px, 6vw, 56px); font-weight: 800; letter-spacing: -1.5px; line-height: 1; margin-bottom: 8px; color: #fff; text-align: center; }
 .config-inner h1 span { color: #2983eb; }
@@ -953,12 +953,26 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     margin-bottom: 18px;
   }
 
-  /* ── Catégories : grille large 5-6 colonnes au lieu de chip wrap ── */
-  body:not(.legacy-ui) #screen-config #categories-wrap {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px;
+  /* ── Catégories : grille large 5-6 colonnes au lieu de chip wrap ──
+     Le JS (renderCategories) crée une structure : #categories-wrap > header + grid.
+     On cible la grille interne (2e enfant), pas le wrap, sinon header et grid
+     se retrouvent côte à côte dans une colonne de 180px (bug visuel).
+     !important nécessaire car le JS pose un style.cssText inline sur .grid. */
+  body:not(.legacy-ui) #screen-config #categories-wrap > div:nth-child(2) {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    gap: 10px !important;
   }
+
+  /* Séquences Animation : même pattern que Catégories — la grille interne
+     est créée par renderSequences() en JS avec style.cssText inline, donc
+     on cible le 2e enfant de #sequences-wrap et on force via !important.
+     Cards plus larges (220px) car elles contiennent une preview image +
+     label, donc elles ont besoin de plus d'espace qu'un simple chip. */
+  body:not(.legacy-ui) #screen-config #sequences-wrap > div:nth-child(2) {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    gap: 14px !important;
+  }
+
   body:not(.legacy-ui) #screen-config .cat-chip {
     min-height: 48px;
     padding: 12px 18px;
