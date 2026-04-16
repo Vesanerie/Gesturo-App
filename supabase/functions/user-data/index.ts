@@ -300,6 +300,54 @@ if (action === 'getStreak') {
       return json({ success: true });
     }
 
+    // Récupère toutes les sessions de l'user et les renvoie au format
+    // compatible avec HIST_KEY local (ts, poses, minutes, cats). Utilisé
+    // pour synchroniser l'historique local depuis n'importe quelle machine.
+    if (action === 'getSessions') {
+      if (!pid) return json({ sessions: [] });
+      const { data } = await admin
+        .from('sessions')
+        .select('created_at, duration_seconds, photo_count, category')
+        .eq('user_id', pid)
+        .order('created_at', { ascending: true });
+      const sessions = (data || []).map((s: any) => ({
+        ts: new Date(s.created_at).getTime(),
+        poses: s.photo_count || 0,
+        minutes: Math.round((s.duration_seconds || 0) / 60),
+        cats: s.category || null,
+        // type non stocké en DB — fallback 'pose' (majorité des cas)
+        type: 'pose',
+      }));
+      return json({ sessions });
+    }
+
+    // Persiste un badge débloqué dans profiles.badges (colonne jsonb).
+    // Format stocké : { badge_id: unlocked_ts_ms }. Fusion non-destructive :
+    // on read-modify-write pour ne pas écraser les autres badges.
+    if (action === 'saveBadge') {
+      if (!pid) return json({ success: false });
+      const badgeId = (payload && payload.badgeId) || null;
+      const ts = (payload && payload.ts) || Date.now();
+      if (!badgeId) return json({ success: false, error: 'no badgeId' });
+      const { data: prof } = await admin
+        .from('profiles').select('badges').eq('id', pid).maybeSingle();
+      const badges = (prof && prof.badges && typeof prof.badges === 'object') ? { ...prof.badges } : {};
+      // Ne pas écraser un badge déjà présent (garder le 1er timestamp)
+      if (!badges[badgeId]) badges[badgeId] = ts;
+      const { error } = await admin
+        .from('profiles').update({ badges }).eq('id', pid);
+      if (error) return json({ success: false, error: error.message });
+      return json({ success: true });
+    }
+
+    // Récupère tous les badges débloqués de l'user.
+    if (action === 'getBadges') {
+      if (!pid) return json({ badges: {} });
+      const { data } = await admin
+        .from('profiles').select('badges').eq('id', pid).maybeSingle();
+      return json({ badges: (data && data.badges) || {} });
+    }
+
     if (action === 'getFavorites') {
       if (!pid) return json({ favs: [] });
       const { data } = await admin

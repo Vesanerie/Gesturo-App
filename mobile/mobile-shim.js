@@ -214,6 +214,26 @@
         return data || { ok: false };
       } catch (e) { return { ok: false }; }
     },
+    getSessions: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getSessions' } });
+        return (data && data.sessions) || [];
+      } catch (e) { return []; }
+    },
+    saveBadge: async (badgeId, ts) => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        await sb.functions.invoke('user-data', { body: { action: 'saveBadge', payload: { badgeId, ts } } });
+      } catch (e) { /* silent */ }
+    },
+    getBadges: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getBadges' } });
+        return (data && data.badges) || {};
+      } catch (e) { return {}; }
+    },
 
     // ── Utilities ──
     openExternal,

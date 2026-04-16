@@ -620,6 +620,33 @@ ipcMain.handle('save-favorites', async (event, favs) => {
   } catch (e) { console.warn('save-favorites error:', e.message) }
 })
 
+// Sync historique : retourne les sessions stockées côté Supabase au format
+// compatible avec HIST_KEY local (ts/poses/minutes/cats).
+ipcMain.handle('get-sessions', async () => {
+  if (isAdminMode()) return []
+  try {
+    const data = await callUserData('getSessions')
+    return (data && data.sessions) || []
+  } catch (e) { return [] }
+})
+
+// Persiste un badge débloqué côté Supabase (profiles.badges jsonb).
+ipcMain.handle('save-badge', async (event, payload) => {
+  if (isAdminMode()) return
+  try {
+    await callUserData('saveBadge', payload || {})
+  } catch (e) { console.warn('save-badge error:', e.message) }
+})
+
+// Récupère tous les badges débloqués de l'user courant.
+ipcMain.handle('get-badges', async () => {
+  if (isAdminMode()) return {}
+  try {
+    const data = await callUserData('getBadges')
+    return (data && data.badges) || {}
+  } catch (e) { return {} }
+})
+
 // Liste les animations R2 — laisse remonter l'erreur au renderer pour que
 // loadR2() puisse afficher un vrai message (et pas "0 chargées ✓").
 ipcMain.handle('list-r2-animations', async (event, { isPro }) => {

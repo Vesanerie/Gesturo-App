@@ -34,7 +34,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSession: (data) => ipcRenderer.invoke('save-session', data),
   getStreak: () => ipcRenderer.invoke('get-streak'),
   saveFavorites: (favs) => ipcRenderer.invoke('save-favorites', favs),
-getFavorites: () => ipcRenderer.invoke('get-favorites'),
+  getFavorites: () => ipcRenderer.invoke('get-favorites'),
+  getSessions: () => ipcRenderer.invoke('get-sessions'),
+  saveBadge: (badgeId, ts) => ipcRenderer.invoke('save-badge', { badgeId, ts }),
+  getBadges: () => ipcRenderer.invoke('get-badges'),
 
   updateUsername: (username) => ipcRenderer.invoke('update-username', username),
   getProfile: () => ipcRenderer.invoke('get-profile'),
