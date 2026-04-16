@@ -215,6 +215,8 @@ window.addEventListener('DOMContentLoaded', () => {
       }
       loadR2(isPro)
       syncFavsFromServer()
+      syncHistFromServer()
+      syncBadgesFromServer()
       loadAnnouncement()
       checkMaintenanceMode()
       pingUserActivity()
@@ -2588,9 +2590,38 @@ function onLbKey(e) { if (e.key === 'Escape') closeLightbox() }
 
 // ══ FAVORIS ══
 const FAV_KEY = 'gd4_favorites'
-function loadFavs() { try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]') } catch { return [] } }
+
+// Suffixe les clés localStorage par l'email du compte courant pour qu'un
+// switch de compte sur la même machine ne mélange pas les données. Si
+// aucun email connu (avant auth), on retombe sur la clé brute pour ne
+// pas casser le boot. Migration auto dans les loaders : si la clé scopée
+// n'existe pas mais la clé brute oui, on copie une fois.
+function _scopedKey(base) {
+  const email = (typeof _communityEmail === 'string' ? _communityEmail : '').toLowerCase()
+  return email ? base + ':' + email : base
+}
+function _readScoped(base) {
+  const sk = _scopedKey(base)
+  let raw = localStorage.getItem(sk)
+  if (raw === null && sk !== base) {
+    // Migration one-shot : on récupère l'ancienne clé brute (pré-scope) et
+    // on l'attribue au compte courant (1er user qui se connecte hérite des
+    // datas anonymes locales). Les comptes suivants partent vides.
+    const legacy = localStorage.getItem(base)
+    if (legacy !== null) {
+      localStorage.setItem(sk, legacy)
+      localStorage.removeItem(base)
+      raw = legacy
+    }
+  }
+  return raw
+}
+function _writeScoped(base, value) {
+  localStorage.setItem(_scopedKey(base), value)
+}
+function loadFavs() { try { return JSON.parse(_readScoped(FAV_KEY) || '[]') } catch { return [] } }
 function saveFavs(favs) {
-  localStorage.setItem(FAV_KEY, JSON.stringify(favs))
+  _writeScoped(FAV_KEY, JSON.stringify(favs))
   // Persist to Supabase (fire-and-forget)
   if (window.electronAPI?.saveFavorites) {
     window.electronAPI.saveFavorites(favs).catch(() => {})
@@ -2710,20 +2741,35 @@ async function syncFavsFromServer() {
   try {
     if (!window.electronAPI?.getFavorites) return
     const remote = await window.electronAPI.getFavorites()
-    if (!Array.isArray(remote) || remote.length === 0) return
-    const local = loadFavs()
-    // Merge: add remote favs not already in local (by src)
-    const localSrcs = new Set(local.map(f => f.src))
-    const merged = [...local]
-    for (const fav of remote) {
-      if (fav.src && !localSrcs.has(fav.src)) merged.push(fav)
-    }
-    if (merged.length !== local.length) {
-      localStorage.setItem(FAV_KEY, JSON.stringify(merged))
-      // Push merged set back to server
-      window.electronAPI.saveFavorites(merged).catch(() => {})
-    }
-  } catch (e) {  }
+    if (!Array.isArray(remote)) return
+    // REPLACE (pas merge) : le serveur est la source de vérité. Permet de
+    // retrouver ses favs sur une autre machine, et avec le scope par email
+    // on écrit uniquement dans la clé du compte courant.
+    _writeScoped(FAV_KEY, JSON.stringify(remote))
+  } catch (e) { /* silent */ }
+}
+
+// Sync l'historique (sessions) depuis Supabase. Appelée au boot après auth.
+// Permet à l'user de retrouver son historique sur n'importe quelle machine.
+async function syncHistFromServer() {
+  try {
+    if (!window.electronAPI?.getSessions) return
+    const remote = await window.electronAPI.getSessions()
+    if (!Array.isArray(remote)) return
+    _writeScoped(HIST_KEY, JSON.stringify(remote))
+    // Re-render la week-bar avec les données fraîches
+    if (typeof renderWeekBar === 'function') renderWeekBar()
+  } catch (e) { /* silent */ }
+}
+
+// Sync les badges débloqués depuis Supabase.
+async function syncBadgesFromServer() {
+  try {
+    if (!window.electronAPI?.getBadges) return
+    const remote = await window.electronAPI.getBadges()
+    if (!remote || typeof remote !== 'object') return
+    _writeScoped(BADGES_KEY, JSON.stringify(remote))
+  } catch (e) { /* silent */ }
 }
 
 function currentPoseSrc() {
@@ -2979,29 +3025,22 @@ function removeFavFromLightbox() { if (!lbFavSrc) return; removeFav(lbFavSrc); l
 function renderWeekBar() {
   if (!document.getElementById('week-streak')) return
   const all = loadHist(); const days = document.querySelectorAll('.week-day')
-  // Normalize "today" to UTC midnight so day comparisons are timezone-independent
+  // Tout en HEURE LOCALE (cohérent avec utcDayKey/computeStreak).
   const now = new Date()
-  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const sessionDays = new Set(all.map(s => utcDayKey(s.ts)))
-  let windowStart
-  if (all.length === 0) { windowStart = new Date(todayUtc) }
-  else {
-    const firstTs = Math.min(...all.map(s => s.ts))
-    const firstDate = new Date(firstTs)
-    const firstDay = new Date(Date.UTC(firstDate.getUTCFullYear(), firstDate.getUTCMonth(), firstDate.getUTCDate()))
-    const daysSinceFirst = Math.floor((todayUtc - firstDay) / 86400000)
-    const blockOffset = Math.floor(daysSinceFirst / 7) * 7
-    windowStart = new Date(firstDay); windowStart.setUTCDate(firstDay.getUTCDate() + blockOffset)
-  }
+  // Ordre inversé : case 0 (gauche) = aujourd'hui, case N-1 (droite) = il y
+  // a N-1 jours. Les jours actifs récents se retrouvent ainsi à gauche
+  // (lecture naturelle de gauche à droite + progression du streak visible).
   days.forEach((el, i) => {
-    const d = new Date(windowStart); d.setUTCDate(windowStart.getUTCDate() + i)
-    const key = d.toISOString().split('T')[0]
-    const todayKey = todayUtc.toISOString().split('T')[0]
-    const isToday = key === todayKey; const isFuture = d > todayUtc; const done = sessionDays.has(key)
+    const d = new Date(todayLocal); d.setDate(todayLocal.getDate() - i)
+    const key = utcDayKey(d.getTime())
+    const todayKey = utcDayKey(todayLocal.getTime())
+    const isToday = key === todayKey; const isFuture = d > todayLocal; const done = sessionDays.has(key)
     el.className = 'week-day'
     if (isFuture) el.classList.add('future'); else if (done) el.classList.add('done')
     if (isToday) el.classList.add('today')
-    el.title = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+    el.title = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
   })
   const streak = computeStreak(all); const streakEl = document.getElementById('week-streak')
   streakEl.textContent = streak + ' j'; streakEl.className = streak === 0 ? 'zero' : ''
@@ -3009,8 +3048,8 @@ function renderWeekBar() {
 
 // ══ HISTORIQUE ══
 const HIST_KEY = 'gd4_history'; let histPeriod = 'week'
-function loadHist() { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]') } catch { return [] } }
-function saveHist(h) { localStorage.setItem(HIST_KEY, JSON.stringify(h)) }
+function loadHist() { try { return JSON.parse(_readScoped(HIST_KEY) || '[]') } catch { return [] } }
+function saveHist(h) { _writeScoped(HIST_KEY, JSON.stringify(h)) }
 
 function logSession(data) {
   const hist = loadHist(); hist.push({ ...data, ts: Date.now() })
@@ -3114,18 +3153,30 @@ function formatHistDate(ts) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + hm
 }
 
-function utcDayKey(ts) { return new Date(ts).toISOString().split('T')[0] }
+// Clé jour en HEURE LOCALE (perspective utilisateur). Avant on utilisait UTC,
+// ce qui causait des bugs de streak : une session faite le mercredi à 1h CEST
+// était enregistrée à mardi 23h UTC → comptée comme un jour différent.
+// Le fuseau local est ce que l'user attend ("ma journée commence à minuit").
+function utcDayKey(ts) {
+  const d = new Date(ts)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return y + '-' + m + '-' + day
+}
 
 function computeStreak(hist) {
   if (hist.length === 0) return 0
   const days = new Set(hist.map(s => utcDayKey(s.ts)))
   let streak = 0
   const cur = new Date()
+  // On compte en HEURE LOCALE (cohérent avec utcDayKey). Avant on faisait
+  // setUTCDate + toISOString → bug si fuseau != UTC.
   for (let i = 0; i < 365; i++) {
-    const key = cur.toISOString().split('T')[0]
+    const key = utcDayKey(cur.getTime())
     if (days.has(key)) streak++
     else if (i > 0) break
-    cur.setUTCDate(cur.getUTCDate() - 1)
+    cur.setDate(cur.getDate() - 1)
   }
   return streak
 }
@@ -3226,6 +3277,10 @@ function handleLogout() {
   document.getElementById('options-dropdown').classList.remove('open')
   closeProfile()
   showConfirmModal('Se déconnecter ?', async () => {
+    // Pas de clear du localStorage : les datas sont scopées par email
+    // (_scopedKey) donc le compte suivant n'y a pas accès, et si l'user
+    // courant revient plus tard il retrouve son historique/favoris/badges
+    // locaux (philosophie local-first, la machine garde ses propres datas).
     await window.electronAPI.authLogout()
   }, { confirmText: 'Se déconnecter', danger: true })
 }
@@ -3641,12 +3696,16 @@ const BADGES_DEF = [
   { id: 'challenge_1',    emoji: '🏅', name: 'Challenger',         desc: 'Participer à un challenge' },
   { id: 'challenge_10',   emoji: '🏆', name: 'Champion',           desc: '10 challenges complétés' },
 ]
-function loadBadges() { try { return JSON.parse(localStorage.getItem(BADGES_KEY) || '{}') } catch { return {} } }
-function saveBadges(b) { localStorage.setItem(BADGES_KEY, JSON.stringify(b)) }
+function loadBadges() { try { return JSON.parse(_readScoped(BADGES_KEY) || '{}') } catch { return {} } }
+function saveBadges(b) { _writeScoped(BADGES_KEY, JSON.stringify(b)) }
 function unlockBadge(id) {
   const badges = loadBadges()
   if (badges[id]) return
-  badges[id] = Date.now(); saveBadges(badges)
+  const ts = Date.now()
+  badges[id] = ts; saveBadges(badges)
+  // Persist côté serveur (fire-and-forget) pour retrouver le badge sur
+  // une autre machine via syncBadgesFromServer au prochain boot.
+  if (window.electronAPI?.saveBadge) window.electronAPI.saveBadge(id, ts).catch(() => {})
   const def = BADGES_DEF.find(b => b.id === id)
   if (def) showBadgePopup(def)
   renderBadges()
