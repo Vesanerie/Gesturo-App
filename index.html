@@ -66,6 +66,10 @@
   </div>
 </div>
 
+<!-- Musique d'ambiance + son d'eau ASMR (démarrent au 1er clic, autoplay policy). -->
+<audio id="bgm" loop preload="auto" src="assets/soft-hope.mp3"></audio>
+<audio id="water-sound" loop preload="auto" src="assets/watersound.mp3"></audio>
+
 <canvas id="bubbles-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:1;"></canvas>
 
 <!-- ══ BOUTON OPTIONS ══ -->
@@ -81,12 +85,53 @@
 </button>
 <button id="options-btn" aria-label="Options" onclick="toggleOptions()">⋯</button>
 <div id="options-dropdown">
-  <div class="opt-item" onclick="toggleOptions(); switchMainMode('hist')">📈 Historique</div>
-  <div class="opt-item" onclick="toggleTheme()" id="opt-theme">☀️ Mode Jour</div>
-  <div class="opt-item" onclick="toggleLegacyUi()" id="opt-legacy-ui">👁 Design ancien</div>
-  <div class="opt-item" onclick="handleLogout()">🚪 Se déconnecter</div>
-  <div class="opt-item danger" onclick="confirmResetHistory()">🗑 Réinitialiser l'historique</div>
-  <div class="opt-item" onclick="showAbout()">ℹ️ À propos</div>
+  <!-- Navigation -->
+  <div class="opt-section">Navigation</div>
+  <div class="opt-item" onclick="toggleOptions(); switchMainMode('hist')">
+    <span class="opt-icon">📈</span><span class="opt-label">Historique</span>
+  </div>
+
+  <div class="opt-sep"></div>
+
+  <!-- Préférences -->
+  <div class="opt-section">Préférences</div>
+  <div class="opt-item opt-bgm-row">
+    <span id="opt-bgm-icon" class="opt-icon" onclick="toggleBgm()" style="cursor:pointer;" title="Musique">🎵</span>
+    <input type="range" id="opt-bgm-slider" min="0" max="100" value="12" oninput="setBgmVolume(this.value)" aria-label="Volume musique">
+    <span id="opt-bgm-value" class="opt-value">12%</span>
+  </div>
+  <div class="opt-item opt-bgm-row">
+    <span class="opt-icon" title="Son d'eau">🌊</span>
+    <input type="range" id="opt-water-slider" min="0" max="100" value="22" oninput="setWaterVolume(this.value)" aria-label="Volume son d'eau">
+    <span id="opt-water-value" class="opt-value">22%</span>
+  </div>
+  <div class="opt-item" onclick="toggleMuteAll()" id="opt-mute-all">
+    <span class="opt-icon">🔇</span><span class="opt-label">Couper tous les sons</span>
+  </div>
+  <div class="opt-item" onclick="toggleTheme()" id="opt-theme">
+    <span class="opt-icon">☀️</span><span class="opt-label">Mode Jour</span>
+  </div>
+  <div class="opt-item" onclick="toggleLegacyUi()" id="opt-legacy-ui">
+    <span class="opt-icon">👁</span><span class="opt-label">Design ancien</span>
+  </div>
+
+  <div class="opt-sep"></div>
+
+  <!-- Compte -->
+  <div class="opt-section">Compte</div>
+  <div class="opt-item" onclick="showAbout()">
+    <span class="opt-icon">ℹ️</span><span class="opt-label">À propos</span>
+  </div>
+  <div class="opt-item" onclick="handleLogout()">
+    <span class="opt-icon">🚪</span><span class="opt-label">Se déconnecter</span>
+  </div>
+
+  <div class="opt-sep"></div>
+
+  <!-- Zone danger -->
+  <div class="opt-item danger" onclick="confirmResetHistory()">
+    <span class="opt-icon">🗑</span><span class="opt-label">Réinitialiser l'historique</span>
+  </div>
 </div>
 
 <!-- ══ CONFIG ══ -->
@@ -612,6 +657,7 @@
     <div class="about-row" id="about-expiry-row" style="display:none"><span class="label">Expire le</span><span class="value" id="about-expiry">—</span></div>
     <div class="about-row"><span class="label">Discord</span><a onclick="window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')" style="color:#5865F2;cursor:pointer;font-size:13px;">Rejoindre</a></div>
     <div class="about-row"><span class="label">Site</span><a onclick="window.electronAPI.openExternal('https://gesturo.art')" style="color:#2983eb;cursor:pointer;font-size:13px;">gesturo.art</a></div>
+    <div class="about-row"><span class="label">Musique</span><span class="value" style="font-size:13px;">🎵 Soft Hope — <a onclick="window.electronAPI.openExternal('https://www.instagram.com/akr.prod/')" style="color:#2983eb;cursor:pointer;">AKR</a></span></div>
     <button class="about-upgrade" id="about-upgrade-btn" onclick="window.electronAPI.openExternal('https://gesturo.art');closeAbout()">Passer Pro ⭐</button>
     <button class="about-close" onclick="closeAbout()">Fermer</button>
   </div>

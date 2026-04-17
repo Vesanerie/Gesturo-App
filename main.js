@@ -296,8 +296,16 @@ function createWindow() {
   })
   mainWindow.loadFile('index.html')
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-  callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [''] } })
-})
+    const headers = { ...details.responseHeaders, 'Content-Security-Policy': [''] }
+    // Cache HTTP agressif (24h) sur les images R2 : les photos du catalogue
+    // ne changent quasi jamais, donc on évite de re-télécharger à chaque
+    // render. Divise la latence d'affichage par ~10 après le 1er boot.
+    const url = details.url || ''
+    if (url.includes('.r2.dev') || url.includes('gesturo-photos')) {
+      headers['cache-control'] = ['public, max-age=86400, immutable']
+    }
+    callback({ responseHeaders: headers })
+  })
   mainWindow.webContents.on('did-finish-load', async () => {
     if (isAdminMode()) {
       mainWindow.webContents.send('auth-success', { email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true })

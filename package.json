@@ -47,6 +47,7 @@
       "moodboard/**/*",
       "styles/**/*",
       "src/**/*",
+      "assets/**/*",
       "supabase.js",
       "config.js",
       "blocked-usernames.js",
