@@ -85,6 +85,8 @@ async function checkProFromSupabase(email) {
 }
 
 // Payment Links Stripe
+// WARNING: These are TEST MODE links (test_ prefix). Replace with production
+// Stripe Payment Links before any public release.
 const STRIPE_LINK_MONTHLY = 'https://buy.stripe.com/test_dRmdR8cxg6xr7VQ1Yv1ck01'
 const STRIPE_LINK_YEARLY = 'https://buy.stripe.com/test_dRmaEWbtccVP4JEbz51ck02'
 
@@ -274,8 +276,20 @@ async function listR2Animations(isPro) {
 // (Edge Function user-data + cron). Le desktop ne stocke plus le token.
 
 app.whenReady().then(() => {
+  const allowedRoots = [app.getAppPath(), app.getPath('userData'), os.homedir()]
   protocol.registerFileProtocol('file', (request, callback) => {
-    const filePath = decodeURIComponent(request.url.replace('file://', ''))
+    const filePath = path.resolve(decodeURIComponent(request.url.replace('file://', '')))
+    if (filePath.includes('..')) {
+      console.warn('[file protocol] blocked path with ..: ', filePath)
+      callback({ error: -10 }) // NET_ERR_ACCESS_DENIED
+      return
+    }
+    const isAllowed = allowedRoots.some(root => filePath.startsWith(root))
+    if (!isAllowed) {
+      console.warn('[file protocol] blocked path outside allowed roots: ', filePath)
+      callback({ error: -10 })
+      return
+    }
     callback({ path: filePath })
   })
   createWindow()
@@ -289,14 +303,14 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,
+      webSecurity: true,
       webviewTag: true,
       preload: path.join(__dirname, 'preload.js')
     }
   })
   mainWindow.loadFile('index.html')
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    const headers = { ...details.responseHeaders, 'Content-Security-Policy': [''] }
+    const headers = { ...details.responseHeaders, 'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; media-src 'self' blob:; connect-src 'self' https:; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; frame-src https:"] }
     // Cache HTTP agressif (24h) sur les images R2 : les photos du catalogue
     // ne changent quasi jamais, donc on évite de re-télécharger à chaque
     // render. Divise la latence d'affichage par ~10 après le 1er boot.
@@ -307,9 +321,11 @@ function createWindow() {
     callback({ responseHeaders: headers })
   })
   mainWindow.webContents.on('did-finish-load', async () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return
     if (isAdminMode()) {
       mainWindow.webContents.send('auth-success', { email: 'admin', name: 'Admin', picture: null, isAdmin: true, isPro: true })
       setTimeout(() => {
+        if (!mainWindow || mainWindow.isDestroyed()) return
         if (fs.existsSync(DEFAULT_LOCAL_FOLDER)) {
           mainWindow.webContents.send('auto-load-folder', DEFAULT_LOCAL_FOLDER)
         } else {
@@ -320,11 +336,15 @@ function createWindow() {
     }
     const { data } = await supabase.auth.getSession()
     const user = data?.session?.user
+    if (!mainWindow || mainWindow.isDestroyed()) return
     if (!user) { mainWindow.webContents.send('auth-required'); return }
     const profile = await buildProfile(user)
+    if (!mainWindow || mainWindow.isDestroyed()) return
     if (profile.authenticated) {
       mainWindow.webContents.send('auth-success', profile)
-      setTimeout(() => mainWindow.webContents.send('use-r2-mode', { isPro: profile.isPro }), 500)
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('use-r2-mode', { isPro: profile.isPro })
+      }, 500)
     } else if (profile.reason === 'expired') {
       mainWindow.webContents.send('auth-expired', { email: user.email, landingUrl: BETA_LANDING })
     } else if (profile.reason === 'not_allowed') {
@@ -417,7 +437,7 @@ ipcMain.handle('auth-logout', async () => {
   try { await supabase.auth.signOut() } catch (e) {}
   clearAuthStorage()
   clearAdminMode()
-  mainWindow.loadFile('index.html')
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.loadFile('index.html')
   return true
 })
 
@@ -488,7 +508,13 @@ const MB_IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff
 ipcMain.handle('mb:read-file-as-dataurl', async (_, filePath) => {
   const ext = path.extname(String(filePath || '')).toLowerCase().slice(1)
   if (!MB_IMAGE_EXTS.has(ext)) throw new Error('Unsupported file type')
-  const buf = fs.readFileSync(filePath)
+  const resolved = path.resolve(String(filePath))
+  const mbBase = mbProjectsDir()
+  const homeDir = os.homedir()
+  if (!resolved.startsWith(mbBase) && !resolved.startsWith(homeDir)) {
+    throw new Error('Path outside allowed directories')
+  }
+  const buf = await fs.promises.readFile(resolved)
   const mime = ext === 'png' ? 'image/png'
     : ext === 'gif' ? 'image/gif'
     : ext === 'webp' ? 'image/webp'
@@ -505,15 +531,17 @@ ipcMain.handle('mb:set-window-opacity', async (_, opacity) => { if (mainWindow) 
 
 ipcMain.handle('mb:list-projects', async () => {
   const dir = mbProjectsDir()
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'))
-  return files.map(f => {
+  const files = (await fs.promises.readdir(dir)).filter(f => f.endsWith('.json'))
+  const results = []
+  for (const f of files) {
     const fp = path.join(dir, f)
     try {
-      const data = JSON.parse(fs.readFileSync(fp, 'utf8'))
-      const stat = fs.statSync(fp)
-      return { file: f, name: data.name || f.replace(/\.json$/, ''), description: data.description || '', color: data.color || '#888888', updatedAt: stat.mtimeMs, photoCount: (data.photos || []).length }
-    } catch { return null }
-  }).filter(Boolean).sort((a, b) => b.updatedAt - a.updatedAt)
+      const data = JSON.parse(await fs.promises.readFile(fp, 'utf8'))
+      const stat = await fs.promises.stat(fp)
+      results.push({ file: f, name: data.name || f.replace(/\.json$/, ''), description: data.description || '', color: data.color || '#888888', updatedAt: stat.mtimeMs, photoCount: (data.photos || []).length })
+    } catch { /* skip corrupt files */ }
+  }
+  return results.sort((a, b) => b.updatedAt - a.updatedAt)
 })
 
 ipcMain.handle('mb:create-project', async (_, name) => {
@@ -522,18 +550,18 @@ ipcMain.handle('mb:create-project', async (_, name) => {
   let file = base + '.json', i = 1
   while (fs.existsSync(path.join(dir, file))) { file = `${base}-${i++}.json` }
   const data = { name: base, createdAt: Date.now(), photos: [] }
-  fs.writeFileSync(path.join(dir, file), JSON.stringify(data))
+  await fs.promises.writeFile(path.join(dir, file), JSON.stringify(data))
   return { file, name: base }
 })
 
 ipcMain.handle('mb:load-project', async (_, file) => {
   const fp = path.join(mbProjectsDir(), mbSafeFile(file))
   if (!fs.existsSync(fp)) return null
-  return JSON.parse(fs.readFileSync(fp, 'utf8'))
+  return JSON.parse(await fs.promises.readFile(fp, 'utf8'))
 })
 
 ipcMain.handle('mb:save-project', async (_, file, data) => {
-  fs.writeFileSync(path.join(mbProjectsDir(), mbSafeFile(file)), JSON.stringify(data))
+  await fs.promises.writeFile(path.join(mbProjectsDir(), mbSafeFile(file)), JSON.stringify(data))
   return true
 })
 
@@ -546,9 +574,9 @@ ipcMain.handle('mb:delete-project', async (_, file) => {
 ipcMain.handle('mb:rename-project', async (_, file, newName) => {
   const fp = path.join(mbProjectsDir(), mbSafeFile(file))
   if (!fs.existsSync(fp)) return false
-  const data = JSON.parse(fs.readFileSync(fp, 'utf8'))
+  const data = JSON.parse(await fs.promises.readFile(fp, 'utf8'))
   data.name = mbSafeName(newName)
-  fs.writeFileSync(fp, JSON.stringify(data))
+  await fs.promises.writeFile(fp, JSON.stringify(data))
   return true
 })
 
@@ -556,13 +584,13 @@ ipcMain.handle('mb:duplicate-project', async (_, file) => {
   const dir = mbProjectsDir()
   const fp = path.join(dir, mbSafeFile(file))
   if (!fs.existsSync(fp)) return null
-  const data = JSON.parse(fs.readFileSync(fp, 'utf8'))
+  const data = JSON.parse(await fs.promises.readFile(fp, 'utf8'))
   const base = mbSafeName((data.name || 'projet') + ' copie')
   let newFile = base + '.json', i = 1
   while (fs.existsSync(path.join(dir, newFile))) { newFile = `${base}-${i++}.json` }
   data.name = base
   data.createdAt = Date.now()
-  fs.writeFileSync(path.join(dir, newFile), JSON.stringify(data))
+  await fs.promises.writeFile(path.join(dir, newFile), JSON.stringify(data))
   return { file: newFile, name: base }
 })
 
@@ -574,7 +602,7 @@ ipcMain.handle('mb:save-png', async (_, defaultName, dataUrl) => {
   })
   if (result.canceled || !result.filePath) return false
   const base64 = dataUrl.replace(/^data:image\/png;base64,/, '')
-  fs.writeFileSync(result.filePath, Buffer.from(base64, 'base64'))
+  await fs.promises.writeFile(result.filePath, Buffer.from(base64, 'base64'))
   return result.filePath
 })
 
@@ -609,7 +637,7 @@ ipcMain.handle('mb:save-pdf', async (_, defaultName, jpegDataUrl, w, h) => {
   for (let i = 1; i <= 5; i++) xref += String(offsets[i]).padStart(10, '0') + ' 00000 n \n'
   push(xref)
   push(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`)
-  fs.writeFileSync(result.filePath, Buffer.concat(chunks))
+  await fs.promises.writeFile(result.filePath, Buffer.concat(chunks))
   return result.filePath
 })
 
@@ -709,6 +737,7 @@ ipcMain.handle('list-files', (event, folderPath) => {
 ipcMain.handle('admin-switch-source', (event, { useLocal }) => {
   const token = loadToken()
   if (!isAdminToken(token)) return { success: false }
+  if (!mainWindow || mainWindow.isDestroyed()) return { success: false }
   if (useLocal) {
     if (fs.existsSync(DEFAULT_LOCAL_FOLDER)) {
       mainWindow.webContents.send('auto-load-folder', DEFAULT_LOCAL_FOLDER)
@@ -731,19 +760,19 @@ ipcMain.handle('pick-folder', async () => {
 })
 
 // Lire un fichier local en base64 (admin mode local)
-ipcMain.handle('read-file-base64', (event, filePath) => {
+ipcMain.handle('read-file-base64', async (event, filePath) => {
   const token = loadToken()
   if (!isAdminToken(token)) return null
-  const buf = fs.readFileSync(filePath)
+  const buf = await fs.promises.readFile(filePath)
   const ext = path.extname(filePath).toLowerCase()
   const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' }
   return `data:${mimeMap[ext] || 'image/jpeg'};base64,${buf.toString('base64')}`
 })
 
-ipcMain.handle('read-file-buffer', (event, filePath) => {
+ipcMain.handle('read-file-buffer', async (event, filePath) => {
   const token = loadToken()
   if (!isAdminToken(token)) return null
-  const buf = fs.readFileSync(filePath)
+  const buf = await fs.promises.readFile(filePath)
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
 })
 

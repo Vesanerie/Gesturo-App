@@ -225,7 +225,7 @@ export async function requireUser(req: Request): Promise<string> {
   if (!res.ok) throw new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
   const data = await res.json();
   if (!data?.email) throw new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
-  return data.email as string;
+  return (data.email as string).toLowerCase();
 }
 
 // Server-side admin check. NEVER trust a client-supplied is_admin flag.

@@ -17,7 +17,7 @@ let cache: { at: number; data: unknown[] } | null = null;
 
 async function fetchIG(url: string): Promise<unknown[]> {
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     const j = await r.json();
     return Array.isArray(j.data) ? j.data : [];
   } catch {

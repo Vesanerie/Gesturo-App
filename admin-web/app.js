@@ -234,8 +234,9 @@ function setActiveRoot() {
 }
 
 // Thumbnail proxy: wsrv.nl resizes + converts to webp on the fly, cached on their CDN.
+const THUMB_PROXY = 'https://wsrv.nl';
 function thumbUrl(url, w = 300) {
-  return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${w}&output=webp&q=70`;
+  return `${THUMB_PROXY}/?url=${encodeURIComponent(url)}&w=${w}&output=webp&q=70`;
 }
 
 async function loadGrid() {
@@ -1471,12 +1472,6 @@ async function loadChallengeList() {
   } catch (e) { list.textContent = 'Erreur : ' + e.message; }
 }
 
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
 // ── Ref image picker (R2 browser for challenge ref) ──────────────────────
 let _refPickerPrefix = 'Sessions/current/';
 
@@ -1944,7 +1939,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Speed review keyboard (A/R) — handled in the existing keydown listener via speed-review visibility
-const _origKeydown = document.addEventListener;
 document.addEventListener('keydown', (e) => {
   if ($('speed-review').classList.contains('hidden')) return;
   if (e.target.tagName === 'INPUT') return;
@@ -2292,15 +2286,19 @@ async function loadUsers() {
       btnDel.textContent = '🗑';
       btnDel.title = 'Supprimer le compte';
       btnDel.className = 'btn-ban';
-      btnDel.onclick = async () => {
-        const typed = prompt('⚠ SUPPRESSION DÉFINITIVE ⚠\n\nCeci supprime : compte auth, profil, posts, réactions, favoris, sessions, images R2.\n\nTape exactement l\'email pour confirmer :\n' + u.email);
-        if (typed === null) return;
-        if (typed.trim().toLowerCase() !== u.email.toLowerCase()) { toast('Email incorrect, suppression annulée', 'err'); return; }
-        try {
-          const res = await callUserData('adminDeleteUser', { email: u.email });
-          toast('Compte supprimé (' + res.deletedPosts + ' posts, ' + res.deletedImages + ' images)', 'ok');
-          loadUsers();
-        } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+      btnDel.onclick = () => {
+        openConfirm({
+          title: '⚠ SUPPRESSION DÉFINITIVE',
+          text: 'Ceci supprime : compte auth, profil, posts, réactions, favoris, sessions, images R2.',
+          requireType: u.email,
+          async onConfirm() {
+            try {
+              const res = await callUserData('adminDeleteUser', { email: u.email });
+              toast('Compte supprimé (' + res.deletedPosts + ' posts, ' + res.deletedImages + ' images)', 'ok');
+              loadUsers();
+            } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+          },
+        });
       };
       actions.appendChild(btnDel);
 

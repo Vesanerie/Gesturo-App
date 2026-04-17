@@ -3,6 +3,7 @@
 // Auth via Supabase JWT, DB writes via service role (bypasses RLS).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { presignPut, putObject, deleteKeys } from '../_shared/r2.ts';
+import { checkRateLimit } from '../_shared/rate-limit.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -34,6 +35,7 @@ async function moderateImage(base64: string): Promise<{ ok: boolean; reason: str
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: AbortSignal.timeout(10_000),
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
@@ -89,10 +91,11 @@ async function getEmail(req: Request): Promise<string | null> {
   if (!token) return null;
   const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { Authorization: `Bearer ${token}`, apikey: ANON },
+    signal: AbortSignal.timeout(10_000),
   });
   if (!r.ok) return null;
   const u = await r.json();
-  return u?.email ?? null;
+  return u?.email?.toLowerCase() ?? null;
 }
 
 async function profileId(email: string): Promise<string | null> {
@@ -266,6 +269,22 @@ Deno.serve(async (req) => {
     const email = await getEmail(req);
     if (!email) return json({ error: 'unauthorized' }, 401);
     const { action, payload } = await req.json();
+
+    // ── Rate limiting by action category ──
+    const MUTATION_ACTIONS = new Set([
+      'submitCommunityPost', 'moderateCommunityPost', 'deleteCommunityPost',
+      'toggleReaction', 'tagPostToChallenge', 'logClientError',
+      'saveSession', 'saveFavorites', 'saveBadge', 'updateUsername', 'pingActivity',
+    ]);
+    const isAdmin = action.startsWith('admin');
+    if (isAdmin) {
+      checkRateLimit(`admin:${email}`, { limit: 60, windowMs: 60_000 });
+    } else if (MUTATION_ACTIONS.has(action)) {
+      checkRateLimit(`mut:${email}`, { limit: 15, windowMs: 60_000 });
+    } else {
+      checkRateLimit(`read:${email}`, { limit: 120, windowMs: 60_000 });
+    }
+
     const pid = await profileId(email);
 
 if (action === 'getStreak') {
@@ -451,7 +470,7 @@ if (action === 'getStreak') {
       const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
       const imageUrl = `${r2Public}/${post.image_key}`;
       try {
-        const imgRes = await fetch(imageUrl);
+        const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(10_000) });
         if (!imgRes.ok) return json({ error: 'could not fetch image' }, 500);
         const buf = await imgRes.arrayBuffer();
         const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -590,29 +609,30 @@ if (action === 'getStreak') {
 
     // ── Community leaderboard ──
     if (action === 'getCommunityLeaderboard') {
-      const { data: allPosts } = await admin
-        .from('community_posts')
-        .select('id, user_email, username')
-        .eq('approved', true);
+      // Fetch approved posts (bounded) and reactions in parallel to avoid N+1
+      const [postsRes, reactionsRes] = await Promise.all([
+        admin.from('community_posts')
+          .select('id, user_email, username')
+          .eq('approved', true)
+          .limit(2000),
+        admin.from('post_reactions')
+          .select('post_id')
+          .limit(5000),
+      ]);
+      const allPosts = postsRes.data || [];
+      const allReactions = reactionsRes.data || [];
 
       const postIdToAuthor: Record<string, string> = {};
-      (allPosts || []).forEach((p: any) => { postIdToAuthor[p.id] = p.user_email; });
+      allPosts.forEach((p: any) => { postIdToAuthor[p.id] = p.user_email; });
 
-      const postIds = Object.keys(postIdToAuthor);
-      let reactionsByAuthor: Record<string, number> = {};
-      if (postIds.length) {
-        const { data: reactions } = await admin
-          .from('post_reactions')
-          .select('post_id')
-          .in('post_id', postIds);
-        (reactions || []).forEach((r: any) => {
-          const author = postIdToAuthor[r.post_id];
-          if (author) reactionsByAuthor[author] = (reactionsByAuthor[author] || 0) + 1;
-        });
-      }
+      const reactionsByAuthor: Record<string, number> = {};
+      allReactions.forEach((r: any) => {
+        const author = postIdToAuthor[r.post_id];
+        if (author) reactionsByAuthor[author] = (reactionsByAuthor[author] || 0) + 1;
+      });
 
       const userMap: Record<string, { username: string; posts: number; reactions: number }> = {};
-      (allPosts || []).forEach((p: any) => {
+      allPosts.forEach((p: any) => {
         if (!userMap[p.user_email]) userMap[p.user_email] = { username: p.username || p.user_email.split('@')[0], posts: 0, reactions: 0 };
         userMap[p.user_email].posts++;
       });
@@ -656,7 +676,7 @@ if (action === 'getStreak') {
       const filter = payload?.filter || 'pending'; // 'pending' | 'approved' | 'all'
       const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 50, 1), 200);
       const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
-      const search = (payload?.search || '').trim().toLowerCase();
+      const safeSearch = (payload?.search || '').trim().toLowerCase().replace(/[.,()"'\\]/g, '');
       let query = admin
         .from('community_posts')
         .select('id, user_email, username, image_key, ref_image_url, challenge_id, approved, created_at')
@@ -664,7 +684,7 @@ if (action === 'getStreak') {
         .range(reqOffset, reqOffset + reqLimit - 1);
       if (filter === 'pending') query = query.eq('approved', false);
       else if (filter === 'approved') query = query.eq('approved', true);
-      if (search) query = query.or(`username.ilike.%${search}%,user_email.ilike.%${search}%`);
+      if (safeSearch) query = query.or(`username.ilike.%${safeSearch}%,user_email.ilike.%${safeSearch}%`);
       const { data, error } = await query;
       if (error) return json({ error: error.message }, 500);
       const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
@@ -803,7 +823,7 @@ if (action === 'getStreak') {
       if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
       const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 50, 1), 200);
       const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
-      const search = (payload?.search || '').trim().toLowerCase();
+      const safeSearch = (payload?.search || '').trim().toLowerCase().replace(/[.,()"'\\]/g, '');
       const filterPlan = payload?.plan || 'all';       // 'all' | 'free' | 'pro'
       const filterBanned = payload?.banned || 'all';   // 'all' | 'yes' | 'no'
       const filterAdmin = payload?.admin || 'all';     // 'all' | 'yes' | 'no'
@@ -811,7 +831,7 @@ if (action === 'getStreak') {
         .select('id, email, username, plan, pro_expires_at, banned, is_admin, created_at', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(reqOffset, reqOffset + reqLimit - 1);
-      if (search) query = query.or(`email.ilike.%${search}%,username.ilike.%${search}%`);
+      if (safeSearch) query = query.or(`email.ilike.%${safeSearch}%,username.ilike.%${safeSearch}%`);
       if (filterPlan === 'free') query = query.or('plan.is.null,plan.eq.free');
       else if (filterPlan === 'pro') query = query.eq('plan', 'pro');
       if (filterBanned === 'yes') query = query.eq('banned', true);
@@ -1050,7 +1070,11 @@ if (action === 'getStreak') {
         const { data } = await admin.from('feature_flags').select('key, enabled, description');
         const flags: Record<string, boolean> = {};
         (data || []).forEach((f: any) => { flags[f.key] = !!f.enabled; });
-        return json({ flags, raw: data || [] });
+        // Non-admins only get { key, enabled } — strip description
+        const { data: prof } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+        const isCallerAdmin = prof?.is_admin === true;
+        const raw = (data || []).map((f: any) => isCallerAdmin ? f : { key: f.key, enabled: f.enabled });
+        return json({ flags, raw });
       } catch { return json({ flags: {}, raw: [] }); }
     }
 
@@ -1080,9 +1104,18 @@ if (action === 'getStreak') {
     if (action === 'getAppSettings') {
       try {
         const { data } = await admin.from('app_settings').select('key, value');
-        const settings: Record<string, any> = {};
-        (data || []).forEach((s: any) => { settings[s.key] = s.value; });
-        return json({ settings });
+        const allSettings: Record<string, any> = {};
+        (data || []).forEach((s: any) => { allSettings[s.key] = s.value; });
+        // Non-admins only see public keys (maintenance mode etc.)
+        const PUBLIC_SETTINGS = new Set(['maintenance']);
+        const { data: prof } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+        const isCallerAdmin = prof?.is_admin === true;
+        if (isCallerAdmin) return json({ settings: allSettings });
+        const filtered: Record<string, any> = {};
+        for (const k of PUBLIC_SETTINGS) {
+          if (k in allSettings) filtered[k] = allSettings[k];
+        }
+        return json({ settings: filtered });
       } catch { return json({ settings: {} }); }
     }
 
@@ -1177,17 +1210,21 @@ if (action === 'getStreak') {
       const sortBy = payload?.sortBy || 'sessions'; // 'sessions' | 'posts' | 'oldest'
       const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 20, 1), 100);
 
-      const { data: allProfiles } = await admin.from('profiles').select('id, email, username, plan, created_at, last_active');
+      // Fetch profiles, sessions, and posts in parallel with bounded limits
+      const [profilesRes, sessionsRes, postsRes] = await Promise.all([
+        admin.from('profiles').select('id, email, username, plan, created_at, last_active').limit(5000),
+        admin.from('sessions').select('user_id').limit(10000),
+        admin.from('community_posts').select('user_email').limit(5000),
+      ]);
+      const allProfiles = profilesRes.data;
       if (!allProfiles) return json({ users: [] });
 
       // Count sessions and posts per user
-      const { data: sessions } = await admin.from('sessions').select('user_id');
       const sessionCount: Record<string, number> = {};
-      (sessions || []).forEach((s: any) => { sessionCount[s.user_id] = (sessionCount[s.user_id] || 0) + 1; });
+      (sessionsRes.data || []).forEach((s: any) => { sessionCount[s.user_id] = (sessionCount[s.user_id] || 0) + 1; });
 
-      const { data: posts } = await admin.from('community_posts').select('user_email');
       const postCount: Record<string, number> = {};
-      (posts || []).forEach((p: any) => { postCount[p.user_email] = (postCount[p.user_email] || 0) + 1; });
+      (postsRes.data || []).forEach((p: any) => { postCount[p.user_email] = (postCount[p.user_email] || 0) + 1; });
 
       const enriched = allProfiles.map((u: any) => ({
         ...u,
@@ -1282,7 +1319,19 @@ if (action === 'getStreak') {
     if (action === 'proxyImage') {
       const { imageUrl } = payload || {};
       if (!imageUrl) return json({ error: 'missing imageUrl' }, 400);
-      const resp = await fetch(imageUrl);
+      // Validate URL: only allow https and block private IPs
+      let parsedUrl: URL;
+      try { parsedUrl = new URL(imageUrl); } catch { return json({ error: 'invalid URL' }, 400); }
+      if (parsedUrl.protocol !== 'https:') return json({ error: 'only https allowed' }, 400);
+      const hostname = parsedUrl.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0'
+          || hostname.startsWith('10.') || hostname.startsWith('192.168.')
+          || /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)
+          || hostname === '[::1]' || hostname.endsWith('.local')
+          || hostname.endsWith('.internal')) {
+        return json({ error: 'private URLs not allowed' }, 400);
+      }
+      const resp = await fetch(imageUrl, { signal: AbortSignal.timeout(10_000) });
       if (!resp.ok) return json({ error: 'fetch failed: ' + resp.status }, 502);
       const buf = await resp.arrayBuffer();
       const bytes = new Uint8Array(buf);
@@ -1294,6 +1343,8 @@ if (action === 'getStreak') {
 
     return json({ error: 'unknown action' }, 400);
   } catch (e) {
+    // checkRateLimit throws a Response directly — pass it through
+    if (e instanceof Response) return e;
     return json({ error: (e as Error).message }, 500);
   }
 });
