@@ -877,11 +877,12 @@ if (action === 'getStreak') {
       // 4. Delete R2 images (silent fail)
       try { if (imageKeys.length) await deleteKeys(imageKeys); } catch {}
 
-      // 5. Delete favorites + sessions (linked by profile id)
+      // 5. Delete favorites + sessions + client errors
       if (targetId) {
         await admin.from('favorites_images').delete().eq('user_id', targetId);
         await admin.from('sessions').delete().eq('user_id', targetId);
       }
+      await admin.from('client_errors').delete().eq('user_email', targetEmail);
 
       // 6. Delete profile row
       await admin.from('profiles').delete().eq('email', targetEmail);

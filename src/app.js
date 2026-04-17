@@ -272,7 +272,29 @@ async function openMoodboard() {
 }
 function closeMoodboard() { showScreen('screen-config') }
 
+// Kill tous les intervals/tickers d'une session active. Appelé automatiquement
+// par showScreen() quand on quitte screen-session/anim/cinema vers un autre
+// écran — garantit qu'aucun chargement ni timer ne tourne en arrière-plan.
+function cleanupActiveSession() {
+  try {
+    if (typeof ticker !== 'undefined' && ticker) { clearInterval(ticker); ticker = null }
+    if (typeof animInterval !== 'undefined' && animInterval) { clearInterval(animInterval); animInterval = null }
+    if (typeof studyTicker !== 'undefined' && studyTicker) { clearInterval(studyTicker); studyTicker = null }
+    if (typeof _bgPreloadTimer !== 'undefined' && _bgPreloadTimer) { clearTimeout(_bgPreloadTimer); _bgPreloadTimer = null }
+    if (typeof animLooping !== 'undefined') animLooping = false
+    paused = false
+  } catch (e) { /* silent */ }
+}
+
 function showScreen(id) {
+  // Si on quitte un écran de jeu vers autre chose, kill les intervals pour
+  // éviter que les poses continuent à défiler / charger en arrière-plan.
+  const GAME_SCREENS = ['screen-session', 'screen-anim', 'screen-cinema']
+  const previousActive = document.querySelector('.screen.active')
+  const oldId = previousActive ? previousActive.id : null
+  if (oldId && oldId !== id && GAME_SCREENS.includes(oldId)) {
+    cleanupActiveSession()
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
   document.getElementById(id).classList.add('active')
   const visible = id === 'screen-config'
@@ -345,7 +367,7 @@ async function loadFolder(folder) {
   document.getElementById('file-count').textContent = 'Indexation...'
   document.getElementById('btn-start').disabled = true
   allEntries = []; categories = {}; sequences = {}
-  imgCache.clear()
+  // imgCache gardé entre sessions (les URLs R2 ne changent pas, re-download inutile)
   const fileInfos = await window.electronAPI.listFiles(folder)
   for (const info of fileInfos) {
     const fp = info.path, cat = info.category, seq = info.sequence
@@ -380,7 +402,7 @@ async function loadR2(isPro) {
   document.getElementById('file-count').textContent = 'Chargement depuis le cloud...'
   document.getElementById('btn-start').disabled = true
   allEntries = []; categories = {}; sequences = {}
-  imgCache.clear()
+  // imgCache gardé entre sessions (les URLs R2 ne changent pas, re-download inutile)
   try {
     const [photos, anims] = await Promise.all([
       window.electronAPI.listR2Photos({ isPro }),
@@ -1116,7 +1138,7 @@ function participateChallenge(challengeId) {
   // Build a single-image session with the challenge ref
   sessionEntries = [{ type: 'image', path: c.ref_image_url, category: 'Challenge', isR2: true }]
   currentIndex = 0; sessionLog = []; _challengeSession = true
-  imgCache.clear()
+  // imgCache gardé entre sessions (les URLs R2 ne changent pas, re-download inutile)
   mainMode = 'pose'; currentSubMode = 'class'
   closeEndConfirm()
   document.getElementById('controls').style.display = 'flex'
@@ -1532,7 +1554,7 @@ function drawFromRefUrl(refUrl) {
   // Same pattern as participateChallenge: single-image session with the ref
   sessionEntries = [{ type: 'image', path: refUrl, category: 'Communauté', isR2: true }]
   currentIndex = 0; sessionLog = []; _challengeSession = true
-  imgCache.clear()
+  // imgCache gardé entre sessions (les URLs R2 ne changent pas, re-download inutile)
   mainMode = 'pose'; currentSubMode = 'class'
   closeEndConfirm()
   document.getElementById('controls').style.display = 'flex'
@@ -2044,7 +2066,7 @@ async function startSession() {
     }
   }
   currentIndex = 0; sessionLog = []
-  imgCache.clear()
+  // imgCache gardé entre sessions (les URLs R2 ne changent pas, re-download inutile)
   if (_bgPreloadTimer) { clearTimeout(_bgPreloadTimer); _bgPreloadTimer = null }
   _bgPreloadIdx = 0
   closeEndConfirm()
@@ -2060,8 +2082,8 @@ async function startSession() {
 
 // ══ POSE : AFFICHAGE ══
 const imgCache = new Map()
-const IMG_PRELOAD_INITIAL = 15
-const IMG_PRELOAD_BATCH = 10
+const IMG_PRELOAD_INITIAL = 30
+const IMG_PRELOAD_BATCH = 20
 let _bgPreloadIdx = 0
 let _bgPreloadTimer = null
 
@@ -3219,6 +3241,67 @@ function resetGrid() { gridMode = 0; applyGrid() }
 // ══ OPTIONS ══
 function toggleOptions() { document.getElementById('options-dropdown').classList.toggle('open') }
 
+// ── Musique d'ambiance (background music) ──
+// Démarre au 1er clic user (les navigateurs bloquent l'autoplay avant
+// interaction). Widget dans le dropdown Options : icône 🎵/🔇 cliquable
+// pour on/off, slider 0-100 pour le volume. Tout persisté en localStorage.
+const BGM_KEY = 'gd4_bgm_enabled'
+const BGM_VOL_KEY = 'gd4_bgm_volume'  // 0-100 en string
+function bgmEnabled() {
+  return localStorage.getItem(BGM_KEY) !== '0'  // défaut ON
+}
+function bgmVolume() {
+  const v = parseInt(localStorage.getItem(BGM_VOL_KEY) || '12', 10)
+  return isNaN(v) ? 12 : Math.max(0, Math.min(100, v))
+}
+function applyBgmUi() {
+  const icon = document.getElementById('opt-bgm-icon')
+  const slider = document.getElementById('opt-bgm-slider')
+  const value = document.getElementById('opt-bgm-value')
+  const v = bgmVolume()
+  if (icon) icon.textContent = bgmEnabled() ? '🎵' : '🔇'
+  if (slider) slider.value = String(v)
+  if (value) value.textContent = v + '%'
+}
+function tryPlayBgm() {
+  const el = document.getElementById('bgm')
+  if (!el || !bgmEnabled()) return
+  if (typeof isAllMuted === 'function' && isAllMuted()) return
+  el.volume = bgmVolume() / 100
+  el.play().catch(() => { /* autoplay bloqué — attendra le 1er click */ })
+}
+function toggleBgm() {
+  const enabled = bgmEnabled()
+  localStorage.setItem(BGM_KEY, enabled ? '0' : '1')
+  const el = document.getElementById('bgm')
+  if (el) {
+    if (enabled) { el.pause() }
+    else { el.volume = bgmVolume() / 100; el.play().catch(() => {}) }
+  }
+  applyBgmUi()
+}
+function setBgmVolume(pct) {
+  const v = Math.max(0, Math.min(100, parseInt(pct, 10) || 0))
+  localStorage.setItem(BGM_VOL_KEY, String(v))
+  const el = document.getElementById('bgm')
+  if (el) el.volume = v / 100
+  const value = document.getElementById('opt-bgm-value')
+  if (value) value.textContent = v + '%'
+  // Si l'user monte le volume alors que la musique était coupée, on réactive
+  if (v > 0 && !bgmEnabled()) {
+    localStorage.setItem(BGM_KEY, '1')
+    if (el) el.play().catch(() => {})
+    applyBgmUi()
+  }
+}
+// Démarrage au 1er click (les navigateurs bloquent autoplay pur)
+document.addEventListener('click', () => tryPlayBgm(), { once: true })
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyBgmUi)
+} else {
+  applyBgmUi()
+}
+
 // ── Toggle thème Jour/Nuit ──
 // Le thème est aussi appliqué par un script inline en <head> AVANT le
 // premier paint (anti-flash). Cette fonction sert au toggle runtime et à
@@ -3228,8 +3311,13 @@ function applyTheme() {
   const light = localStorage.getItem(THEME_KEY) === 'light'
   document.body.classList.toggle('theme-light', light)
   document.documentElement.classList.remove('theme-light-preload')
-  const label = document.getElementById('opt-theme')
-  if (label) label.textContent = light ? '🌙 Mode Nuit' : '☀️ Mode Jour'
+  const item = document.getElementById('opt-theme')
+  if (item) {
+    const icon = item.querySelector('.opt-icon')
+    const lbl = item.querySelector('.opt-label')
+    if (icon) icon.textContent = light ? '🌙' : '☀️'
+    if (lbl) lbl.textContent = light ? 'Mode Nuit' : 'Mode Jour'
+  }
 }
 function toggleTheme() {
   const now = localStorage.getItem(THEME_KEY) === 'light' ? 'dark' : 'light'
@@ -3248,8 +3336,13 @@ const LEGACY_UI_KEY = 'gd4_legacy_ui'
 function applyLegacyUi() {
   const legacy = localStorage.getItem(LEGACY_UI_KEY) === '1'
   document.body.classList.toggle('legacy-ui', legacy)
-  const label = document.getElementById('opt-legacy-ui')
-  if (label) label.textContent = legacy ? '✨ Design amélioré' : '👁 Design ancien'
+  const item = document.getElementById('opt-legacy-ui')
+  if (item) {
+    const icon = item.querySelector('.opt-icon')
+    const lbl = item.querySelector('.opt-label')
+    if (icon) icon.textContent = legacy ? '✨' : '👁'
+    if (lbl) lbl.textContent = legacy ? 'Design amélioré' : 'Design ancien'
+  }
 }
 function toggleLegacyUi() {
   const now = localStorage.getItem(LEGACY_UI_KEY) === '1' ? '0' : '1'
@@ -3389,7 +3482,11 @@ let _onboardingShown = false
 
 function maybeShowOnboarding() {
   if (_onboardingShown) return
-  if (!DEV_ALWAYS_SHOW_ONBOARDING && localStorage.getItem(ONBOARDING_KEY) === '1') return
+  if (!DEV_ALWAYS_SHOW_ONBOARDING && _readScoped(ONBOARDING_KEY) === '1') {
+    // Onboarding déjà fait → proposer le choix de thème si pas encore fait
+    maybeShowThemeChooser()
+    return
+  }
   _onboardingShown = true
   showOnboarding()
 }
@@ -3532,8 +3629,59 @@ function closeOnboarding() {
   if (overlay._keyHandler) document.removeEventListener('keydown', overlay._keyHandler)
   overlay.style.transition = 'opacity 0.25s ease'
   overlay.style.opacity = '0'
-  setTimeout(() => overlay.remove(), 250)
-  localStorage.setItem(ONBOARDING_KEY, '1')
+  setTimeout(() => { overlay.remove(); maybeShowThemeChooser() }, 250)
+  _writeScoped(ONBOARDING_KEY, '1')
+}
+
+// ══ THEME CHOOSER (1ère session) ══
+// Propose Jour/Nuit à l'user la 1ère fois. S'affiche après l'onboarding
+// ou directement si l'onboarding est déjà fait. Gated par localStorage.
+const THEME_CHOSEN_KEY = 'gd4_theme_chosen'
+function maybeShowThemeChooser() {
+  if (_readScoped(THEME_CHOSEN_KEY) === '1') return
+  showThemeChooser()
+}
+function showThemeChooser() {
+  if (document.getElementById('theme-chooser-overlay')) return
+  const overlay = document.createElement('div')
+  overlay.id = 'theme-chooser-overlay'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,12,22,0.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:1100;display:flex;align-items:center;justify-content:center;padding:24px;animation:announce-fade 0.3s ease;'
+  overlay.innerHTML =
+    '<div style="background:#141e2a;border:0.5px solid #1e2d40;border-radius:20px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
+    '<div style="font-size:48px;margin-bottom:16px;">🎨</div>' +
+    '<h2 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 8px;">Choisis ton ambiance</h2>' +
+    '<p style="color:#8899aa;font-size:14px;margin:0 0 28px;line-height:1.5;">Tu pourras toujours changer dans les options.</p>' +
+    '<div style="display:flex;gap:14px;">' +
+      '<button id="tc-dark" style="flex:1;padding:20px 16px;border-radius:14px;border:2px solid #1e2d40;background:#0f1923;cursor:pointer;transition:border-color 0.1s,transform 0.1s;">' +
+        '<div style="font-size:32px;margin-bottom:10px;">🌙</div>' +
+        '<div style="color:#fff;font-size:15px;font-weight:600;">Nuit</div>' +
+        '<div style="color:#4a6280;font-size:12px;margin-top:4px;">Sombre et cozy</div>' +
+      '</button>' +
+      '<button id="tc-light" style="flex:1;padding:20px 16px;border-radius:14px;border:2px solid #e5e0d8;background:#faf8f5;cursor:pointer;transition:border-color 0.1s,transform 0.1s;">' +
+        '<div style="font-size:32px;margin-bottom:10px;">☀️</div>' +
+        '<div style="color:#0a1520;font-size:15px;font-weight:600;">Jour</div>' +
+        '<div style="color:#5a6b7f;font-size:12px;margin-top:4px;">Clair et lumineux</div>' +
+      '</button>' +
+    '</div>' +
+    '</div>'
+  document.body.appendChild(overlay)
+
+  function choose(theme) {
+    localStorage.setItem(THEME_KEY, theme)
+    _writeScoped(THEME_CHOSEN_KEY, '1')
+    applyTheme()
+    overlay.style.transition = 'opacity 0.25s ease'
+    overlay.style.opacity = '0'
+    setTimeout(() => overlay.remove(), 250)
+  }
+
+  document.getElementById('tc-dark').onclick = () => choose('dark')
+  document.getElementById('tc-light').onclick = () => choose('light')
+  // Hover feedback
+  document.getElementById('tc-dark').onmouseover = function() { this.style.borderColor = '#2983eb'; this.style.transform = 'scale(1.03)' }
+  document.getElementById('tc-dark').onmouseout = function() { this.style.borderColor = '#1e2d40'; this.style.transform = 'none' }
+  document.getElementById('tc-light').onmouseover = function() { this.style.borderColor = '#2983eb'; this.style.transform = 'scale(1.03)' }
+  document.getElementById('tc-light').onmouseout = function() { this.style.borderColor = '#e5e0d8'; this.style.transform = 'none' }
 }
 
 // ══ CHOOSE USERNAME (post-signup) ══
@@ -3542,7 +3690,7 @@ let _usernameAskInFlight = false
 
 async function maybeAskForUsername() {
   if (_usernameAskInFlight) return
-  if (localStorage.getItem(USERNAME_SET_KEY) === '1') return
+  if (_readScoped(USERNAME_SET_KEY) === '1') return
   if (!window.electronAPI?.getProfile) return
   _usernameAskInFlight = true
   try {
@@ -3555,7 +3703,7 @@ async function maybeAskForUsername() {
     // Needs prompt if: no username OR username is just the email prefix (default/fallback)
     const needsPrompt = !currentUsername || currentUsername === emailPrefix
     if (!needsPrompt) {
-      localStorage.setItem(USERNAME_SET_KEY, '1')
+      _writeScoped(USERNAME_SET_KEY, '1')
       return
     }
     showUsernameModal()
@@ -3599,7 +3747,7 @@ function showUsernameModal() {
       const res = await window.electronAPI.updateUsername(name)
       if (res && res.ok) {
         _communityUsername = res.username || name
-        localStorage.setItem(USERNAME_SET_KEY, '1')
+        _writeScoped(USERNAME_SET_KEY, '1')
         closeUsernameModal()
       } else {
         msg.textContent = (res && res.error) || 'Erreur'
@@ -3651,25 +3799,47 @@ document.addEventListener('keydown', (e) => {
   }
 })
 
-async function showAbout() {
+function showAbout() {
   document.getElementById('options-dropdown').classList.remove('open')
   const modal = document.getElementById('about-modal')
-  const version = await window.electronAPI.getAppVersion()
-  document.getElementById('about-version').textContent = 'v' + version
-  const proData = await window.electronAPI.refreshProStatus()
-  const isPro = proData?.isPro || currentUserIsPro; const expiresAt = proData?.expiresAt
-  const planEl = document.getElementById('about-plan'); const expiryRow = document.getElementById('about-expiry-row')
-  const expiryEl = document.getElementById('about-expiry'); const upgradeBtn = document.getElementById('about-upgrade-btn')
-  if (isPro) {
-    planEl.textContent = '⭐ Pro'; planEl.className = 'value pro'; upgradeBtn.style.display = 'none'
-    if (expiresAt) {
-      const d = new Date(expiresAt); expiryRow.style.display = 'flex'
-      expiryEl.textContent = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-      const daysLeft = Math.ceil((d - Date.now()) / 86400000)
-      if (daysLeft <= 7) { expiryEl.style.color = daysLeft <= 3 ? '#E24B4A' : '#f0c040'; expiryEl.textContent += ' (' + daysLeft + ' j)' }
-    }
-  } else { planEl.textContent = 'Free'; planEl.className = 'value free'; expiryRow.style.display = 'none'; upgradeBtn.style.display = 'block' }
+  // Afficher IMMÉDIATEMENT — les données se remplissent en arrière-plan.
+  // Avant : 2× await réseau AVANT open → 2s de latence perçue.
   modal.classList.add('open')
+  // Version (IPC local, rapide)
+  if (window.electronAPI?.getAppVersion) {
+    window.electronAPI.getAppVersion().then(v => {
+      document.getElementById('about-version').textContent = 'v' + v
+    }).catch(() => {})
+  }
+  // Plan Pro (appel réseau Supabase — peut être lent)
+  const planEl = document.getElementById('about-plan')
+  const expiryRow = document.getElementById('about-expiry-row')
+  const expiryEl = document.getElementById('about-expiry')
+  const upgradeBtn = document.getElementById('about-upgrade-btn')
+  // Valeur optimiste à partir de l'état connu localement (pas d'await)
+  if (currentUserIsPro) {
+    planEl.textContent = '⭐ Pro'; planEl.className = 'value pro'; upgradeBtn.style.display = 'none'
+  } else {
+    planEl.textContent = 'Free'; planEl.className = 'value free'; expiryRow.style.display = 'none'; upgradeBtn.style.display = 'block'
+  }
+  // Refresh en arrière-plan pour mettre à jour si besoin
+  if (window.electronAPI?.refreshProStatus) {
+    window.electronAPI.refreshProStatus().then(proData => {
+      const isPro = proData?.isPro || currentUserIsPro
+      const expiresAt = proData?.expiresAt
+      if (isPro) {
+        planEl.textContent = '⭐ Pro'; planEl.className = 'value pro'; upgradeBtn.style.display = 'none'
+        if (expiresAt) {
+          const d = new Date(expiresAt); expiryRow.style.display = 'flex'
+          expiryEl.textContent = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+          const daysLeft = Math.ceil((d - Date.now()) / 86400000)
+          if (daysLeft <= 7) { expiryEl.style.color = daysLeft <= 3 ? '#E24B4A' : '#f0c040'; expiryEl.textContent += ' (' + daysLeft + ' j)' }
+        }
+      } else {
+        planEl.textContent = 'Free'; planEl.className = 'value free'; expiryRow.style.display = 'none'; upgradeBtn.style.display = 'block'
+      }
+    }).catch(() => {})
+  }
 }
 function closeAbout() { document.getElementById('about-modal').classList.remove('open') }
 
@@ -3731,7 +3901,7 @@ function processNextBadge() {
   // Son Zelda
   try {
     const audio = new Audio(BADGE_SOUND_B64)
-    audio.volume = 0.7
+    audio.volume = 0.25
     audio.play().catch(() => {})
   } catch(e) {}
 
@@ -4135,3 +4305,232 @@ function toggleBadgesPanel() {
     }, 140)
   }, { passive: true })
 })()
+
+// ══ SOUND DESIGN — hover léger sur les boutons ══
+// Web Audio API pour générer un "tick" doux (sine 900Hz, attack/decay 80ms,
+// volume 4%). Pas de fichier embarqué. Désactivé sur mobile (pas de hover
+// tactile natif). Track le dernier élément hovered pour ne pas répéter.
+;(function setupHoverSound() {
+  // Pas de hover pertinent sur les appareils tactiles purs
+  if (typeof window.matchMedia === 'function' && !window.matchMedia('(hover: hover)').matches) return
+
+  const INTERACTIVE_SEL = 'button, .mode-tab, .cat-chip, .chip, .sub-mode-card, .bottom-tab, .opt-item, .end-btn, .seq-card, .film-card, .community-tab, .hist-period-tab'
+  let audioCtx = null
+  let lastHoveredEl = null
+
+  function getCtx() {
+    if (!audioCtx) {
+      try {
+        const C = window.AudioContext || window.webkitAudioContext
+        if (C) audioCtx = new C()
+      } catch (e) { /* silent */ }
+    }
+    return audioCtx
+  }
+
+  // Mélodie UI ambient en MI MINEUR — accordée à la musique de fond
+  // (AKR - Soft Hope : E minor, 101 BPM). Gamme pentatonique E minor
+  // (E G A B D) : toutes les combinaisons sonnent bien, jamais de dissonance
+  // avec la musique de fond. Séquence qui flotte autour de la tonique E.
+  //
+  // Son premium : sine pur + harmonique à l'octave (volume bas) pour la
+  // richesse, attack 15ms + decay 400ms lent → effet "chime" smooth.
+  // Low-pass très ouvert pour garder l'air.
+  const MELODY_E_MINOR = [
+    659.25,   // E5 (tonique)
+    987.77,   // B5 (quinte)
+    783.99,   // G5 (tierce mineure)
+    1174.66,  // D6
+    880.00,   // A5
+    1318.51,  // E6 (octave tonique)
+    987.77,   // B5
+    783.99,   // G5
+    1174.66,  // D6
+    880.00,   // A5
+    987.77,   // B5
+    659.25,   // E5 (retour tonique)
+    783.99,   // G5
+    1318.51,  // E6
+    880.00,   // A5
+    987.77    // B5
+  ]
+  let melodyIdx = 0
+  function playTick() {
+    if (typeof isAllMuted === 'function' && isAllMuted()) return
+    const ctx = getCtx()
+    if (!ctx || ctx.state === 'suspended') return
+    const freq = MELODY_E_MINOR[melodyIdx]
+    melodyIdx = (melodyIdx + 1) % MELODY_E_MINOR.length
+    const now = ctx.currentTime
+    // Master gain : attack 15ms, decay 400ms lent → fade gracieux
+    const master = ctx.createGain()
+    master.gain.setValueAtTime(0.0001, now)
+    master.gain.linearRampToValueAtTime(0.028, now + 0.015)
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.42)
+    // Low-pass très ouvert pour garder l'éclat tout en adoucissant
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = 4500
+    filter.Q.value = 0.5
+    master.connect(filter)
+    filter.connect(ctx.destination)
+    // Voix 1 : fondamentale (sine = timbre le plus doux)
+    const osc1 = ctx.createOscillator()
+    osc1.type = 'sine'
+    osc1.frequency.value = freq
+    osc1.connect(master)
+    osc1.start(now)
+    osc1.stop(now + 0.45)
+    // Voix 2 : octave supérieure à -12dB pour la richesse "chime"
+    const osc2 = ctx.createOscillator()
+    const octaveGain = ctx.createGain()
+    octaveGain.gain.value = 0.25  // 25% du gain principal = harmonique subtile
+    osc2.type = 'sine'
+    osc2.frequency.value = freq * 2
+    osc2.connect(octaveGain)
+    octaveGain.connect(master)
+    osc2.start(now)
+    osc2.stop(now + 0.45)
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const target = e.target.closest(INTERACTIVE_SEL)
+    if (!target) return
+    if (target === lastHoveredEl) return
+    if (target.disabled) return
+    lastHoveredEl = target
+    playTick()
+  })
+
+  document.addEventListener('mouseout', (e) => {
+    const target = e.target.closest(INTERACTIVE_SEL)
+    if (!target) return
+    const related = e.relatedTarget
+    // On reset si la souris sort VRAIMENT de l'elt interactif (et n'est pas
+    // passée à un enfant ou à un autre elt du même groupe).
+    if (related && related.closest && related.closest(INTERACTIVE_SEL) === target) return
+    if (target === lastHoveredEl) lastHoveredEl = null
+  })
+})()
+
+// ══ AMBIENT WATER SOUND — streaming via <audio> + filtre ASMR ══
+// Avant : fetch + decodeAudioData d'un WAV de 47MB → freeze 1-2s au 1er
+// clic. Maintenant : <audio loop> en streaming (jamais tout en mémoire)
+// + createMediaElementSource pour brancher un filtre low-pass ASMR.
+// Résultat : zéro freeze, zéro decode, lecture instantanée.
+const WATER_VOL_KEY = 'gd4_water_volume'   // 0-100
+const MUTE_ALL_KEY = 'gd4_mute_all'         // '1' = muted
+function waterVolume() {
+  const v = parseInt(localStorage.getItem(WATER_VOL_KEY) || '22', 10)
+  return isNaN(v) ? 22 : Math.max(0, Math.min(100, v))
+}
+function isAllMuted() { return localStorage.getItem(MUTE_ALL_KEY) === '1' }
+let _waterGainNode = null
+
+;(function setupAmbientWater() {
+  let connected = false
+
+  function initWater() {
+    const el = document.getElementById('water-sound')
+    if (!el || connected) return
+    connected = true
+
+    el.volume = 1  // volume géré par le GainNode, pas par l'élément
+
+    try {
+      const C = window.AudioContext || window.webkitAudioContext
+      if (!C) { el.volume = isAllMuted() ? 0 : waterVolume() / 100; return }
+      const ctx = new C()
+      const source = ctx.createMediaElementSource(el)
+      const gain = ctx.createGain()
+      gain.gain.value = isAllMuted() ? 0 : waterVolume() / 100
+      _waterGainNode = gain
+
+      const lowpass = ctx.createBiquadFilter()
+      lowpass.type = 'lowpass'
+      lowpass.frequency.value = 1200
+      lowpass.Q.value = 0.6
+
+      const lowshelf = ctx.createBiquadFilter()
+      lowshelf.type = 'lowshelf'
+      lowshelf.frequency.value = 200
+      lowshelf.gain.value = 3
+
+      source.connect(gain)
+      gain.connect(lowpass)
+      lowpass.connect(lowshelf)
+      lowshelf.connect(ctx.destination)
+    } catch (e) {
+      el.volume = isAllMuted() ? 0 : waterVolume() / 100
+    }
+
+    if (!isAllMuted()) el.play().catch(() => {})
+  }
+
+  document.addEventListener('click', initWater, { once: true })
+})()
+
+// ══ CONTRÔLES AUDIO GLOBAUX ══
+// Setter du volume du son d'eau (0-100). Persiste + applique en temps réel.
+function setWaterVolume(pct) {
+  const v = Math.max(0, Math.min(100, parseInt(pct, 10) || 0))
+  localStorage.setItem(WATER_VOL_KEY, String(v))
+  if (_waterGainNode && !isAllMuted()) {
+    _waterGainNode.gain.value = v / 100
+  } else if (!_waterGainNode) {
+    const el = document.getElementById('water-sound')
+    if (el) el.volume = isAllMuted() ? 0 : v / 100
+  }
+  const value = document.getElementById('opt-water-value')
+  if (value) value.textContent = v + '%'
+}
+
+// Toggle mute global : coupe BGM + water + sons UI d'un coup.
+// Pour le hover sound : on gate via isAllMuted() dans playTick.
+function toggleMuteAll() {
+  const muted = isAllMuted()
+  const next = muted ? '0' : '1'
+  localStorage.setItem(MUTE_ALL_KEY, next)
+  // Musique
+  const bgm = document.getElementById('bgm')
+  if (bgm) {
+    if (!muted) { bgm.pause() }
+    else if (bgmEnabled()) { bgm.volume = bgmVolume() / 100; bgm.play().catch(() => {}) }
+  }
+  // Water sound
+  const waterEl = document.getElementById('water-sound')
+  if (_waterGainNode) {
+    _waterGainNode.gain.value = muted ? waterVolume() / 100 : 0
+  } else if (waterEl) {
+    waterEl.volume = muted ? waterVolume() / 100 : 0
+  }
+  if (waterEl) {
+    if (!muted) waterEl.pause()
+    else waterEl.play().catch(() => {})
+  }
+  applyMuteUi()
+}
+
+function applyMuteUi() {
+  const item = document.getElementById('opt-mute-all')
+  if (!item) return
+  const icon = item.querySelector('.opt-icon')
+  const lbl = item.querySelector('.opt-label')
+  const muted = isAllMuted()
+  if (icon) icon.textContent = muted ? '🔊' : '🔇'
+  if (lbl) lbl.textContent = muted ? 'Réactiver les sons' : 'Couper tous les sons'
+}
+
+function applyWaterUi() {
+  const slider = document.getElementById('opt-water-slider')
+  const value = document.getElementById('opt-water-value')
+  const v = waterVolume()
+  if (slider) slider.value = String(v)
+  if (value) value.textContent = v + '%'
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => { applyMuteUi(); applyWaterUi() })
+} else {
+  applyMuteUi(); applyWaterUi()
+}
