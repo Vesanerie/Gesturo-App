@@ -11,11 +11,19 @@
   }
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+    // En mode Jour le fond est clair → les bulles bleues très transparentes
+    // sont invisibles. On utilise un bleu plus saturé/foncé + opacity boostée
+    // pour qu'elles restent "eau bleue" logique.
+    const light = document.body.classList.contains('theme-light')
+    const stroke = light ? '30,95,220' : '41,131,235'
+    const highlight = light ? '80,140,230' : '180,220,255'
+    const opMult = light ? 2.2 : 1  // plus visible en jour
     bubbles.forEach(b => {
+      const op = Math.min(1, b.opacity * opMult)
       ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
-      ctx.strokeStyle = `rgba(41,131,235,${b.opacity})`; ctx.lineWidth = b.welcome ? Math.max(0.5, b.r * 0.04) : 0.3; ctx.stroke()
+      ctx.strokeStyle = `rgba(${stroke},${op})`; ctx.lineWidth = b.welcome ? Math.max(0.5, b.r * 0.04) : 0.3; ctx.stroke()
       ctx.beginPath(); ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.22, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(180,220,255,${b.opacity * 0.5})`; ctx.fill()
+      ctx.fillStyle = `rgba(${highlight},${op * 0.5})`; ctx.fill()
     })
   }
   function update() {

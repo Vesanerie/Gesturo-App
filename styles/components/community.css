@@ -8,7 +8,7 @@
   overflow: hidden;
   color: #2983eb;
   pointer-events: none;
-  transition: height 0.25s ease, opacity 0.2s;
+  transition: height 0.06s ease, opacity 0.06s;
   opacity: 0;
 }
 #ptr-indicator.ptr-active { opacity: 1; }
@@ -35,7 +35,7 @@
   align-items: center;
   justify-content: center;
   padding: 30px 20px;
-  animation: cc-fade-in 0.2s ease;
+  animation: cc-fade-in 0.06s ease;
 }
 @keyframes cc-fade-in {
   from { opacity: 0; }
@@ -57,7 +57,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.06s, transform 0.1s;
   z-index: 2;
 }
 .cc-close:hover { background: rgba(226, 75, 74, 0.85); }
@@ -155,7 +155,7 @@
   font-weight: 600;
   padding: 11px 24px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.06s, transform 0.1s;
 }
 .cc-draw-btn { background: #2983eb; }
 .cc-draw-btn:hover { background: #4499f5; }
@@ -194,7 +194,7 @@
   font-weight: 600;
   padding: 8px 0;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.06s, color 0.06s;
 }
 .community-tab:hover {
   background: #162030;
@@ -409,7 +409,7 @@
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.06s;
   backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
 }
@@ -458,7 +458,7 @@
   border-radius: 10px;
   overflow: hidden;
   border: 0.5px solid #1e2d40;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: border-color 0.06s, transform 0.06s;
   animation: community-fade-in 0.35s ease both;
   position: relative;
 }
@@ -475,7 +475,7 @@
   display: block;
   cursor: pointer;
   background: #0a1520;
-  transition: filter 0.2s;
+  transition: filter 0.06s;
 }
 .community-post-img:hover {
   filter: brightness(0.85);
@@ -529,7 +529,7 @@
   padding: 5px 10px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: background 0.06s;
 }
 .community-ref-btn:hover {
   background: #2983eb33;
@@ -576,7 +576,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color 0.06s;
 }
 .community-post-user:hover {
   color: #2983eb;
@@ -614,7 +614,7 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background 0.06s, border-color 0.06s, transform 0.1s;
   color: #8899aa;
   line-height: 1;
 }
@@ -763,7 +763,7 @@
   border-radius: 10px;
   padding: 10px 14px;
   animation: community-fade-in 0.35s ease both;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: border-color 0.06s, transform 0.06s;
 }
 .leaderboard-row:hover {
   border-color: #2983eb44;

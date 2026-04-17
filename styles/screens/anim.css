@@ -60,7 +60,7 @@
 #timeline-wrap::-webkit-scrollbar-track { background: transparent; }
 #timeline-wrap::-webkit-scrollbar-thumb { background: #1e2d40; border-radius: 2px; }
 #timeline-inner { display: flex; gap: 4px; align-items: flex-end; min-width: max-content; padding-bottom: 8px; }
-.thumb-item { flex-shrink: 0; width: 52px; height: 70px; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative; border: 2px solid transparent; transition: border-color 0.15s, transform 0.15s; background: #131f2e; }
+.thumb-item { flex-shrink: 0; width: 52px; height: 70px; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative; border: 2px solid transparent; transition: border-color 0.06s, transform 0.06s; background: #131f2e; }
 .thumb-item:hover { transform: translateY(-3px); border-color: #1e2d40; }
 .thumb-item.active { border-color: #2983eb; transform: translateY(-4px); }
 .thumb-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -216,22 +216,22 @@
   #screen-anim.controls-hidden #anim-bar {
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.06s ease;
   }
   #screen-anim:not(.controls-hidden) #anim-bar {
-    transition: opacity 0.25s ease;
+    transition: opacity 0.06s ease;
   }
   #screen-anim.controls-hidden #anim-mode-badge,
   #screen-anim.controls-hidden #anim-frame-info,
   #screen-anim.controls-hidden #anim-photo-area .fav-star-btn {
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.06s ease;
   }
   #screen-anim:not(.controls-hidden) #anim-mode-badge,
   #screen-anim:not(.controls-hidden) #anim-frame-info,
   #screen-anim:not(.controls-hidden) #anim-photo-area .fav-star-btn {
-    transition: opacity 0.25s ease;
+    transition: opacity 0.06s ease;
   }
   /* Timer flottant visible même quand controls cachés */
   #screen-anim.controls-hidden #anim-float-timer {
@@ -414,22 +414,22 @@
   #screen-anim.controls-hidden #anim-bar {
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.06s ease;
   }
   #screen-anim:not(.controls-hidden) #anim-bar {
-    transition: opacity 0.25s ease;
+    transition: opacity 0.06s ease;
   }
   #screen-anim.controls-hidden #anim-mode-badge,
   #screen-anim.controls-hidden #anim-frame-info,
   #screen-anim.controls-hidden #anim-photo-area .fav-star-btn {
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.06s ease;
   }
   #screen-anim:not(.controls-hidden) #anim-mode-badge,
   #screen-anim:not(.controls-hidden) #anim-frame-info,
   #screen-anim:not(.controls-hidden) #anim-photo-area .fav-star-btn {
-    transition: opacity 0.25s ease;
+    transition: opacity 0.06s ease;
   }
   #screen-anim.controls-hidden #anim-float-timer {
     display: flex;

@@ -41,7 +41,7 @@
   font-weight: 600;
   padding: 11px 26px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.06s, transform 0.1s;
 }
 .free-random-block .frb-cta:hover { background: #1a6fd4; }
 .free-random-block .frb-cta:active { transform: scale(0.97); }
@@ -52,7 +52,7 @@
   cursor: not-allowed !important;
   border-style: dashed !important;
   border-color: #3a5570 !important;
-  transition: opacity 0.15s !important;
+  transition: opacity 0.06s !important;
 }
 .cat-locked:hover {
   opacity: 0.75;
@@ -82,7 +82,7 @@
   object-fit: cover;
   display: block;
   filter: brightness(0.85);
-  transition: filter 0.2s;
+  transition: filter 0.06s;
 }
 .free-mosaic-tile:hover img { filter: brightness(1); }
 .free-preview-caption { text-align: center; margin-bottom: 16px; }
@@ -109,11 +109,11 @@
   font-weight: 600;
   padding: 11px 24px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.06s, transform 0.1s;
 }
 .free-pro-btn:hover { background: #1a6fd4; }
 .free-pro-btn:active { transform: scale(0.97); }
-.cat-chip { display: flex; align-items: center; gap: 6px; border: 1.5px solid #1e2d40; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: transparent; color: #4a6280; user-select: none; transition: all 0.15s; }
+.cat-chip { display: flex; align-items: center; gap: 6px; border: 1.5px solid #1e2d40; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; background: transparent; color: #4a6280; user-select: none; transition: all 0.06s; }
 .cat-chip:hover { border-color: #2983eb; color: #6aaccc; }
 .cat-chip.selected { background: #d6e8ff; color: #0d2040; border-color: #d6e8ff; font-weight: 500; }
 .cat-chip.nudity { border-color: #5a1f1f; color: #7a3030; }
@@ -136,7 +136,7 @@
   font-weight: 500;
   padding: 7px 14px 7px 10px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background 0.06s, border-color 0.06s, transform 0.1s;
 }
 .cat-back-btn:hover {
   background: #162030;
@@ -312,7 +312,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     content: '▾';
     font-size: 14px;
     color: #3a5570;
-    transition: transform 0.2s ease;
+    transition: transform 0.06s ease;
   }
   #screen-config .card.collapsed h3::after {
     transform: rotate(-90deg);
@@ -321,7 +321,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
      On gère la collapse via max-height pour avoir une transition douce. */
   #screen-config .card .card-body {
     padding: 0 18px 18px;
-    transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
+    transition: max-height 0.06s ease, opacity 0.06s ease, padding 0.06s ease;
     overflow: hidden;
   }
   #screen-config .card.collapsed .card-body {
@@ -652,7 +652,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     font-weight: 500;
     color: #6a8aaa;
     white-space: normal;
-    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+    transition: background 0.06s, color 0.06s, border-color 0.06s, transform 0.1s;
     position: relative;
   }
   #screen-config .mode-tab:hover {
@@ -913,7 +913,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     font-weight: 500;
     color: #8aacd4;
     white-space: normal;
-    transition: background 0.15s, color 0.15s, transform 0.1s;
+    transition: background 0.06s, color 0.06s, transform 0.1s;
     position: relative;
   }
   body:not(.legacy-ui) #screen-config .mode-tab:hover {

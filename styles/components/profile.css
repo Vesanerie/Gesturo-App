@@ -67,7 +67,7 @@
 .profile-logout-btn {
   width: 100%; background: none; border: 0.5px solid #1e2d40; border-radius: 10px;
   color: #e24b4a; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.06s;
 }
 .profile-logout-btn:hover { background: #1a1520; }
 
@@ -109,7 +109,7 @@
   width: 100%; box-sizing: border-box;
   background: #0d1825; border: 0.5px solid #1e2d40; border-radius: 10px;
   color: #fff; padding: 14px 16px; font-size: 15px;
-  outline: none; transition: border-color 0.15s;
+  outline: none; transition: border-color 0.06s;
   font-family: inherit; text-align: center;
 }
 .username-modal-input:focus { border-color: #2983eb; }
@@ -122,7 +122,7 @@
   width: 100%; margin-top: 16px;
   background: #2983eb; color: #fff; border: none;
   border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: background 0.15s, transform 0.1s;
+  cursor: pointer; transition: background 0.06s, transform 0.1s;
   font-family: inherit;
   box-shadow: 0 8px 24px rgba(41,131,235,0.25);
 }

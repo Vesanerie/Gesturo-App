@@ -15,7 +15,7 @@
 .transform-btn.grid-active { color: #fff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.1); }
 .transform-btn { background: rgba(10,21,32,0.7); border: 0.5px solid #1e2d40; border-radius: 6px; color: #4a6280; width: 32px; height: 32px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
 .transform-btn:hover { background: rgba(41,131,235,0.2); color: #fff; }
-#photo-area img, #photo-area canvas { transition: transform 0.2s ease; }
+#photo-area img, #photo-area canvas { transition: transform 0.06s ease; }
 #session-bar { flex-shrink: 0; background: #0f1923; border-top: 0.5px solid #1e2d40; padding: 10px 24px; display: flex; align-items: center; gap: 16px; }
 /* Cercle countdown SVG */
 #countdown-circle { width: 48px; height: 48px; flex-shrink: 0; }
@@ -220,7 +220,7 @@
   #screen-session #photo-area .fav-star-btn,
   #screen-session #photo-area #transform-controls,
   #screen-session #photo-area #phase-badge {
-    transition: opacity 0.22s ease, transform 0.22s ease;
+    transition: opacity 0.06s ease, transform 0.06s ease;
   }
   /* Le timer reste TOUJOURS visible — c'est l'info la plus critique
      pendant une session, on ne la cache jamais avec le tap-to-hide. */

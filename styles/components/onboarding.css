@@ -38,7 +38,7 @@
   background: none; border: none; color: #4a6280;
   font-size: 13px; font-family: inherit; cursor: pointer;
   padding: 6px 10px; border-radius: 6px;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.06s, background 0.06s;
   z-index: 2;
 }
 .onboarding-skip:hover { color: #8aaccc; background: rgba(255,255,255,0.04); }
@@ -96,7 +96,7 @@
   border-radius: 10px; padding: 14px 40px;
   font-size: 15px; font-weight: 600;
   font-family: inherit; cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.06s, transform 0.1s;
   box-shadow: 0 8px 24px rgba(41,131,235,0.25);
 }
 .onboarding-start-btn:hover { background: #4499f5; }
@@ -115,7 +115,7 @@
   background: #0d1825; border: 0.5px solid #1e2d40; border-radius: 50%;
   width: 38px; height: 38px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: #8aaccc; transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  color: #8aaccc; transition: background 0.06s, border-color 0.06s, opacity 0.06s;
   flex-shrink: 0;
 }
 .onboarding-arrow:hover { background: #162030; border-color: #2983eb; }
@@ -130,7 +130,7 @@
 .onboarding-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: #1e2d40; cursor: pointer;
-  transition: background 0.2s, width 0.2s;
+  transition: background 0.06s, width 0.06s;
   border: none; padding: 0;
 }
 .onboarding-dot.active { background: #2983eb; width: 24px; border-radius: 4px; }
