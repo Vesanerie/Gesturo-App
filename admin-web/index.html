@@ -436,8 +436,30 @@
           <div style="margin-top: 12px; padding: 14px; background: rgba(240,192,64,0.06); border: 0.5px solid rgba(240,192,64,0.25); border-radius: 12px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="font-size: 14px; color: var(--warm); font-weight: 600;">Importer depuis Claude</span>
-              <span class="muted" style="font-size: 11px;">Colle le JSON genere par Claude pour remplir tous les champs</span>
+              <button class="btn-secondary" style="padding: 3px 10px; font-size: 11px; cursor: pointer;" onclick="navigator.clipboard.writeText(document.getElementById('blog-prompt-text').textContent);this.textContent='Copie !';setTimeout(()=>this.textContent='Copier le prompt',1500)">Copier le prompt</button>
             </div>
+            <details style="margin-bottom: 10px;">
+              <summary class="muted" style="font-size: 12px; cursor: pointer;">Voir le prompt a envoyer a Claude</summary>
+              <pre id="blog-prompt-text" style="margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 11px; color: var(--text-soft); white-space: pre-wrap; line-height: 1.5; user-select: all;">Ecris un article blog SEO pour gesturo.fr (app de gesture drawing / dessin de modele vivant). Choisis un sujet pertinent parmi : ligne d'action, dessiner le mouvement, croquis rapide 30 secondes, anatomie artistique pour debutants, exercice dessin quotidien, comment dessiner les mains, proportions du corps humain, figure drawing tips, etc.
+
+Reponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de backticks) avec cette structure :
+{
+  "title": "Le titre de l'article",
+  "slug": "le-slug-url",
+  "description": "Meta description SEO de 150 chars max",
+  "keywords": "mot1, mot2, mot3",
+  "category": "Guide ou Technique ou Conseils ou Tutoriel ou Inspiration",
+  "read_time": "X min de lecture",
+  "excerpt": "Extrait de 1-2 phrases pour la carte sur l'index",
+  "content": "Le contenu HTML complet (h2, h3, p, ul, blockquote, strong, em). PAS de h1 ni de CTA final."
+}
+
+Regles :
+- 1200-1800 mots, ton pedagogue et passionne, tutoiement
+- Inclure un lien naturel vers https://gesturo.fr ou https://gesturo.fr/#waitlist
+- PAS d'accents dans le HTML (ecris "e" au lieu de "e accent" etc.)
+- Chaque h2 doit contenir un mot-cle secondaire</pre>
+            </details>
             <div style="display: flex; gap: 8px;">
               <textarea id="blog-json-input" rows="2" placeholder='Colle le JSON ici...' style="flex: 1; font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
               <button class="add-btn" style="padding: 8px 16px; white-space: nowrap;" onclick="importBlogJSON()">Importer</button>
