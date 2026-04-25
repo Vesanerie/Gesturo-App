@@ -261,11 +261,27 @@ function buildRecapGrid(logs) {
     const num = document.createElement('div'); num.className = 'recap-num'; num.textContent = log.label; item.appendChild(num)
     const dur = document.createElement('div'); dur.className = 'recap-duration'; const d = log.duration; dur.textContent = d < 60 ? d + 's' : (d / 60) + 'min'; item.appendChild(dur)
     if (log.src) {
-      item.addEventListener('click', () => openLightbox(log.src, i, log.duration, log.rotation || 0))
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.recap-star') || e.target.closest('.recap-drawing-btn') || e.target.closest('.recap-drawing-thumb')) return
+        openLightbox(log.src, i, log.duration, log.rotation || 0)
+      })
       const star = document.createElement('button')
       star.className = 'recap-star' + (isFaved(log.src) ? ' faved' : ''); star.textContent = isFaved(log.src) ? '★' : '☆'; star.title = 'Favori'
       star.onclick = (e) => { e.stopPropagation(); if (isFaved(log.src)) { removeFav(log.src); star.textContent = '☆'; star.classList.remove('faved') } else { addFav(log.src, log.favLabel); star.textContent = '★'; star.classList.add('faved') }; star.classList.add('bump'); setTimeout(() => star.classList.remove('bump'), 250) }
       item.appendChild(star)
+
+      // ── Bouton "Ajouter mon dessin" ──
+      const drawBtn = document.createElement('button')
+      drawBtn.className = 'recap-drawing-btn'
+      drawBtn.textContent = '✏️'
+      drawBtn.title = 'Ajouter mon dessin'
+      drawBtn.onclick = (e) => {
+        e.stopPropagation()
+        // Réutilise le flow community share en pré-sélectionnant cette pose
+        _selectedShareRef = log.src
+        _openShareUploadOverlay()
+      }
+      item.appendChild(drawBtn)
     }
     grid.appendChild(item)
   })
@@ -273,6 +289,7 @@ function buildRecapGrid(logs) {
   document.getElementById('stat-poses-label').textContent = 'poses'
   document.getElementById('stat-time-label').textContent = 'min'
 }
+
 
 function finishAnimSession() {
   clearInterval(animInterval); clearInterval(studyTicker)
