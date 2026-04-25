@@ -34,6 +34,14 @@ spécifiques au lieu de lire le fichier complet :
 - `node_modules/`, `www/`, `dist/`, `.venv/`, `android/`, `ios/`
 - Ces dossiers représentent 460k+ lignes de bruit.
 
+### Checks automatiques après modif
+- **Après modif de `src/app.js`** : vérifier que tous les `onclick="xxx()"`
+  de `index.html` correspondent à une fonction existante dans app.js.
+  Alerter si un onclick est orphelin.
+- **Après modif de `preload.js`** : vérifier que toutes les méthodes
+  exposées dans `window.electronAPI` ont un équivalent dans
+  `mobile/mobile-shim.js`. Alerter si une méthode manque dans le shim.
+
 ## Stack
 
 - **Desktop** : Electron (actuellement v41), auto-update in-app via electron-updater
