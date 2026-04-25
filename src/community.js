@@ -1,4 +1,3 @@
-// ── Community ── (extrait de app.js)
 
 const COMMUNITY_EMOJIS = ['🔥', '💪', '🎨', '😍', '👏', '✨']
 let reactionsCache = {}
@@ -989,3 +988,57 @@ const LEADERBOARD_MEDALS = ['🥇', '🥈', '🥉']
 let _leaderboardToken = 0
 async function renderLeaderboard() {
   const token = ++_leaderboardToken
+  const container = document.getElementById('community-leaderboard')
+  const empty = document.getElementById('community-empty')
+  container.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
+  try {
+    const res = await window.electronAPI.getCommunityLeaderboard()
+    // Race guard : si un autre renderLeaderboard a été lancé entre temps, on abandonne
+    if (token !== _leaderboardToken) return
+    const rawList = res.leaderboard || []
+    // Dédupe défensif par username (ceinture + bretelles)
+    const seen = new Set()
+    const list = rawList.filter(e => {
+      const key = (e.username || '').toLowerCase()
+      if (!key || seen.has(key)) return false
+      seen.add(key); return true
+    })
+    empty.style.display = 'none'
+    if (list.length === 0) {
+      container.innerHTML = '<div class="mine-empty">Pas encore de classement.<br>Partage tes dessins pour apparaitre ici !</div>'
+      return
+    }
+    const table = document.createElement('div')
+    table.className = 'leaderboard-list'
+    list.forEach((entry, i) => {
+      const row = document.createElement('div')
+      row.className = 'leaderboard-row' + (i < 3 ? ' leaderboard-top' : '')
+      row.style.animationDelay = (i * 50) + 'ms'
+
+      const rank = document.createElement('span')
+      rank.className = 'leaderboard-rank'
+      rank.textContent = i < 3 ? LEADERBOARD_MEDALS[i] : '#' + (i + 1)
+
+      const name = document.createElement('span')
+      name.className = 'leaderboard-name'
+      name.textContent = entry.username
+
+      const stats = document.createElement('span')
+      stats.className = 'leaderboard-stats'
+      stats.innerHTML = '<span class="lb-posts">' + entry.posts + ' post' + (entry.posts > 1 ? 's' : '') + '</span>'
+        + '<span class="lb-reactions">' + entry.reactions + ' reaction' + (entry.reactions > 1 ? 's' : '') + '</span>'
+
+      row.appendChild(rank)
+      row.appendChild(name)
+      row.appendChild(stats)
+      table.appendChild(row)
+    })
+    // Dernière vérif avant append : race guard
+    if (token !== _leaderboardToken) return
+    container.innerHTML = ''
+    container.appendChild(table)
+  } catch(e) {
+    if (token !== _leaderboardToken) return
+    empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.'
+  }
+}

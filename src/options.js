@@ -1,4 +1,3 @@
-// ── Options ── (extrait de app.js)
 
 function renderWeekBar() {
   if (!document.getElementById('week-streak')) return

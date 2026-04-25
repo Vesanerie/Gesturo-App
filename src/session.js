@@ -1,4 +1,3 @@
-// ── Session ── (extrait de app.js)
 
 function selectSubMode(mode) {
   currentSubMode = mode
@@ -265,3 +264,5 @@ function togglePause() { paused = !paused; document.getElementById('btn-pause').
 function nextPhoto() { advance() }
 function prevPhoto() { if (currentIndex === 0) return; clearInterval(ticker); ticker = null; currentIndex--; loadAndShow(currentIndex) }
 function advance() { clearInterval(ticker); ticker = null; currentIndex++; if (currentIndex >= sessionEntries.length) { finishSession(); return }; loadAndShow(currentIndex) }
+function askEnd() { paused = true; document.getElementById('btn-pause').textContent = 'Reprendre'; openEndConfirm('pose') }
+

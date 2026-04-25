@@ -1,5 +1,3 @@
-// ── Animation ── (extrait de app.js)
-
 // ── Modale commune "Terminer la session ?" ──
 let _endConfirmMode = null
 function openEndConfirm(mode) {
@@ -298,3 +296,69 @@ function askEndAnim() {
     }
     finishAnimSession()
   } else showScreen('screen-config')
+}
+
+// ══ RÉCAP POSE ══
+function finishSession() {
+  clearInterval(ticker); ticker = null
+  if (_bgPreloadTimer) { clearTimeout(_bgPreloadTimer); _bgPreloadTimer = null }
+  const logs = sessionLog.filter(Boolean)
+  const totalMins = Math.round(logs.reduce((a, l) => a + l.duration, 0) / 60)
+  document.getElementById('stat-poses').textContent = logs.length
+  document.getElementById('stat-time').textContent = totalMins || 1
+  logSession({ type: 'pose', poses: logs.length, minutes: totalMins || 1, subMode: currentSubMode, cats: Array.from(selectedCats).filter(c => c !== 'Sans catégorie').join(', ') })
+  buildRecapGrid(logs.map((log, i) => ({
+    src: log.thumbnail?.data || null, label: i + 1, favLabel: 'Pose ' + (i + 1),
+    duration: log.duration, rotation: log.rotation || 0
+  })))
+  // Store last ref for community share
+  if (logs.length > 0 && logs[logs.length - 1].thumbnail?.data) setLastRefUrl(logs[logs.length - 1].thumbnail.data)
+  showScreen('screen-end')
+  // Auto-open share overlay after a challenge session
+  if (_challengeSession) {
+    _challengeSession = false
+    setTimeout(() => openShareDrawing(), 400)
+  }
+  // Pop-up Discord (1 fois sur 3)
+  if (Math.random() < 0.33) {
+    setTimeout(() => {
+      const existing = document.getElementById('discord-popup'); if (existing) return
+      const popup = document.createElement('div'); popup.id = 'discord-popup'
+      popup.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e1e1e;border:0.5px solid #333;border-radius:12px;padding:16px 20px;max-width:280px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.5);'
+      popup.innerHTML = `<div style="font-size:13px;color:#888;margin-bottom:6px">🐛 Un bug ? Une idée ?</div><div style="font-size:14px;color:#fff;font-weight:500;margin-bottom:12px">Rejoins la communauté Gesturo</div><div style="display:flex;gap:8px"><a href="#" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')" style="flex:1;background:#5865F2;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;text-align:center">💬 Discord</a><button onclick="document.getElementById('discord-popup').remove()" style="background:#2e2e2e;color:#888;border:none;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer">✕</button></div>`
+      document.body.appendChild(popup)
+      setTimeout(() => { const p = document.getElementById('discord-popup'); if(p) p.remove() }, 8000)
+    }, 1500)
+  }
+}
+
+function replaySession() {
+  if (mainMode === 'anim') {
+    animStudyLog = []; animLoopCount = 0; animIndex = 0; animStudyMode = false
+    buildTimeline(); showScreen('screen-anim'); showFrame(0)
+    if (currentAnimMode === 'study') enterStudyMode(); else startLoop()
+  } else if (mainMode === 'cinema') {
+    startCinemaSession()
+  } else {
+    sessionEntries.sort(() => Math.random() - 0.5)
+    currentIndex = 0; sessionLog = []
+    showScreen('screen-session'); loadAndShow(0)
+  }
+}
+
+// ══ LIGHTBOX ══
+function openLightbox(src, index, duration) {
+  const lb = document.getElementById('lightbox')
+  lb.querySelector('img').src = src
+  const d = duration
+  document.getElementById('lightbox-info').textContent = 'Pose ' + (index + 1) + (d ? '  ·  ' + (d < 60 ? d + ' sec' : (d / 60) + ' min') : '')
+  lb.classList.add('open')
+  document.addEventListener('keydown', onLbKey)
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open')
+  document.getElementById('lb-fav-remove').style.display = 'none'
+  lbFavSrc = null
+  document.removeEventListener('keydown', onLbKey)
+}
+function onLbKey(e) { if (e.key === 'Escape') closeLightbox() }

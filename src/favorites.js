@@ -1,5 +1,5 @@
-// ── Favorites ── (extrait de app.js)
 
+// ══ FAVORIS ══
 const FAV_KEY = 'gd4_favorites'
 
 // Suffixe les clés localStorage par l'email du compte courant pour qu'un
