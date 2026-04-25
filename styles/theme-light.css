@@ -180,7 +180,7 @@ body.theme-light #options-dropdown .opt-sep {
 body.theme-light #options-dropdown .opt-value {
   color: #5a6b7f;
 }
-body.theme-light #options-dropdown .opt-bgm-row #opt-bgm-slider {
+body.theme-light #options-dropdown .opt-bgm-row input[type="range"] {
   background: #ece7e0;
 }
 

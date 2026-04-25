@@ -1,6 +1,6 @@
 {
   "name": "gesturo",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Entraînement au dessin de poses",
   "author": "Gesturo",
   "main": "main.js",
@@ -92,6 +92,7 @@
     "@capacitor-mlkit/document-scanner": "^8.0.1",
     "@capacitor/share": "^8.0.1",
     "@supabase/supabase-js": "^2.101.1",
-    "electron-updater": "^6.8.3"
+    "electron-updater": "^6.8.3",
+    "playwright-core": "^1.59.1"
   }
 }

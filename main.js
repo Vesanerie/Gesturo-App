@@ -293,6 +293,7 @@ app.whenReady().then(() => {
     callback({ path: filePath })
   })
   createWindow()
+
   autoUpdater.checkForUpdatesAndNotify()
 })
 

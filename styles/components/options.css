@@ -36,9 +36,9 @@
    plein hover qui brouille l'interaction avec le slider) */
 .opt-bgm-row { cursor: default; }
 .opt-bgm-row:hover { background: transparent; color: #c8d6e5; }
-.opt-bgm-row #opt-bgm-slider { flex: 1; height: 4px; cursor: pointer; -webkit-appearance: none; appearance: none; background: #1e2d40; border-radius: 2px; outline: none; }
-.opt-bgm-row #opt-bgm-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #2983eb; cursor: pointer; transition: transform 0.12s; }
-.opt-bgm-row #opt-bgm-slider::-webkit-slider-thumb:hover { transform: scale(1.25); }
+.opt-bgm-row input[type="range"] { flex: 1; height: 6px; cursor: pointer; -webkit-appearance: none; appearance: none; background: #1e2d40; border-radius: 3px; outline: none; }
+.opt-bgm-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #2983eb; cursor: pointer; transition: transform 0.12s; margin-top: -6px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.opt-bgm-row input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 .opt-bgm-row #opt-bgm-icon:hover { color: #fff; transform: scale(1.15); transition: transform 0.12s, color 0.12s; }
 
 /* About modal */

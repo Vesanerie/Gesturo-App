@@ -2171,7 +2171,12 @@ async function loadAndShow(idx) {
     } else {
       const dataUrl = await getImageSrc(entry)
       img.onload = () => { if (loading) { ph.style.display = 'none'; img.style.display = 'block'; onPoseReady(entry) } }
-      img.onerror = () => { if (loading) { ph.textContent = 'Erreur'; onPoseReady(entry) } }
+      img.onerror = () => {
+        if (!loading) return
+        // Image introuvable (404) — skip auto vers la suivante
+        if (idx + 1 < sessionEntries.length) { loading = false; loadAndShow(idx + 1); return }
+        ph.textContent = 'Image introuvable'; onPoseReady(entry)
+      }
       img.src = dataUrl
     }
     preloadNext(idx)
@@ -2798,7 +2803,14 @@ async function syncBadgesFromServer() {
     if (!window.electronAPI?.getBadges) return
     const remote = await window.electronAPI.getBadges()
     if (!remote || typeof remote !== 'object') return
-    _writeScoped(BADGES_KEY, JSON.stringify(remote))
+    // Merge : on garde le timestamp le plus ancien pour chaque badge
+    // afin de ne jamais perdre un badge déjà débloqué localement.
+    const local = loadBadges()
+    const merged = { ...local }
+    for (const [id, ts] of Object.entries(remote)) {
+      if (!merged[id] || ts < merged[id]) merged[id] = ts
+    }
+    saveBadges(merged)
   } catch (e) { /* silent */ }
 }
 
@@ -3793,17 +3805,30 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 's' || e.key === 'S') { toggleFavCinema(); return }
   }
   if (document.getElementById('screen-session').classList.contains('active')) {
+    if (e.key === ' ') { e.preventDefault(); togglePause(); return }
+    if (e.key === 'ArrowRight' && !e.shiftKey) { e.preventDefault(); advance(); return }
+    if (e.key === 'ArrowLeft' && !e.shiftKey) { e.preventDefault(); prevPhoto(); return }
     if (e.key === 'ArrowLeft' && e.shiftKey) { rotateLeft(); return }
     if (e.key === 'ArrowRight' && e.shiftKey) { rotateRight(); return }
+    if (e.key === 'g' || e.key === 'G') { cycleGrid(); return }
+    if (e.key === 'b' || e.key === 'B') { toggleBW(); return }
     if (e.key === 'f' || e.key === 'F') { flipH(); return }
     if (e.key === 's' || e.key === 'S') { toggleFavPose(); return }
+    if (e.key === 'Escape') { askEnd(); return }
   }
   if (document.getElementById('screen-anim').classList.contains('active')) {
+    if (e.key === ' ') { e.preventDefault(); toggleAnimLoop(); return }
     if (animStudyMode) {
       if (e.key === 'ArrowRight') { e.preventDefault(); animNextFrame(); return }
       if (e.key === 'ArrowLeft') { e.preventDefault(); animPrevFrame(); return }
     }
+    if (e.key === 'ArrowLeft' && e.shiftKey) { rotateLeft(); return }
+    if (e.key === 'ArrowRight' && e.shiftKey) { rotateRight(); return }
+    if (e.key === 'g' || e.key === 'G') { cycleGrid(); return }
+    if (e.key === 'b' || e.key === 'B') { toggleBW(); return }
+    if (e.key === 'f' || e.key === 'F') { flipH(); return }
     if (e.key === 's' || e.key === 'S') { toggleFavAnim(); return }
+    if (e.key === 'Escape') { openEndConfirm('anim'); return }
   }
 })
 
