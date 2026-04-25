@@ -1407,6 +1407,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (panel === 'announcements') loadAnnouncements();
       if (panel === 'system') { loadMaintenanceState(); loadFeatureFlags(); }
       if (panel === 'errors') loadErrors();
+      if (panel === 'blog') loadBlogList();
     });
   });
 });
@@ -2705,5 +2706,776 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {}
   }, 1500);
 });
+
+// ── Scraper Panel ──────────────────────────────────────────────────────────
+let scraperImages = [];    // { url, filename, selected }
+let scraperBusy = false;
+
+async function callScraper(action, payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error('not logged in');
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-scraper`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ action, ...payload }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function scraperScan() {
+  const url = $('scraper-url').value.trim();
+  if (!url) { toast('Colle une URL', 'err'); return; }
+  if (scraperBusy) return;
+  scraperBusy = true;
+  const btn = $('scraper-scan-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Scan en cours…';
+  setMsg($('scraper-msg'), 'Analyse de la page…');
+  $('scraper-grid').textContent = 'Scan en cours…';
+
+  try {
+    const data = await callScraper('scan', { url });
+    scraperImages = (data.images || []).map(img => ({ ...img, selected: true }));
+    renderScraperGrid();
+    setMsg($('scraper-msg'), `✓ ${scraperImages.length} image(s) trouvée(s)`, 'ok');
+  } catch (e) {
+    setMsg($('scraper-msg'), 'Erreur : ' + e.message, 'err');
+    $('scraper-grid').textContent = 'Erreur lors du scan.';
+  } finally {
+    scraperBusy = false;
+    btn.disabled = false;
+    btn.textContent = '🔍 Scanner la page';
+  }
+}
+
+function renderScraperGrid() {
+  const grid = $('scraper-grid');
+  const actions = $('scraper-actions');
+  const count = $('scraper-count');
+  const dlBtn = $('scraper-download-btn');
+
+  const validImages = scraperImages.filter(i => !i.broken);
+  if (validImages.length === 0) {
+    grid.textContent = 'Aucune image trouvée.';
+    actions.classList.add('hidden');
+    count.textContent = '';
+    return;
+  }
+
+  actions.classList.remove('hidden');
+  const selectedCount = validImages.filter(i => i.selected).length;
+  count.textContent = `(${selectedCount}/${validImages.length} sélectionnées)`;
+  dlBtn.disabled = selectedCount === 0;
+
+  grid.innerHTML = '';
+  scraperImages.forEach((img, idx) => {
+    if (img.broken) return; // hide broken images
+    const card = document.createElement('div');
+    card.className = 'scraper-card' + (img.selected ? ' selected' : '');
+    const imgEl = document.createElement('img');
+    imgEl.src = img.url;
+    imgEl.alt = '';
+    imgEl.loading = 'lazy';
+    imgEl.onerror = () => {
+      scraperImages[idx].broken = true;
+      scraperImages[idx].selected = false;
+      card.remove();
+      // Update counts
+      const valid = scraperImages.filter(i => !i.broken);
+      const sel = valid.filter(i => i.selected);
+      count.textContent = `(${sel.length}/${valid.length} sélectionnées)`;
+      dlBtn.disabled = sel.length === 0;
+    };
+    card.innerHTML =
+      '<div class="scraper-card-check">' + (img.selected ? '☑' : '☐') + '</div>'
+      + '<div class="scraper-card-name" title="' + escapeHtml(img.filename) + '">' + escapeHtml(img.filename) + '</div>';
+    card.insertBefore(imgEl, card.querySelector('.scraper-card-name'));
+    card.addEventListener('click', () => {
+      scraperImages[idx].selected = !scraperImages[idx].selected;
+      renderScraperGrid();
+    });
+    grid.appendChild(card);
+  });
+}
+
+function scraperSelectAll() {
+  const valid = scraperImages.filter(i => !i.broken);
+  const allSelected = valid.every(i => i.selected);
+  scraperImages.forEach(i => { if (!i.broken) i.selected = !allSelected; });
+  renderScraperGrid();
+}
+
+function getScraperDestMode() {
+  const radio = document.querySelector('input[name="scraper-dest-mode"]:checked');
+  return radio ? radio.value : 'r2';
+}
+
+async function scraperDownload() {
+  const selected = scraperImages.filter(i => i.selected && !i.broken);
+  if (selected.length === 0) { toast('Aucune image sélectionnée', 'err'); return; }
+  if (scraperBusy) return;
+
+  const mode = getScraperDestMode();
+  if (mode === 'local') return scraperDownloadLocal(selected);
+  return scraperDownloadR2(selected);
+}
+
+async function scraperDownloadR2(selected) {
+  scraperBusy = true;
+  const dlBtn = $('scraper-download-btn');
+  dlBtn.disabled = true;
+  dlBtn.textContent = '⏳ Upload R2…';
+
+  let dest = $('scraper-dest').value.trim();
+  if (!dest.endsWith('/')) dest += '/';
+  const dateFolder = new Date().toISOString().slice(0, 10) + '/';
+  dest += dateFolder;
+
+  const quality = parseInt($('scraper-quality').value) || 75;
+  const progressBar = $('scraper-progress');
+  const progressFill = $('scraper-progress-fill');
+  const progressText = $('scraper-progress-text');
+  progressBar.classList.remove('hidden');
+
+  const batchSize = 10;
+  let done = 0;
+  let okTotal = 0;
+  let failTotal = 0;
+
+  for (let i = 0; i < selected.length; i += batchSize) {
+    const batch = selected.slice(i, i + batchSize);
+    const pct = Math.round((i / selected.length) * 100);
+    progressFill.style.width = pct + '%';
+    progressText.textContent = `${done}/${selected.length} images traitées…`;
+
+    try {
+      const data = await callScraper('download', {
+        images: batch.map(img => ({ url: img.url, filename: img.filename })),
+        destPrefix: dest,
+        quality,
+      });
+      okTotal += data.ok || 0;
+      failTotal += data.failed || 0;
+    } catch (e) {
+      failTotal += batch.length;
+      toast('Erreur batch : ' + e.message, 'err');
+    }
+    done += batch.length;
+  }
+
+  progressFill.style.width = '100%';
+  progressText.textContent = `✓ ${okTotal} uploadées, ${failTotal} échec(s)`;
+  toast(`✓ ${okTotal} images uploadées dans R2`, okTotal > 0 ? 'ok' : 'err');
+
+  scraperBusy = false;
+  dlBtn.disabled = false;
+  dlBtn.textContent = '⬇ Télécharger la sélection';
+}
+
+async function scraperDownloadLocal(selected) {
+  scraperBusy = true;
+  const dlBtn = $('scraper-download-btn');
+  dlBtn.disabled = true;
+  dlBtn.textContent = '⏳ Téléchargement…';
+
+  const progressBar = $('scraper-progress');
+  const progressFill = $('scraper-progress-fill');
+  const progressText = $('scraper-progress-text');
+  progressBar.classList.remove('hidden');
+  progressFill.style.width = '30%';
+  progressText.textContent = 'Téléchargement côté serveur…';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { toast('Pas de session', 'err'); throw new Error('no session'); }
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-scraper`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        action: 'download-zip',
+        images: selected.map(img => ({ url: img.url, filename: img.filename })),
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    progressFill.style.width = '80%';
+    progressText.textContent = 'Réception du ZIP…';
+
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'gesturo-scrape-' + new Date().toISOString().slice(0, 10) + '.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    progressFill.style.width = '100%';
+    progressText.textContent = `✓ ZIP téléchargé (${selected.length} images)`;
+    toast(`✓ ZIP téléchargé`, 'ok');
+  } catch (e) {
+    toast('Erreur : ' + e.message, 'err');
+    progressText.textContent = 'Erreur';
+  }
+
+  scraperBusy = false;
+  dlBtn.disabled = false;
+  dlBtn.textContent = '⬇ Télécharger la sélection';
+}
+
+// Listen for images sent by the bookmarklet via postMessage
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'gesturo-scraper-images') return;
+  const urls = e.data.images || [];
+  if (urls.length === 0) { toast('Aucune image trouvée par le bookmarklet', 'err'); return; }
+  // Switch to scraper panel
+  document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === 'scraper'));
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-scraper'));
+  // Populate images
+  scraperImages = urls.map((url, i) => {
+    const path = new URL(url).pathname;
+    const base = path.split('/').pop() || ('image_' + i);
+    return { url, filename: sanitizeFilenameClient(base), selected: true };
+  });
+  renderScraperGrid();
+  setMsg($('scraper-msg'), `✓ ${scraperImages.length} image(s) reçues du bookmarklet`, 'ok');
+  toast(`${scraperImages.length} images reçues`, 'ok');
+});
+
+function sanitizeFilenameClient(name) {
+  return name.replace(/[\\/:*?"<>|]/g, '_').replace(/^\.+/, '').trim() || 'image';
+}
+
+function buildBookmarklet() {
+  const supabaseUrl = SUPABASE_URL;
+  const supabaseKey = SUPABASE_PUBLISHABLE_KEY;
+  const code = `
+(function(){
+if(document.getElementById('gesturo-scraper-overlay')){document.getElementById('gesturo-scraper-overlay').remove();return;}
+var imgs=new Set();
+document.querySelectorAll('img').forEach(function(el){
+  var s=el.currentSrc||el.src;
+  if(!s||s.startsWith('data:')||s.length<30)return;
+  if(el.naturalWidth<80||el.naturalHeight<80)return;
+  if(/icon|logo|favicon|sprite|avatar|emoji|badge|spacer/i.test(s))return;
+  if(s.includes('pinimg.com'))s=s.replace(/\\/\\d+x\\//g,'/originals/');
+  imgs.add(s);
+});
+document.querySelectorAll('[style*=background-image]').forEach(function(el){
+  var m=el.style.backgroundImage.match(/url\\(["']?([^"')]+)/);
+  if(m&&m[1]&&!m[1].startsWith('data:')&&m[1].length>30){
+    var u=m[1];
+    if(u.includes('pinimg.com'))u=u.replace(/\\/\\d+x\\//g,'/originals/');
+    imgs.add(u);
+  }
+});
+var arr=Array.from(imgs);
+if(!arr.length){alert('Gesturo: aucune image. Scroll la page et réessaie.');return;}
+var sel=new Set(arr);
+var ov=document.createElement('div');
+ov.id='gesturo-scraper-overlay';
+ov.style.cssText='position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;font-family:-apple-system,sans-serif;color:#fff;';
+var hdr=document.createElement('div');
+hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#111;border-bottom:1px solid #333;flex-shrink:0;';
+hdr.innerHTML='<div style="display:flex;align-items:center;gap:12px"><b style="font-size:18px;color:#f0c040">Gesturo Scraper</b><span id="gs-count" style="color:#888">'+arr.length+' images</span></div><div style="display:flex;gap:8px"><button id="gs-selall" style="padding:6px 14px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">Tout sélectionner</button><button id="gs-zip" style="padding:6px 14px;background:#5b9bd5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">⬇ ZIP</button><button id="gs-r2" style="padding:6px 14px;background:#7dd097;color:#111;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">☁ Upload R2</button><button id="gs-close" style="padding:6px 14px;background:#E24B4A;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">✕</button></div>';
+ov.appendChild(hdr);
+var grid=document.createElement('div');
+grid.id='gs-grid';
+grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:16px;overflow-y:auto;flex:1;';
+ov.appendChild(grid);
+var status=document.createElement('div');
+status.id='gs-status';
+status.style.cssText='padding:8px 20px;background:#111;border-top:1px solid #333;font-size:13px;color:#888;flex-shrink:0;display:none;';
+ov.appendChild(status);
+document.body.appendChild(ov);
+function render(){
+  grid.innerHTML='';
+  var c=0;
+  arr.forEach(function(url,i){
+    var card=document.createElement('div');
+    card.style.cssText='position:relative;border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid '+(sel.has(url)?'#5b9bd5':'#333')+';';
+    var img=document.createElement('img');
+    img.src=url;img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;display:block;';
+    img.onerror=function(){card.remove();arr.splice(arr.indexOf(url),1);sel.delete(url);updCount();};
+    var chk=document.createElement('div');
+    chk.style.cssText='position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.7);border-radius:4px;padding:2px 6px;font-size:14px;';
+    chk.textContent=sel.has(url)?'☑':'☐';
+    card.appendChild(img);card.appendChild(chk);
+    card.onclick=function(){if(sel.has(url))sel.delete(url);else sel.add(url);render();};
+    grid.appendChild(card);
+    if(sel.has(url))c++;
+  });
+  updCount();
+}
+function updCount(){document.getElementById('gs-count').textContent=sel.size+'/'+arr.length+' sélectionnées';}
+render();
+document.getElementById('gs-close').onclick=function(){ov.remove();};
+document.getElementById('gs-selall').onclick=function(){
+  if(sel.size===arr.length){sel.clear();}else{arr.forEach(function(u){sel.add(u);});}
+  render();
+};
+document.getElementById('gs-zip').onclick=function(){dl('zip');};
+document.getElementById('gs-r2').onclick=function(){dl('r2');};
+async function dl(mode){
+  var selected=Array.from(sel);
+  if(!selected.length){alert('Sélectionne au moins une image');return;}
+  var st=document.getElementById('gs-status');
+  st.style.display='block';
+  st.textContent='Connexion…';
+  try{
+    var token=localStorage.getItem('gesturo-scraper-token');
+    if(!token){
+      token=prompt('Colle ton token Gesturo (copie-le depuis l\\'admin → onglet Scraper)');
+      if(!token){st.style.display='none';return;}
+      localStorage.setItem('gesturo-scraper-token',token);
+    }
+    var imgs=selected.map(function(u,i){
+      var p=new URL(u).pathname;var f=p.split('/').pop()||('img_'+i+'.jpg');
+      return{url:u,filename:f};
+    });
+    if(mode==='r2'){
+      st.textContent='Upload vers R2 (0/'+imgs.length+')…';
+      var batch=10,ok=0,fail=0;
+      for(var i=0;i<imgs.length;i+=batch){
+        var b=imgs.slice(i,i+batch);
+        var dest='Sessions/current/scraped/'+new Date().toISOString().slice(0,10)+'/';
+        var r=await fetch('${supabaseUrl}/functions/v1/admin-scraper',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','apikey':'${supabaseKey}','Authorization':'Bearer '+token},
+          body:JSON.stringify({action:'download',images:b,destPrefix:dest,quality:75})
+        });
+        if(r.ok){var d=await r.json();ok+=d.ok||0;fail+=d.failed||0;}else{fail+=b.length;}
+        st.textContent='Upload vers R2 ('+Math.min(i+batch,imgs.length)+'/'+imgs.length+')… ✓'+ok+' ✕'+fail;
+      }
+      st.textContent='✓ '+ok+' images uploadées dans R2'+(fail?' · '+fail+' échecs':'');
+    }else{
+      st.textContent='Création du ZIP côté serveur…';
+      var r=await fetch('${supabaseUrl}/functions/v1/admin-scraper',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':'${supabaseKey}','Authorization':'Bearer '+token},
+        body:JSON.stringify({action:'download-zip',images:imgs})
+      });
+      if(!r.ok){st.textContent='Erreur: '+r.status;return;}
+      var blob=await r.blob();
+      var a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='gesturo-scrape-'+new Date().toISOString().slice(0,10)+'.zip';
+      a.click();
+      st.textContent='✓ ZIP téléchargé ('+imgs.length+' images)';
+    }
+  }catch(e){
+    if(e.message&&e.message.includes('401')){localStorage.removeItem('gesturo-scraper-token');st.textContent='Token expiré. Recopie-le depuis l\\'admin et réessaie.';}
+    else st.textContent='Erreur: '+e.message;
+  }
+}
+})()`;
+  return 'javascript:' + encodeURIComponent(code.replace(/\n\s*/g, ''));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const scanBtn = $('scraper-scan-btn');
+  if (scanBtn) {
+    scanBtn.addEventListener('click', scraperScan);
+    $('scraper-select-all').addEventListener('click', scraperSelectAll);
+    $('scraper-download-btn').addEventListener('click', scraperDownload);
+    $('scraper-url').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); scraperScan(); }
+    });
+    // Build bookmarklet
+    const bm = $('scraper-bookmarklet');
+    if (bm) bm.href = buildBookmarklet();
+    // Copy token button
+    const copyTokenBtn = $('scraper-copy-token');
+    if (copyTokenBtn) copyTokenBtn.addEventListener('click', async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { toast('Pas de session', 'err'); return; }
+      await navigator.clipboard.writeText(session.access_token);
+      $('scraper-token-msg').textContent = '✓ Token copié ! Colle-le quand le bookmarklet te le demande.';
+      toast('Token copié', 'ok');
+    });
+  }
+});
+
+// ── Blog panel ─────────────────────────────────────────────────────────────
+// Publishes articles to gesturo-website repo via GitHub API.
+// GitHub token is stored in localStorage (set once, persists).
+
+const GITHUB_REPO = 'Vesanerie/gesturo-website';
+const BLOG_OG_IMAGE = 'https://pub-06c22b8e08f544fea3cf8dfe718bfe78.r2.dev/gesturo-og.jpg';
+
+function getGithubToken() {
+  let token = localStorage.getItem('gesturo_github_token');
+  if (!token) {
+    token = prompt('Entre ton GitHub Personal Access Token (fine-grained, repo contents write).\nIl sera sauvegarde localement.');
+    if (token) localStorage.setItem('gesturo_github_token', token.trim());
+  }
+  return token ? token.trim() : null;
+}
+
+async function githubAPI(method, path, body) {
+  const token = getGithubToken();
+  if (!token) throw new Error('Pas de token GitHub');
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `GitHub ${res.status}`);
+  }
+  return res.json();
+}
+
+async function githubGetFile(path) {
+  const token = getGithubToken();
+  if (!token) throw new Error('Pas de token GitHub');
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${path}?ref=main`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+    },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// Load existing articles from the blog index
+async function loadBlogList() {
+  const list = $('blog-list');
+  list.innerHTML = '<div class="muted">Chargement...</div>';
+  try {
+    const data = await githubGetFile('blog/index.html');
+    if (!data) { list.innerHTML = '<div class="muted">Impossible de charger le blog</div>'; return; }
+    const html = atob(data.content);
+    // Parse article cards from the HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const cards = doc.querySelectorAll('.article-card');
+    if (cards.length === 0) {
+      list.innerHTML = '<div class="muted">Aucun article publie</div>';
+      return;
+    }
+    list.innerHTML = '';
+    cards.forEach(card => {
+      const title = card.querySelector('.article-title')?.textContent || 'Sans titre';
+      const date = card.querySelector('.article-meta')?.textContent || '';
+      const href = card.getAttribute('href') || '';
+      const el = document.createElement('div');
+      el.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.02);border:0.5px solid rgba(200,214,229,0.08);border-radius:10px;';
+      el.innerHTML = `<div><strong>${title}</strong><br><span class="muted" style="font-size:12px;">${date} — ${href}</span></div>
+        <a href="https://gesturo.fr${href}" target="_blank" class="btn-secondary" style="padding:6px 12px;font-size:12px;">Voir</a>`;
+      list.appendChild(el);
+    });
+  } catch (e) {
+    list.innerHTML = `<div class="msg err">${e.message}</div>`;
+  }
+}
+
+function showBlogEditor(article) {
+  $('blog-editor').style.display = 'block';
+  $('blog-editor-title').textContent = article ? 'Modifier l\'article' : 'Nouvel article';
+  if (!article) {
+    $('blog-title').value = '';
+    $('blog-slug').value = '';
+    $('blog-category').value = 'Guide';
+    $('blog-readtime').value = '6 min de lecture';
+    $('blog-description').value = '';
+    $('blog-keywords').value = '';
+    $('blog-excerpt').value = '';
+    $('blog-content').value = '';
+  }
+  $('blog-title').focus();
+}
+
+function hideBlogEditor() {
+  $('blog-editor').style.display = 'none';
+  setMsg($('blog-msg'), '');
+}
+
+// Auto-generate slug from title
+document.addEventListener('DOMContentLoaded', () => {
+  const titleInput = $('blog-title');
+  const slugInput = $('blog-slug');
+  if (titleInput && slugInput) {
+    titleInput.addEventListener('input', () => {
+      if (!slugInput.dataset.manual) {
+        slugInput.value = titleInput.value
+          .toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 80);
+      }
+    });
+    slugInput.addEventListener('input', () => { slugInput.dataset.manual = '1'; });
+  }
+});
+
+// Toolbar: insert HTML tags
+function blogInsertTag(tag) {
+  const ta = $('blog-content');
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const selected = ta.value.substring(start, end);
+  let insert = '';
+  if (tag === 'ul') {
+    insert = `<ul>\n  <li>${selected || 'Element'}</li>\n  <li></li>\n</ul>`;
+  } else if (tag === 'a') {
+    const url = prompt('URL du lien :', 'https://gesturo.fr');
+    if (!url) return;
+    insert = `<a href="${url}">${selected || 'texte du lien'}</a>`;
+  } else if (tag === 'p') {
+    insert = `<p>${selected || ''}</p>`;
+  } else {
+    insert = `<${tag}>${selected || ''}</${tag}>`;
+  }
+  ta.value = ta.value.substring(0, start) + insert + ta.value.substring(end);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = start + insert.length;
+}
+
+// Upload image to R2 via admin-r2 presigned URL, insert <img> tag
+function blogInsertImage() {
+  const input = $('blog-image-input');
+  input.value = '';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+    const ta = $('blog-content');
+    const slug = $('blog-slug').value || 'article';
+    const ext = file.name.split('.').pop().toLowerCase();
+    const filename = `blog-${slug}-${Date.now()}.${ext}`;
+    const key = `Blog/${filename}`;
+
+    toast('Upload de l\'image...', undefined, 8000);
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) throw new Error('Pas de session');
+      // Get presigned PUT URL from admin-r2
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action: 'upload-urls', keys: [key] }),
+      });
+      if (!res.ok) throw new Error('Erreur presigned URL');
+      const data = await res.json();
+      const putUrl = data.urls[0];
+
+      // Upload to R2
+      const putRes = await fetch(putUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!putRes.ok) throw new Error('Upload R2 echoue');
+
+      // Build public URL
+      const publicUrl = `https://pub-06c22b8e08f544fea3cf8dfe718bfe78.r2.dev/${key}`;
+
+      // Insert img tag at cursor
+      const imgTag = `<img src="${publicUrl}" alt="${prompt('Description de l\'image (alt text) :', file.name) || file.name}" loading="lazy">`;
+      const pos = ta.selectionStart;
+      ta.value = ta.value.substring(0, pos) + '\n' + imgTag + '\n' + ta.value.substring(pos);
+      ta.focus();
+      toast('Image uploadee et inseree', 'ok');
+    } catch (e) {
+      toast('Erreur upload : ' + e.message, 'err');
+    }
+  };
+  input.click();
+}
+
+// Preview in new tab
+function previewBlogArticle() {
+  const content = $('blog-content').value;
+  const title = $('blog-title').value || 'Apercu';
+  const category = $('blog-category').value;
+  const html = buildArticleHTML({
+    title, slug: 'preview', description: '', keywords: '', category,
+    readTime: $('blog-readtime').value, content,
+    dateDisplay: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+    dateISO: new Date().toISOString().split('T')[0],
+  });
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+// Publish article to GitHub
+async function publishBlogArticle() {
+  const title = $('blog-title').value.trim();
+  const slug = $('blog-slug').value.trim();
+  const description = $('blog-description').value.trim();
+  const keywords = $('blog-keywords').value.trim();
+  const category = $('blog-category').value;
+  const readTime = $('blog-readtime').value.trim();
+  const excerpt = $('blog-excerpt').value.trim();
+  const content = $('blog-content').value;
+
+  if (!title || !slug || !content) {
+    setMsg($('blog-msg'), 'Titre, slug et contenu sont obligatoires.', 'err');
+    return;
+  }
+
+  const btn = $('blog-publish-btn');
+  btn.disabled = true;
+  btn.textContent = 'Publication...';
+  setMsg($('blog-msg'), 'Publication en cours...', '');
+
+  const now = new Date();
+  const months = ['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
+  const dateDisplay = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  const dateISO = now.toISOString().split('T')[0];
+
+  const article = { title, slug, description, keywords, category, readTime, content, dateDisplay, dateISO };
+
+  try {
+    // 1. Push article HTML
+    const articleHtml = buildArticleHTML(article);
+    await githubAPI('PUT', `blog/${slug}.html`, {
+      message: `feat(blog): ${title}`,
+      content: btoa(unescape(encodeURIComponent(articleHtml))),
+      branch: 'main',
+    });
+
+    // 2. Update blog/index.html — add card
+    const indexData = await githubGetFile('blog/index.html');
+    if (indexData) {
+      let indexHtml = decodeURIComponent(escape(atob(indexData.content)));
+      const card = `\n  <a href="/blog/${slug}.html" class="article-card">\n    <img class="article-thumb" src="${BLOG_OG_IMAGE}" alt="${title}" loading="lazy">\n    <div class="article-body">\n      <div class="article-tag">${category}</div>\n      <h2 class="article-title">${title}</h2>\n      <p class="article-excerpt">${excerpt || description}</p>\n      <span class="article-meta">${dateDisplay}</span>\n    </div>\n  </a>\n`;
+      const marker = '============================================================\n  -->';
+      indexHtml = indexHtml.replace(marker, marker + card);
+      await githubAPI('PUT', 'blog/index.html', {
+        message: `feat(blog): add card for ${slug}`,
+        content: btoa(unescape(encodeURIComponent(indexHtml))),
+        sha: indexData.sha,
+        branch: 'main',
+      });
+    }
+
+    // 3. Update sitemap.xml — add entry
+    const sitemapData = await githubGetFile('sitemap.xml');
+    if (sitemapData) {
+      let sitemap = decodeURIComponent(escape(atob(sitemapData.content)));
+      const entry = `\n  <url>\n    <loc>https://gesturo.fr/blog/${slug}.html</loc>\n    <lastmod>${dateISO}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`;
+      sitemap = sitemap.replace('</urlset>', entry + '\n</urlset>');
+      await githubAPI('PUT', 'sitemap.xml', {
+        message: `feat(blog): sitemap entry for ${slug}`,
+        content: btoa(unescape(encodeURIComponent(sitemap))),
+        sha: sitemapData.sha,
+        branch: 'main',
+      });
+    }
+
+    setMsg($('blog-msg'), '✓ Article publie ! Deploy en cours via GitHub Actions → O2Switch.', 'ok');
+    toast('Article publie sur gesturo.fr !', 'ok', 6000);
+    hideBlogEditor();
+    loadBlogList();
+  } catch (e) {
+    setMsg($('blog-msg'), 'Erreur : ' + e.message, 'err');
+    toast('Erreur publication : ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Publier sur gesturo.fr';
+  }
+}
+
+function buildArticleHTML(a) {
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${a.title} — Blog Gesturo</title>
+  <meta name="description" content="${a.description}">
+  <meta name="keywords" content="${a.keywords}">
+  <link rel="canonical" href="https://gesturo.fr/blog/${a.slug}.html">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Gesturo">
+  <meta property="og:title" content="${a.title}">
+  <meta property="og:description" content="${a.description}">
+  <meta property="og:url" content="https://gesturo.fr/blog/${a.slug}.html">
+  <meta property="og:image" content="${BLOG_OG_IMAGE}">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="article:published_time" content="${a.dateISO}">
+  <meta property="article:author" content="Gesturo">
+  <meta property="article:section" content="${a.category}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${a.title}">
+  <meta name="twitter:description" content="${a.description}">
+  <meta name="twitter:image" content="${BLOG_OG_IMAGE}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0c1520;--bg-deep:#0a1118;--bg2:#131e2c;--bg3:#182536;--surface:rgba(19,30,44,0.6);--surface-hover:rgba(24,37,54,0.75);--border:rgba(200,214,229,0.08);--border-strong:rgba(200,214,229,0.18);--accent:#5b9bd5;--accent-strong:#2983eb;--warm:#f0c040;--warm-soft:rgba(240,192,64,0.12);--warm-glow:rgba(240,192,64,0.3);--text:#e8dfd0;--text-soft:#c8d6e5;--muted:#8aaccc;--muted2:#4a6280;--radius:14px;--radius-lg:20px;--ease:cubic-bezier(0.4,0,0.2,1)}*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:'DM Sans',sans-serif;background:linear-gradient(180deg,#0c1520 0%,#0a1118 100%);background-attachment:fixed;color:var(--text);overflow-x:hidden;line-height:1.65;min-height:100vh}body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.55'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.35;mix-blend-mode:overlay}nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:20px 48px;background:rgba(12,21,32,0.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:0.5px solid var(--border)}.nav-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px;color:var(--text);text-decoration:none}.nav-logo span{color:var(--warm);text-shadow:0 0 20px var(--warm-glow)}.nav-right{display:flex;align-items:center;gap:24px}.nav-link{color:var(--muted);text-decoration:none;font-size:14px;transition:color .3s var(--ease)}.nav-link:hover{color:var(--warm)}.nav-cta{background:var(--accent-strong);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .4s var(--ease);box-shadow:0 4px 20px rgba(41,131,235,0.25)}.nav-cta:hover{background:#4499f5;transform:translateY(-1px)}.article-header{padding:140px 24px 40px;text-align:center;max-width:760px;margin:0 auto;position:relative;z-index:1}.article-header .tag{display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--warm);background:var(--warm-soft);border:0.5px solid rgba(240,192,64,0.3);border-radius:99px;padding:5px 14px;margin-bottom:20px}.article-header h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(30px,5vw,48px);letter-spacing:-1.5px;line-height:1.1;margin-bottom:16px}.article-header .meta{font-size:14px;color:var(--muted2)}.article-content{max-width:700px;margin:0 auto;padding:40px 24px 100px;position:relative;z-index:1}.article-content h2{font-family:'Syne',sans-serif;font-weight:700;font-size:26px;letter-spacing:-0.5px;margin:48px 0 16px;color:var(--text)}.article-content h3{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;margin:32px 0 12px;color:var(--text)}.article-content p{font-size:16px;color:var(--text-soft);line-height:1.85;margin-bottom:20px}.article-content ul,.article-content ol{margin:0 0 20px 24px;color:var(--text-soft);font-size:16px;line-height:1.85}.article-content li{margin-bottom:8px}.article-content strong{color:var(--text);font-weight:600}.article-content em{color:var(--warm);font-style:normal}.article-content blockquote{border-left:3px solid var(--warm);padding:16px 24px;margin:24px 0;background:var(--warm-soft);border-radius:0 var(--radius) var(--radius) 0;font-style:italic;color:var(--text-soft)}.article-content img{width:100%;border-radius:var(--radius);border:0.5px solid var(--border-strong);margin:24px 0}.article-content a{color:var(--accent);text-decoration:underline;transition:color .3s}.article-content a:hover{color:var(--warm)}.cta-box{background:var(--surface);border:0.5px solid var(--border-strong);border-radius:var(--radius-lg);padding:40px;text-align:center;margin:48px 0;backdrop-filter:blur(12px)}.cta-box h3{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-bottom:12px}.cta-box p{font-size:15px;color:var(--muted);margin-bottom:20px}.cta-box a{display:inline-block;background:var(--accent-strong);color:#fff;border-radius:12px;padding:14px 28px;font-weight:500;text-decoration:none;transition:all .4s var(--ease);box-shadow:0 8px 30px rgba(41,131,235,0.28)}.cta-box a:hover{background:#4499f5;transform:translateY(-2px)}.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:14px;margin-bottom:40px;transition:color .3s}.back-link:hover{color:var(--warm)}footer{padding:36px 48px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;background:rgba(10,17,28,0.35);position:relative;z-index:1;backdrop-filter:blur(6px)}footer .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--text)}footer .logo span{color:var(--warm)}footer p{font-size:13px;color:var(--muted)}footer a{color:var(--muted);text-decoration:none;font-size:13px;transition:color .3s}footer a:hover{color:var(--warm)}.footer-links{display:flex;gap:24px}@media(max-width:640px){nav{padding:16px 20px}.article-header{padding:120px 20px 30px}.article-content{padding:30px 20px 80px}footer{padding:24px;flex-direction:column;text-align:center}.footer-links{justify-content:center}}
+  </style>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Article","headline":"${a.title}","description":"${a.description}","image":"${BLOG_OG_IMAGE}","datePublished":"${a.dateISO}","dateModified":"${a.dateISO}","author":{"@type":"Organization","name":"Gesturo","url":"https://gesturo.fr"},"publisher":{"@type":"Organization","name":"Gesturo","url":"https://gesturo.fr"},"mainEntityOfPage":"https://gesturo.fr/blog/${a.slug}.html","keywords":"${a.keywords}","inLanguage":"fr","articleSection":"${a.category}"}
+  </script>
+</head>
+<body>
+<nav aria-label="Navigation blog Gesturo">
+  <a href="/" class="nav-logo">Gestur<span>o</span></a>
+  <div class="nav-right">
+    <a href="/" class="nav-link">Accueil</a>
+    <a href="/blog/" class="nav-link" style="color:var(--warm);">Blog</a>
+    <a href="/#waitlist" class="nav-cta">Rejoindre la beta</a>
+  </div>
+</nav>
+<article>
+  <header class="article-header">
+    <span class="tag">${a.category}</span>
+    <h1>${a.title}</h1>
+    <p class="meta">${a.dateDisplay} &middot; ${a.readTime}</p>
+  </header>
+  <div class="article-content">
+    <a href="/blog/" class="back-link">&larr; Retour au blog</a>
+    ${a.content}
+    <div class="cta-box">
+      <h3>Pret a passer a l'action ?</h3>
+      <p>Gesturo te donne 1 900+ photos de modele vivant, un minuteur precis et tout ce qu'il faut pour progresser en gesture drawing. Gratuit pour commencer.</p>
+      <a href="https://gesturo.fr/#waitlist">Essayer Gesturo gratuitement</a>
+    </div>
+    <a href="/blog/" class="back-link">&larr; Tous les articles</a>
+  </div>
+</article>
+<footer>
+  <div class="logo">Gestur<span>o</span></div>
+  <p>&copy; 2026 Gesturo — Application de gesture drawing et dessin de modele vivant.</p>
+  <div class="footer-links">
+    <a href="/">Accueil</a>
+    <a href="mailto:hello@gesturo.art">Contact</a>
+    <a href="/mentions-legales.html">Mentions legales</a>
+  </div>
+</footer>
+</body>
+</html>`;
+}
 
 init();

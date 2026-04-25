@@ -79,7 +79,7 @@ export async function browseLevel(prefix: string) {
 
 // Allowed roots for any admin write operation. Hard guard against malicious or
 // buggy clients trying to touch keys outside the catalog.
-export const ADMIN_ALLOWED_ROOTS = ['Sessions/', 'Animations/'];
+export const ADMIN_ALLOWED_ROOTS = ['Sessions/', 'Animations/', 'Blog/'];
 
 export function isAllowedAdminKey(key: string): boolean {
   if (!key || key.includes('..')) return false;
