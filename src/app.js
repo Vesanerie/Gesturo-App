@@ -68,6 +68,32 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('discord-btn').style.display = 'flex'
   document.getElementById('profile-btn').style.display = 'flex'
 
+  // ── Auto-update UI ──
+  if (window.electronAPI?.onUpdateStatus) {
+    window.electronAPI.onUpdateStatus(({ status, version }) => {
+      let banner = document.getElementById('update-banner')
+      if (status === 'downloading') {
+        if (!banner) {
+          banner = document.createElement('div')
+          banner.id = 'update-banner'
+          banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1a5c2a,#2a7a3a);color:#fff;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;font-size:13px;font-family:inherit;box-shadow:0 2px 12px rgba(0,0,0,0.3);'
+          banner.innerHTML = '<span>Mise \u00e0 jour v' + version + ' en cours de t\u00e9l\u00e9chargement\u2026</span>'
+          document.body.appendChild(banner)
+        }
+      } else if (status === 'ready') {
+        if (!banner) {
+          banner = document.createElement('div')
+          banner.id = 'update-banner'
+          document.body.appendChild(banner)
+        }
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1a5c2a,#2a7a3a);color:#fff;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;font-size:13px;font-family:inherit;box-shadow:0 2px 12px rgba(0,0,0,0.3);'
+        banner.innerHTML = '<span>Gesturo v' + version + ' est pr\u00eat !</span>'
+          + '<button onclick="window.electronAPI.installUpdate()" style="background:#f0c040;color:#111;border:none;border-radius:6px;padding:6px 16px;font-weight:600;cursor:pointer;font-size:13px;">Installer et relancer</button>'
+          + '<button onclick="this.parentElement.remove()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;">Plus tard</button>'
+      }
+    })
+  }
+
   if (window.electronAPI?.onAuthRequired) {
     if (window.electronAPI?.onAuthSuccess) {
       window.electronAPI.onAuthSuccess((user) => {

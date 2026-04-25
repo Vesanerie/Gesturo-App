@@ -257,6 +257,8 @@
       } catch (e) { return { isPro: false }; }
     },
     getAppVersion,
+    installUpdate: () => {},
+    onUpdateStatus: () => {},
     getInstagramPosts: async () => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();

@@ -80,6 +80,25 @@ jobs:
           VERSION=$(node -e "console.log(require('./package.json').version)")
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Generate latest-mac.yml for auto-updater
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          DMG_FILE="dist/Gesturo-${VERSION}-universal.dmg"
+          SIZE=$(stat -f%z "$DMG_FILE")
+          SHA512=$(shasum -a 512 "$DMG_FILE" | awk '{print $1}' | xxd -r -p | base64)
+          cat > dist/latest-mac.yml << EOYML
+          version: ${VERSION}
+          files:
+            - url: Gesturo-${VERSION}-universal.dmg
+              sha512: ${SHA512}
+              size: ${SIZE}
+          path: Gesturo-${VERSION}-universal.dmg
+          sha512: ${SHA512}
+          releaseDate: $(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+          EOYML
+          # Remove leading spaces from heredoc
+          sed -i '' 's/^          //' dist/latest-mac.yml
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
@@ -88,6 +107,7 @@ jobs:
           prerelease: false
           files: |
             dist/Gesturo-${{ steps.version.outputs.VERSION }}-universal.dmg
+            dist/latest-mac.yml
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Update download.html on website

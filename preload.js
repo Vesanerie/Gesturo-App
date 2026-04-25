@@ -47,6 +47,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPaymentLinks: () => ipcRenderer.invoke('get-payment-links'),
   refreshProStatus: () => ipcRenderer.invoke('refresh-pro-status'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdateStatus: (callback) => ipcRenderer.on('update-status', (event, data) => callback(data)),
   getInstagramPosts: () => ipcRenderer.invoke('get-instagram-posts'),
   getReactions: (postIds) => ipcRenderer.invoke('get-reactions', postIds),
   toggleReaction: (postId, emoji) => ipcRenderer.invoke('toggle-reaction', postId, emoji),

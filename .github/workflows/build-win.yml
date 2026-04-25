@@ -42,7 +42,27 @@ jobs:
           echo "VERSION=$VERSION" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
-      - name: Create release if needed, then upload EXE
+      - name: Generate latest.yml for auto-updater
+        run: |
+          $VERSION = "${{ steps.version.outputs.VERSION }}"
+          $EXE = "dist/Gesturo Setup ${VERSION}.exe"
+          $SIZE = (Get-Item $EXE).Length
+          $HASH = (Get-FileHash $EXE -Algorithm SHA512).Hash
+          $SHA512 = [Convert]::ToBase64String([byte[]] -split ($HASH -replace '..', '0x$& '))
+          $DATE = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000Z")
+          @"
+          version: ${VERSION}
+          files:
+            - url: Gesturo Setup ${VERSION}.exe
+              sha512: ${SHA512}
+              size: ${SIZE}
+          path: Gesturo Setup ${VERSION}.exe
+          sha512: ${SHA512}
+          releaseDate: ${DATE}
+          "@ -replace '(?m)^          ','' | Out-File -FilePath "dist/latest.yml" -Encoding utf8NoBOM
+        shell: pwsh
+
+      - name: Create release if needed, then upload EXE + latest.yml
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -50,6 +70,7 @@ jobs:
           gh release view "$TAG" >/dev/null 2>&1 || \
             gh release create "$TAG" --title "Gesturo ${{ steps.version.outputs.VERSION }}" --draft=false
           gh release upload "$TAG" "dist/Gesturo Setup ${{ steps.version.outputs.VERSION }}.exe" --clobber
+          gh release upload "$TAG" "dist/latest.yml" --clobber
         shell: bash
 
       - name: Update download.html on website

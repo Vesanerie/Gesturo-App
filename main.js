@@ -294,7 +294,23 @@ app.whenReady().then(() => {
   })
   createWindow()
 
-  autoUpdater.checkForUpdatesAndNotify()
+  // ── Auto-update ──
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-available', (info) => {
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send('update-status', { status: 'downloading', version: info.version })
+  })
+  autoUpdater.on('update-downloaded', (info) => {
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send('update-status', { status: 'ready', version: info.version })
+  })
+  autoUpdater.on('error', (err) => {
+    console.log('Auto-update error:', err.message)
+  })
+
+  autoUpdater.checkForUpdates().catch(() => {})
 })
 
 function createWindow() {
@@ -471,6 +487,10 @@ ipcMain.handle('auth-check', async () => {
 
 ipcMain.handle('get-app-version', () => {
   return app.getVersion()
+})
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall(false, true)
 })
 
 // ── Gesturo Moodboard (in-app, via webview) ──────────────────────────────────

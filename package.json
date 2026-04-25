@@ -1,6 +1,6 @@
 {
   "name": "gesturo",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Entraînement au dessin de poses",
   "author": "Gesturo",
   "main": "main.js",
@@ -36,8 +36,7 @@
     "publish": {
       "provider": "github",
       "owner": "Vesanerie",
-      "repo": "gesturo-releases",
-      "private": true
+      "repo": "Gesturo-App"
     },
     "files": [
       "index.html",

@@ -4,6 +4,36 @@ App Electron de gesture drawing en cours de portage Android via Capacitor.
 Solo dev, non-technique côté tooling — préfère les explications step-by-step
 et les commits incrémentaux.
 
+## Règles de performance Claude Code
+
+### Lecture de fichiers — NE JAMAIS lire en entier
+Les fichiers principaux sont gros. **Toujours** utiliser `grep` / plages
+spécifiques au lieu de lire le fichier complet :
+- `src/app.js` — **4569 lignes**. Chercher par fonction/variable avec grep.
+- `admin-web/app.js` — **3553 lignes**. Idem.
+- `supabase/functions/user-data/index.ts` — **1350 lignes**. Idem.
+- `main.js` — 973 lignes. Lire par plages de 50-100 lignes max.
+- `index.html` — 719 lignes. OK en entier si besoin.
+
+### Concision
+- Réponses courtes. Pas de résumé de ce qui vient d'être fait.
+- Pas de reformulation du contexte déjà connu.
+- Aller droit au code / à l'action.
+
+### Ne pas relire ce qui est déjà vu
+- Si un fichier a été lu dans la conversation, ne pas le relire.
+- Utiliser les informations déjà en contexte.
+- Si le contexte a été compressé et qu'une info manque, relire
+  uniquement la plage nécessaire.
+
+### Workflow entre tâches
+- Utiliser `/compact` entre les tâches distinctes pour libérer le contexte.
+- Un sujet = un bloc de travail. Ne pas mélanger.
+
+### Fichiers à ignorer (jamais lire/indexer)
+- `node_modules/`, `www/`, `dist/`, `.venv/`, `android/`, `ios/`
+- Ces dossiers représentent 460k+ lignes de bruit.
+
 ## Stack
 
 - **Desktop** : Electron (actuellement v30, upgrade prévu ≥ v35), AWS S3 SDK retiré côté client
