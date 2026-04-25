@@ -36,7 +36,7 @@ spécifiques au lieu de lire le fichier complet :
 
 ## Stack
 
-- **Desktop** : Electron (actuellement v30, upgrade prévu ≥ v35), AWS S3 SDK retiré côté client
+- **Desktop** : Electron (actuellement v41), auto-update in-app via electron-updater
 - **Mobile** : Capacitor 8 (Android scaffold présent, iOS pas encore lancé)
 - **Backend** : Supabase (Auth + Postgres + Edge Functions Deno) + Cloudflare R2
 - **Build** : electron-builder (DMG arm64, notarize signé sur tags `v*`),
@@ -164,14 +164,13 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   Supabase secrets ne casse rien côté client (les Edge Functions lisent
   `Deno.env.get`).
 
-## Audit code (2026-04-10) — mis à jour 2026-04-10 (auto-audit)
+## Audit code (2026-04-10) — mis à jour 2026-04-25
 
 ### P0 — Critique
 
 - ✅ ~~`whitelist.json` shippé avec mot de passe admin~~ — mot de passe
   retiré, fichier gitignored.
-- 🔴 **Electron 30 obsolète** — vulnérabilités hautes publiées (ASAR
-  integrity bypass, use-after-free). Mettre à jour vers ≥ v35.7.5.
+- ✅ ~~Electron 30 obsolète~~ — mis à jour vers Electron 41 (v0.3.0).
 - ✅ ~~`@aws-sdk` dans devDependencies~~ — retiré (scripts morts
   `clear-r2.js`, `upload-to-r2.js`, `tag-poses.js` supprimés).
 
@@ -558,7 +557,7 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 
 ### Priorité immédiate (P0 audit)
 - ✅ ~~Retirer `whitelist.json` du build~~ — gitignored + password retiré
-- **Mettre à jour Electron** ≥ v35.7.5 (CVEs publiques)
+- ✅ ~~Mettre à jour Electron~~ — v41 (depuis v0.3.0)
 - ✅ ~~Retirer `@aws-sdk`~~ — scripts morts supprimés
 
 ### En cours
@@ -661,8 +660,25 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
   pas encore créé.
 - **Tests** — il n'y en a pas. Pas une priorité pour un solo dev.
 
+## Auto-update in-app (v0.3.1)
+
+- **electron-updater** check GitHub releases sur `Vesanerie/Gesturo-App`
+  au lancement. Télécharge en arrière-plan.
+- **Bannière UI** : verte en haut de l'app, bouton "Installer et relancer"
+  quand le download est terminé. Bouton "Plus tard" pour dismiss.
+- **CI** : `build.yml` (Mac) et `build-win.yml` (Win) génèrent
+  `latest-mac.yml` / `latest.yml` uploadés dans la release GitHub.
+  Sans ces fichiers, electron-updater ne détecte rien.
+- **publish target** : `Gesturo-App` (pas `gesturo-releases`).
+- **Limitation** : ne fonctionne qu'à partir de v0.3.1. Les users sur
+  v0.3.0 ou avant doivent télécharger manuellement une dernière fois.
+- **Mobile** : pas concerné — les MAJ passent par App Store / Play Store.
+  Le mobile-shim a des stubs vides pour `installUpdate`/`onUpdateStatus`.
+
 ## Commits récents importants
 
+- `a2fb579` feat(update): auto-update in-app avec bannière UI (v0.3.1)
+- `e46253d` chore: bump v0.3.0 — release avec toutes les features depuis v0.2.2
 - `87448dc` feat(admin): 6 features modération UI — speed review, profil user, audit log
 - `bdf0d19` feat(community): bouton Partager sur la vue dessin (Web Share API)
 - `84b288b` feat(backend): 6 features modération — auto-approve, audit log, profil user
