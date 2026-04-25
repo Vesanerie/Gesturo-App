@@ -812,7 +812,7 @@ ipcMain.handle('save-session', async (event, sessionData) => {
 ipcMain.handle('get-streak', async () => {
   if (isAdminMode()) return { streak: 0 }
   try {
-    return await callUserData('getStreak')
+    return await callUserData('getStreak', { tzOffset: new Date().getTimezoneOffset() })
   } catch (e) {
     console.warn('get-streak error:', e.message)
     return { streak: 0 }

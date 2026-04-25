@@ -289,16 +289,25 @@ Deno.serve(async (req) => {
 
 if (action === 'getStreak') {
       if (!pid) return json({ streak: 0 });
+      // Le client envoie son offset timezone (en minutes) pour que le serveur
+      // calcule les jours en heure locale de l'utilisateur.
+      const tzOffset = (payload?.tzOffset ?? 0) as number; // ex: -480 pour UTC+8
+      const offsetMs = tzOffset * 60 * 1000;
       const { data: sessions } = await admin
         .from('sessions').select('created_at').eq('user_id', pid)
         .order('created_at', { ascending: false });
       if (!sessions?.length) return json({ streak: 0 });
-      const days = new Set(sessions.map((s: any) => new Date(s.created_at).toISOString().split('T')[0]));
+      // Convertir chaque created_at en jour local de l'user
+      const localDayKey = (iso: string) => {
+        const d = new Date(new Date(iso).getTime() - offsetMs);
+        return d.toISOString().split('T')[0];
+      };
+      const days = new Set(sessions.map((s: any) => localDayKey(s.created_at)));
       let streak = 0;
-      const today = new Date();
+      const now = new Date(Date.now() - offsetMs);
       for (let i = 0; i < 365; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
         const key = d.toISOString().split('T')[0];
         if (days.has(key)) streak++;
         else if (i > 0) break;

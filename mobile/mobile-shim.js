@@ -196,7 +196,7 @@
     getStreak: async () => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();
-        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getStreak' } });
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getStreak', payload: { tzOffset: new Date().getTimezoneOffset() } } });
         return data || { streak: 0 };
       } catch (e) { return { streak: 0 }; }
     },

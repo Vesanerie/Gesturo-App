@@ -2584,6 +2584,24 @@ async function loadFeatureFlags() {
 
 document.addEventListener('DOMContentLoaded', () => {
   $('maintenance-save').addEventListener('click', saveMaintenance);
+
+  // Hard Reset
+  $('hard-reset-btn').addEventListener('click', async () => {
+    const pwd = $('hard-reset-pwd').value.trim();
+    if (!pwd) { setMsg($('hard-reset-status'), 'Entre le mot de passe', 'err'); return; }
+    const c1 = prompt('⚠️ Tape SUPPRIMER pour confirmer le reset total :');
+    if (c1 !== 'SUPPRIMER') { setMsg($('hard-reset-status'), 'Annulé.', 'err'); return; }
+    const c2 = confirm('DERNIÈRE CHANCE — Toutes les données (posts, sessions, favoris, challenges…) seront supprimées. Les comptes utilisateurs sont conservés. Continuer ?');
+    if (!c2) { setMsg($('hard-reset-status'), 'Annulé.', 'err'); return; }
+    setMsg($('hard-reset-status'), 'Reset en cours…');
+    try {
+      await callUserData('adminHardReset', { password: pwd });
+      setMsg($('hard-reset-status'), '✓ Reset total effectué. Seuls les users ont été conservés.', 'ok');
+      $('hard-reset-pwd').value = '';
+    } catch (e) {
+      setMsg($('hard-reset-status'), 'Erreur : ' + e.message, 'err');
+    }
+  });
   $('flag-create-btn').addEventListener('click', async () => {
     const key = $('flag-key').value.trim();
     const description = $('flag-desc').value.trim();

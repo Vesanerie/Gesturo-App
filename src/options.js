@@ -2,16 +2,17 @@
 function renderWeekBar() {
   if (!document.getElementById('week-streak')) return
   const all = loadHist(); const days = document.querySelectorAll('.week-day')
-  // Tout en UTC (cohérent avec utcDayKey/computeStreak/serveur).
+  // Tout en heure locale (cohérent avec utcDayKey/computeStreak).
   const now = new Date()
-  const todayKey = utcDayKey(now.getTime())
+  const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const todayKey = utcDayKey(todayLocal.getTime())
   const sessionDays = new Set(all.map(s => utcDayKey(s.ts)))
   days.forEach((el, i) => {
-    const d = new Date(now.getTime() - i * 86400000)
+    const d = new Date(todayLocal); d.setDate(todayLocal.getDate() - i)
     const key = utcDayKey(d.getTime())
-    const isToday = key === todayKey; const isFuture = i < 0; const done = sessionDays.has(key)
+    const isToday = key === todayKey; const done = sessionDays.has(key)
     el.className = 'week-day'
-    if (isFuture) el.classList.add('future'); else if (done) el.classList.add('done')
+    if (done) el.classList.add('done')
     if (isToday) el.classList.add('today')
     el.title = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
   })
@@ -127,14 +128,13 @@ function formatHistDate(ts) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + hm
 }
 
-// Clé jour en UTC — aligné avec le serveur (toISOString().split('T')[0]).
-// On utilise UTC partout pour que client et serveur comptent les mêmes jours,
-// quel que soit le fuseau de l'utilisateur.
+// Clé jour en HEURE LOCALE — la journée de l'user commence à minuit local.
+// Le serveur doit être aligné sur cette logique (via offset client).
 function utcDayKey(ts) {
   const d = new Date(ts)
-  const y = d.getUTCFullYear()
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
-  const day = String(d.getUTCDate()).padStart(2, '0')
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
   return y + '-' + m + '-' + day
 }
 
@@ -147,8 +147,7 @@ function computeStreak(hist) {
     const key = utcDayKey(cur.getTime())
     if (days.has(key)) streak++
     else if (i > 0) break
-    // Reculer d'un jour UTC (86400000 ms) pour éviter les bugs de fuseau
-    cur.setTime(cur.getTime() - 86400000)
+    cur.setDate(cur.getDate() - 1)
   }
   return streak
 }
