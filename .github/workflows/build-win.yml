@@ -32,6 +32,9 @@ jobs:
           "@ | Out-File -FilePath .env -Encoding utf8
         shell: pwsh
 
+      - name: Smoke test
+        run: npm run smoke
+
       - name: Build Windows installer
         run: npm run build:win -- --publish never
 

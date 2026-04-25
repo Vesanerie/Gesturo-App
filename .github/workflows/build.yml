@@ -31,6 +31,9 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           EOF
 
+      - name: Smoke test
+        run: npm run smoke
+
       - name: Build DMG (sans notarisation)
         env:
           CSC_LINK: ${{ secrets.APPLE_CERT_P12 }}
@@ -99,12 +102,26 @@ jobs:
           # Remove leading spaces from heredoc
           sed -i '' 's/^          //' dist/latest-mac.yml
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git tag --sort=-creatordate | sed -n '2p')
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges | grep -v "^- chore:" | grep -v "^- docs:" | head -20)
+          else
+            NOTES="Première release"
+          fi
+          echo "NOTES<<EOFNOTES" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOFNOTES" >> $GITHUB_OUTPUT
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           name: Gesturo ${{ steps.version.outputs.VERSION }}
           prerelease: false
+          body: ${{ steps.changelog.outputs.NOTES }}
           files: |
             dist/Gesturo-${{ steps.version.outputs.VERSION }}-universal.dmg
             dist/latest-mac.yml

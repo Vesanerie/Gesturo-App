@@ -1,4 +1,5 @@
 try { require('dotenv').config() } catch (e) {}
+try { require('electron-reloader')(module, { watchRenderer: true }) } catch (e) {}
 const { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, clearAuthStorage } = require('./supabase')
 const { isUsernameBlocked } = require('./blocked-usernames')
 const { app, BrowserWindow, ipcMain, dialog, protocol } = require('electron')
