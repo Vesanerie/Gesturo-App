@@ -9,7 +9,7 @@ et les commits incrémentaux.
 ### Lecture de fichiers — NE JAMAIS lire en entier
 Les fichiers principaux sont gros. **Toujours** utiliser `grep` / plages
 spécifiques au lieu de lire le fichier complet :
-- `src/app.js` — **4569 lignes**. Chercher par fonction/variable avec grep.
+- `src/app.js` — **507 lignes** (découpé en 7 fichiers, voir Layout).
 - `admin-web/app.js` — **3553 lignes**. Idem.
 - `supabase/functions/user-data/index.ts` — **1350 lignes**. Idem.
 - `main.js` — 973 lignes. Lire par plages de 50-100 lignes max.
@@ -77,16 +77,18 @@ styles/
   screens/{config,session,anim,recap,cinema}.css
   components/{favs,options,streak,history,badges,community}.css
 src/
-  app.js                     Le gros monolithe renderer (~2148 lignes).
-                             State, auth init, folder loading, categories,
-                             sequences, mode switching, session pose+anim,
-                             recap, lightbox, favs, history, streak, grid,
-                             options, badges, community feed. Tout sur le
-                             scope global. Chargé avant bubbles/cinema
-                             (qui en dépendent).
+  app.js                     Core renderer (~507L) : state global, auth init,
+                             folder loading, showScreen, transforms, lightbox.
+                             Chargé en premier — les autres en dépendent.
+  categories.js              Catégories + séquences + switchMainMode (~463L)
+  community.js               Community feed, challenges, upload, share (~1044L)
+  session.js                 Session pose, preload, timer, advance (~268L)
+  animation.js               Animation, study mode, timeline, recap (~364L)
+  favorites.js               Favoris, moodboard pin, sync serveur (~445L)
+  options.js                 Options, thème, BGM, profil, badges, onboarding (~1504L)
   bubbles.js                 IIFE animation canvas d'accueil (~30L)
   cinema.js                  Module Cinéma — FILMS catalog + playback (~200L)
-                             Dépend de logSession() exporté par app.js.
+                             Dépend de logSession() dans options.js.
 
 mobile/
   auth-mobile.js             Supabase PKCE + deep link com.gesturo.app://auth-callback
@@ -662,8 +664,9 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
   test avec `npm start` pour vérifier que les images R2 se chargent.
 - **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
   pas urgent. main.js fait ~720 lignes, encore lisible.
-- **Vrai découpage modulaire de `src/app.js`** — monolithe global ~2148L.
-  Nécessite import/export, virer globals, event delegation. Gros chantier.
+- ✅ ~~Découpage de `src/app.js`~~ — découpé en 7 fichiers thématiques
+  (app, categories, community, session, animation, favorites, options).
+  Scope global préservé, pas de migration ES modules.
 - **CI iOS** — Capacitor iOS scaffold généré (`df94eea`), workflow CI
   pas encore créé.
 - **Tests** — il n'y en a pas. Pas une priorité pour un solo dev.
