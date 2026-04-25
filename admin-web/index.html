@@ -436,6 +436,17 @@
         <div id="blog-editor" class="challenge-form-card" style="display: none;">
           <h2 id="blog-editor-title">Nouvel article</h2>
 
+          <div style="margin-top: 12px; padding: 14px; background: rgba(240,192,64,0.06); border: 0.5px solid rgba(240,192,64,0.25); border-radius: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 14px; color: var(--warm); font-weight: 600;">Importer depuis Claude</span>
+              <span class="muted" style="font-size: 11px;">Colle le JSON genere par Claude pour remplir tous les champs</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <textarea id="blog-json-input" rows="2" placeholder='Colle le JSON ici...' style="flex: 1; font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
+              <button class="add-btn" style="padding: 8px 16px; white-space: nowrap;" onclick="importBlogJSON()">Importer</button>
+            </div>
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
             <div>
               <label class="muted" style="font-size: 12px; display: block; margin-bottom: 4px;">Titre</label>

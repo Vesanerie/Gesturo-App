@@ -3212,6 +3212,27 @@ function hideBlogEditor() {
   setMsg($('blog-msg'), '');
 }
 
+// Import JSON from Claude
+function importBlogJSON() {
+  const raw = $('blog-json-input').value.trim();
+  if (!raw) { toast('Colle un JSON d\'abord', 'err'); return; }
+  try {
+    const a = JSON.parse(raw);
+    if (a.title) $('blog-title').value = a.title;
+    if (a.slug) { $('blog-slug').value = a.slug; $('blog-slug').dataset.manual = '1'; }
+    if (a.category) $('blog-category').value = a.category;
+    if (a.read_time) $('blog-readtime').value = a.read_time;
+    if (a.description) $('blog-description').value = a.description;
+    if (a.keywords) $('blog-keywords').value = a.keywords;
+    if (a.excerpt) $('blog-excerpt').value = a.excerpt;
+    if (a.content) $('blog-content').value = a.content;
+    $('blog-json-input').value = '';
+    toast('Article importe — verifie et publie !', 'ok');
+  } catch (e) {
+    toast('JSON invalide : ' + e.message, 'err');
+  }
+}
+
 // Auto-generate slug from title
 document.addEventListener('DOMContentLoaded', () => {
   const titleInput = $('blog-title');
