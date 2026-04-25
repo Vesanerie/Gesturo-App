@@ -27,15 +27,10 @@
     <header class="topbar">
       <div class="brand">Gestur<span class="gesturo-o">o</span> <span class="dim">Admin</span></div>
       <div class="admin-nav">
-        <button class="admin-nav-btn active" data-panel="files">📂 Fichiers</button>
-        <button class="admin-nav-btn" data-panel="challenges">🏆 Challenges</button>
-        <button class="admin-nav-btn" data-panel="moderation">🛡️ Modération <span id="mod-badge" class="mod-badge hidden">0</span></button>
-        <button class="admin-nav-btn" data-panel="users">👥 Utilisateurs</button>
-        <button class="admin-nav-btn" data-panel="analytics">📈 Stats</button>
-        <button class="admin-nav-btn" data-panel="announcements">📣 Annonces</button>
-        <button class="admin-nav-btn" data-panel="system">🛠 Système</button>
-        <button class="admin-nav-btn" data-panel="errors">🐛 Erreurs <span id="errors-badge" class="mod-badge hidden">0</span></button>
-        <button class="admin-nav-btn" data-panel="scraper">🖼 Scraper</button>
+        <button class="admin-nav-btn active" data-panel="files">📂 Contenu</button>
+        <button class="admin-nav-btn" data-panel="moderation">👥 Communauté <span id="mod-badge" class="mod-badge hidden">0</span></button>
+        <button class="admin-nav-btn" data-panel="analytics">📈 Monitoring <span id="errors-badge" class="mod-badge hidden">0</span></button>
+        <button class="admin-nav-btn" data-panel="system">⚙️ Config</button>
         <button class="admin-nav-btn" data-panel="blog">📝 Blog</button>
       </div>
       <div id="global-stats" class="global-stats muted" title="Cliquer pour rafraîchir">📊 Calcul…</div>
@@ -45,6 +40,8 @@
         <button id="logout-btn">Déconnexion</button>
       </div>
     </header>
+
+    <div id="sub-tabs-bar" class="sub-tabs-bar hidden"></div>
 
     <!-- ═ FILES PANEL ═ -->
     <div id="panel-files" class="admin-panel">

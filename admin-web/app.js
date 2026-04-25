@@ -60,7 +60,7 @@ function onLoggedIn(session) {
   loadGrid();
   // Stats globales : auto-load après un petit délai pour ne pas bloquer le premier render.
   setTimeout(loadGlobalStats, 800);
-  // Moderation badge: fetch pending count
+  // Moderation badge: fetch pending count (badge is on Communauté nav btn)
   setTimeout(async () => {
     try {
       const data = await callUserData('adminListPosts', { filter: 'pending', limit: 1 });
@@ -1393,21 +1393,69 @@ applyThumbSize();
   window.addEventListener('scroll', hide, true);
 })();
 
-// ── Admin nav (Files / Challenges) ─────────────────────────────────────────
+// ── Admin nav — grouped panels with sub-tabs ──────────────────────────────
+const NAV_GROUPS = {
+  files:      { label: '📂 Contenu',    subs: [
+    { id: 'files',      label: '📂 Fichiers',   onShow: () => {} },
+    { id: 'challenges', label: '🏆 Challenges', onShow: () => loadChallengeList() },
+    { id: 'scraper',    label: '🖼 Scraper',    onShow: () => {} },
+  ]},
+  moderation: { label: '👥 Communauté', subs: [
+    { id: 'moderation', label: '🛡️ Modération', onShow: () => { loadModerationPosts(); loadModerationStats(); } },
+    { id: 'users',      label: '👥 Utilisateurs', onShow: () => loadUsers() },
+  ]},
+  analytics:  { label: '📈 Monitoring', subs: [
+    { id: 'analytics',  label: '📈 Stats',   onShow: () => loadAnalytics() },
+    { id: 'errors',     label: '🐛 Erreurs', onShow: () => loadErrors() },
+  ]},
+  system:     { label: '⚙️ Config',     subs: [
+    { id: 'announcements', label: '📣 Annonces', onShow: () => loadAnnouncements() },
+    { id: 'system',        label: '🛠 Système',  onShow: () => { loadMaintenanceState(); loadFeatureFlags(); } },
+  ]},
+  blog:       { label: '📝 Blog',       subs: [
+    { id: 'blog', label: '📝 Blog', onShow: () => loadBlogList() },
+  ]},
+};
+
+function showPanel(panelId) {
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
+  const el = document.getElementById('panel-' + panelId);
+  if (el) el.classList.remove('hidden');
+}
+
+function buildSubTabs(groupKey) {
+  const bar = document.getElementById('sub-tabs-bar');
+  const group = NAV_GROUPS[groupKey];
+  if (!group || group.subs.length <= 1) {
+    bar.classList.add('hidden');
+    bar.innerHTML = '';
+    return;
+  }
+  bar.classList.remove('hidden');
+  bar.innerHTML = group.subs.map((s, i) =>
+    `<button class="sub-tab-btn${i === 0 ? ' active' : ''}" data-subid="${s.id}">${s.label}</button>`
+  ).join('');
+  bar.querySelectorAll('.sub-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bar.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      const sub = group.subs.find(s => s.id === btn.dataset.subid);
+      showPanel(sub.id);
+      sub.onShow();
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.admin-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const panel = btn.dataset.panel;
+      const groupKey = btn.dataset.panel;
+      const group = NAV_GROUPS[groupKey];
+      if (!group) return;
       document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b === btn));
-      document.querySelectorAll('.admin-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-' + panel));
-      if (panel === 'challenges') loadChallengeList();
-      if (panel === 'moderation') { loadModerationPosts(); loadModerationStats(); }
-      if (panel === 'users') loadUsers();
-      if (panel === 'analytics') loadAnalytics();
-      if (panel === 'announcements') loadAnnouncements();
-      if (panel === 'system') { loadMaintenanceState(); loadFeatureFlags(); }
-      if (panel === 'errors') loadErrors();
-      if (panel === 'blog') loadBlogList();
+      buildSubTabs(groupKey);
+      const firstSub = group.subs[0];
+      showPanel(firstSub.id);
+      firstSub.onShow();
     });
   });
 });
@@ -2943,9 +2991,12 @@ window.addEventListener('message', (e) => {
   if (!e.data || e.data.type !== 'gesturo-scraper-images') return;
   const urls = e.data.images || [];
   if (urls.length === 0) { toast('Aucune image trouvée par le bookmarklet', 'err'); return; }
-  // Switch to scraper panel
-  document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === 'scraper'));
-  document.querySelectorAll('.admin-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-scraper'));
+  // Switch to scraper panel (inside Contenu group)
+  document.querySelectorAll('.admin-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === 'files'));
+  buildSubTabs('files');
+  showPanel('scraper');
+  const bar = document.getElementById('sub-tabs-bar');
+  bar.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.subid === 'scraper'));
   // Populate images
   scraperImages = urls.map((url, i) => {
     const path = new URL(url).pathname;

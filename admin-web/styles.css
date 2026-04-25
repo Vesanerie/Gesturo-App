@@ -214,6 +214,13 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .admin-nav-btn:hover { color: var(--text); border-color: var(--accent); }
 .admin-nav-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
+/* ═══ Sub-tabs bar ═══ */
+.sub-tabs-bar { display: flex; gap: 2px; padding: 6px 20px; background: var(--bg-2); border-bottom: 1px solid var(--border); }
+.sub-tabs-bar.hidden { display: none; }
+.sub-tab-btn { background: none; border: 1px solid transparent; border-radius: 5px; color: var(--muted); padding: 5px 14px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.sub-tab-btn:hover { color: var(--text); }
+.sub-tab-btn.active { background: rgba(255,255,255,0.06); border-color: var(--border); color: var(--text); }
+
 /* ═══ Challenges panel ═══ */
 .challenges-layout { padding: 24px; display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
 
@@ -654,4 +661,144 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 
   /* Global stats */
   .global-stats { display: none; }
+
+  /* Scraper */
+  .scraper-layout { flex-direction: column; }
+  .scraper-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
+
+/* ── Scraper Panel ──────────────────────────────────────────────────────── */
+.scraper-layout {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  align-items: flex-start;
+}
+.scraper-layout > .challenge-form-card { flex: 0 0 340px; }
+.scraper-layout > .scraper-results-card { flex: 1; min-width: 0; }
+
+.scraper-dest-toggle {
+  display: flex;
+  gap: 16px;
+}
+.scraper-dest-toggle .switch-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.scraper-bookmarklet-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.scraper-bookmarklet-section h3 {
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.scraper-bookmarklet-btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background: var(--warm);
+  color: #111;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: grab;
+  margin-top: 8px;
+}
+.scraper-bookmarklet-btn:hover { opacity: 0.85; }
+
+.scraper-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.scraper-actions { display: flex; gap: 8px; align-items: center; }
+
+.scraper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.scraper-card {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background: var(--bg2);
+}
+.scraper-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.scraper-card:hover { border-color: var(--border-strong); }
+.scraper-card.selected:hover { border-color: var(--accent-strong); }
+.scraper-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+.scraper-card.broken img { display: none; }
+.scraper-card.broken::after {
+  content: '⚠ Erreur';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  color: var(--muted);
+  font-size: 12px;
+}
+.scraper-card-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0,0,0,0.6);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 14px;
+  pointer-events: none;
+}
+.scraper-card.selected .scraper-card-check { color: var(--accent); }
+.scraper-card-name {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scraper-progress {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.scraper-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--bg3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#scraper-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
 }
