@@ -341,6 +341,15 @@
         </div>
         <div id="flags-list" class="flags-list">Chargement…</div>
       </div>
+      <div class="system-section" style="border-top:2px solid #E24B4A;margin-top:32px;padding-top:24px;">
+        <h2>💀 Hard Reset</h2>
+        <p class="muted" style="color:#E24B4A;">Supprime TOUTES les données (posts, sessions, favoris, challenges, annonces, flags, erreurs). Seuls les comptes utilisateurs sont conservés. IRRÉVERSIBLE.</p>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:12px;">
+          <input id="hard-reset-pwd" type="password" placeholder="Mot de passe de sécurité" autocomplete="off" style="flex:1;max-width:300px;">
+          <button id="hard-reset-btn" class="btn-danger" style="white-space:nowrap;">💀 RESET TOTAL</button>
+        </div>
+        <div id="hard-reset-status" class="msg"></div>
+      </div>
     </div><!-- /panel-system -->
 
     <!-- ═ ERRORS PANEL ═ -->

@@ -1341,6 +1341,59 @@ if (action === 'getStreak') {
       return json({ base64, contentType: resp.headers.get('content-type') || 'image/jpeg' });
     }
 
+    // ── HARD RESET : wipe everything except users/profiles ───────────────
+    if (action === 'adminHardReset') {
+      const RESET_PASSWORD = Deno.env.get('HARD_RESET_PASSWORD');
+      if (!RESET_PASSWORD) return json({ error: 'HARD_RESET_PASSWORD not configured' }, 500);
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { password } = payload || {};
+      if (!password || password !== RESET_PASSWORD) return json({ error: 'wrong password' }, 403);
+
+      // 1. Delete all community images from R2
+      const { data: posts } = await admin.from('community_posts').select('image_key');
+      if (posts?.length) {
+        const keys = posts.map((p: { image_key: string }) => p.image_key).filter(Boolean);
+        if (keys.length) try { await deleteKeys(keys); } catch (e) { console.warn('[hardReset] R2 community delete:', e); }
+      }
+
+      // 2. Truncate all data tables (keep profiles + auth.users)
+      const tables = [
+        'post_reactions',
+        'community_posts',
+        'favorites_images',
+        'sessions',
+        'challenges',
+        'announcements',
+        'feature_flags',
+        'app_settings',
+        'client_errors',
+        'moderation_log',
+        'admin_audit_log',
+      ];
+      for (const t of tables) {
+        try { await admin.from(t).delete().neq('id', '00000000-0000-0000-0000-000000000000'); } catch {}
+      }
+      // rotation tables
+      try { await admin.from('rotation_files').delete().neq('id', '00000000-0000-0000-0000-000000000000'); } catch {}
+      try { await admin.from('rotations').delete().neq('id', '00000000-0000-0000-0000-000000000000'); } catch {}
+
+      // 3. Reset profile data (keep user identity, clear stats)
+      await admin.from('profiles').update({
+        badges: null,
+        banned: false,
+        featured: false,
+        last_active: null,
+      }).neq('id', '00000000-0000-0000-0000-000000000000');
+
+      // 4. Log it
+      try {
+        await admin.from('admin_audit_log').insert({ email, action: 'hard_reset', target: 'ALL' });
+      } catch {}
+
+      return json({ ok: true, message: 'Hard reset complete. Users preserved.' });
+    }
+
     return json({ error: 'unknown action' }, 400);
   } catch (e) {
     // checkRateLimit throws a Response directly — pass it through

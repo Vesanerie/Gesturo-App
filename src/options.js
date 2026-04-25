@@ -2,18 +2,14 @@
 function renderWeekBar() {
   if (!document.getElementById('week-streak')) return
   const all = loadHist(); const days = document.querySelectorAll('.week-day')
-  // Tout en HEURE LOCALE (cohérent avec utcDayKey/computeStreak).
+  // Tout en UTC (cohérent avec utcDayKey/computeStreak/serveur).
   const now = new Date()
-  const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const todayKey = utcDayKey(now.getTime())
   const sessionDays = new Set(all.map(s => utcDayKey(s.ts)))
-  // Ordre inversé : case 0 (gauche) = aujourd'hui, case N-1 (droite) = il y
-  // a N-1 jours. Les jours actifs récents se retrouvent ainsi à gauche
-  // (lecture naturelle de gauche à droite + progression du streak visible).
   days.forEach((el, i) => {
-    const d = new Date(todayLocal); d.setDate(todayLocal.getDate() - i)
+    const d = new Date(now.getTime() - i * 86400000)
     const key = utcDayKey(d.getTime())
-    const todayKey = utcDayKey(todayLocal.getTime())
-    const isToday = key === todayKey; const isFuture = d > todayLocal; const done = sessionDays.has(key)
+    const isToday = key === todayKey; const isFuture = i < 0; const done = sessionDays.has(key)
     el.className = 'week-day'
     if (isFuture) el.classList.add('future'); else if (done) el.classList.add('done')
     if (isToday) el.classList.add('today')
@@ -52,10 +48,11 @@ function renderHist() {
   histStreakEl.textContent = all.length === 0 ? '…' : localStreak
   if (window.electronAPI?.getStreak) {
     window.electronAPI.getStreak().then(r => {
-      const streak = Math.max(r.streak || 0, localStreak)
-      histStreakEl.textContent = streak
+      const serverStreak = r.streak || 0
+      // Serveur = source de vérité (même algo UTC que le client maintenant)
+      histStreakEl.textContent = serverStreak
       const streakEl = document.getElementById('week-streak')
-      if (streakEl) { streakEl.textContent = streak + ' j'; streakEl.className = streak === 0 ? 'zero' : '' }
+      if (streakEl) { streakEl.textContent = serverStreak + ' j'; streakEl.className = serverStreak === 0 ? 'zero' : '' }
     }).catch(() => {
       // Fallback: show local streak if server fetch fails
       histStreakEl.textContent = localStreak
@@ -130,15 +127,14 @@ function formatHistDate(ts) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + hm
 }
 
-// Clé jour en HEURE LOCALE (perspective utilisateur). Avant on utilisait UTC,
-// ce qui causait des bugs de streak : une session faite le mercredi à 1h CEST
-// était enregistrée à mardi 23h UTC → comptée comme un jour différent.
-// Le fuseau local est ce que l'user attend ("ma journée commence à minuit").
+// Clé jour en UTC — aligné avec le serveur (toISOString().split('T')[0]).
+// On utilise UTC partout pour que client et serveur comptent les mêmes jours,
+// quel que soit le fuseau de l'utilisateur.
 function utcDayKey(ts) {
   const d = new Date(ts)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
   return y + '-' + m + '-' + day
 }
 
@@ -147,13 +143,12 @@ function computeStreak(hist) {
   const days = new Set(hist.map(s => utcDayKey(s.ts)))
   let streak = 0
   const cur = new Date()
-  // On compte en HEURE LOCALE (cohérent avec utcDayKey). Avant on faisait
-  // setUTCDate + toISOString → bug si fuseau != UTC.
   for (let i = 0; i < 365; i++) {
     const key = utcDayKey(cur.getTime())
     if (days.has(key)) streak++
     else if (i > 0) break
-    cur.setDate(cur.getDate() - 1)
+    // Reculer d'un jour UTC (86400000 ms) pour éviter les bugs de fuseau
+    cur.setTime(cur.getTime() - 86400000)
   }
   return streak
 }

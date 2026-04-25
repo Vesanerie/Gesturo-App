@@ -165,14 +165,20 @@ async function syncFavsFromServer() {
 }
 
 // Sync l'historique (sessions) depuis Supabase. Appelée au boot après auth.
-// Permet à l'user de retrouver son historique sur n'importe quelle machine.
+// Merge local + serveur (dédupe par timestamp) pour ne rien perdre.
 async function syncHistFromServer() {
   try {
     if (!window.electronAPI?.getSessions) return
     const remote = await window.electronAPI.getSessions()
     if (!Array.isArray(remote)) return
-    _writeScoped(HIST_KEY, JSON.stringify(remote))
-    // Re-render la week-bar avec les données fraîches
+    const local = loadHist()
+    const seen = new Set()
+    const merged = []
+    for (const s of [...remote, ...local]) {
+      if (!seen.has(s.ts)) { seen.add(s.ts); merged.push(s) }
+    }
+    merged.sort((a, b) => a.ts - b.ts)
+    _writeScoped(HIST_KEY, JSON.stringify(merged))
     if (typeof renderWeekBar === 'function') renderWeekBar()
   } catch (e) { /* silent */ }
 }
