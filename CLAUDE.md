@@ -12,7 +12,7 @@ spécifiques au lieu de lire le fichier complet :
 - `src/app.js` — **507 lignes** (découpé en 7 fichiers, voir Layout).
 - `admin-web/app.js` — **3571 lignes**. Idem.
 - `supabase/functions/user-data/index.ts` — **1412 lignes**. Idem.
-- `main.js` — 994 lignes. Lire par plages de 50-100 lignes max.
+- `main.js` — **128 lignes** (découpé en 5 modules dans `src/main/`).
 - `index.html` — 725 lignes. OK en entier si besoin.
 - `admin-web/index.html` — 719 lignes. OK en entier si besoin.
 
@@ -62,8 +62,15 @@ spécifiques au lieu de lire le fichier complet :
 ## Layout
 
 ```
-main.js                      Process Electron principal — IPC, OAuth loopback,
-                             window mgmt. ~994 lignes.
+main.js                      Orchestrateur Electron (~128L) : window, auto-update,
+                             file protocol, auth boot. Délègue tout à src/main/.
+src/main/
+  auth.js                    Whitelist, email checks, Pro checks, admin marker,
+                             buildProfile, Stripe links (~129L)
+  oauth.js                   Serveur loopback OAuth Google (~76L)
+  edge.js                    callUserData, callEdgeFunction, listR2Photos/Anims (~57L)
+  moodboard.js               Tous les handlers IPC mb:* (~182L)
+  ipc.js                     Tous les autres handlers IPC (~364L)
 preload.js                   Bridge contextIsolation → window.electronAPI
 moodboard-preload.js         Bridge spécifique au webview moodboard
 supabase.js                  Client Supabase (PKCE + storage adapter sur disque)
@@ -750,8 +757,8 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
   quoi quand).
 - **Réactiver `webSecurity`** ou documenter + CSP minimal — nécessite
   test avec `npm start` pour vérifier que les images R2 se chargent.
-- **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
-  pas urgent. main.js fait ~994 lignes, commence à être long.
+- ✅ ~~Refactor `main.js`~~ — découpé en 5 modules dans `src/main/`
+  (auth, oauth, edge, moodboard, ipc). main.js = 128 lignes.
 - ✅ ~~Découpage de `src/app.js`~~ — découpé en 7 fichiers thématiques
   (app, categories, community, session, animation, favorites, options).
   Scope global préservé, pas de migration ES modules.
