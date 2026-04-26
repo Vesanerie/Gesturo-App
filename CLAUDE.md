@@ -103,6 +103,13 @@ mobile/
                              desktop tourne tel quel dans la webview.
 scripts/sync-web.js          Copie root → www/ et injecte les deux scripts
                              mobile/. Lancé par npm run mobile:sync.
+scripts/r2.js                CLI pour gérer le bucket R2 gesturo-photos.
+                             Commandes : list, stats, rename, move, upload,
+                             delete, backup, duplicates, watermark.
+                             Toutes les opérations sont loggées dans
+                             scripts/r2-audit.log. Backups JSON dans backups/.
+                             Usage : node scripts/r2.js <cmd> [args]
+                             L'user parle en français, Claude traduit en commande.
 www/                         Généré par sync-web.js — gitignored.
 
 android/                     Capacitor Android scaffold (Manifest contient déjà
@@ -395,18 +402,34 @@ le terminal, sans passer par l'admin web. Pas de conflit entre les deux
 **Credentials** : dans `.env` (gitignored) — `R2_ACCESS_KEY_ID`,
 `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`.
 
-**SDK** : `@aws-sdk/client-s3` en devDependencies. Utiliser Node.js :
-```js
-const { S3Client, ListObjectsV2Command, CopyObjectCommand,
-        DeleteObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+**Script CLI** : `scripts/r2.js` — outil complet pour gérer R2.
+L'user parle en français, Claude traduit en commande.
+
+```bash
+node scripts/r2.js list [prefix]                          # Lister dossiers/fichiers
+node scripts/r2.js stats [prefix]                         # Stats (count, poids, moyenne)
+node scripts/r2.js rename <prefix> <shortName>            # Batch rename → shortName_001.jpg
+node scripts/r2.js move <oldPrefix> <newPrefix>           # Déplacer/renommer dossier
+node scripts/r2.js upload <path> <dest> [--compress]      # Upload (--quality N --watermark)
+node scripts/r2.js delete <prefix>                        # Supprimer
+node scripts/r2.js backup                                 # Snapshot catalogue → backups/*.json
+node scripts/r2.js duplicates [prefix]                    # Trouver doublons par taille
+node scripts/r2.js watermark <path> [--text gesturo.art]  # Watermark local (léger, bas droite)
 ```
 
-**Opérations** :
-- Lister dossiers/fichiers (`ListObjectsV2Command` avec `Delimiter: '/'`)
-- Renommer un dossier = copy chaque objet vers le nouveau préfixe + delete l'ancien
-- Uploader des images locales (`PutObjectCommand`)
-- Compresser/redimensionner avant upload avec `sips` (natif macOS)
-- Supprimer des fichiers (`DeleteObjectCommand`)
+**Audit** : toutes les opérations sont loggées dans `scripts/r2-audit.log`.
+**Backups** : snapshots JSON datés dans `backups/` (gitignored).
+**Watermark** : texte "gesturo.art" très léger (blanc transparent), en bas
+à droite. Optionnel, jamais automatique — c'est un choix de l'user.
+
+**État du catalogue** (2026-04-26) : 2553 fichiers, 1.38 GB.
+Tous les fichiers ont été renommés avec le format `nom_001.jpg` :
+- `Sessions/current/` : 7 dossiers, 1919 fichiers (jambes, mains, visage,
+  animal, pose, nu, femme)
+- `Animations/current/` : 14 séquences, 613 fichiers (gratuit, main, abdo,
+  swing, porter, run, sword, walk, skate1-3, wrun, wwalk, weapon)
+- `Community/` : 16 fichiers (noms générés par l'app, ne pas renommer)
+- Les fichiers `.keep` dans certains dossiers sont des marqueurs vides
 
 ## Workflow préféré
 
@@ -734,6 +757,8 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 
 ## Commits récents importants
 
+- `9350636` feat(tools): R2 CLI — list, stats, rename, move, upload, backup, duplicates, watermark
+- `6e74c7f` docs: mise à jour CLAUDE.md — auto-deploy, accès R2 CLI, Hard Reset, line counts
 - `5218b51` test: trigger admin auto-deploy via GitHub Actions
 - `18247c7` ci: auto-deploy admin-web to Cloudflare Pages on push
 - `2afab1e` fix(streak): revenir en heure locale client + envoyer tzOffset au serveur
