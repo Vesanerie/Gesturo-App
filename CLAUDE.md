@@ -10,10 +10,11 @@ et les commits incrémentaux.
 Les fichiers principaux sont gros. **Toujours** utiliser `grep` / plages
 spécifiques au lieu de lire le fichier complet :
 - `src/app.js` — **507 lignes** (découpé en 7 fichiers, voir Layout).
-- `admin-web/app.js` — **3553 lignes**. Idem.
-- `supabase/functions/user-data/index.ts` — **1350 lignes**. Idem.
-- `main.js` — 973 lignes. Lire par plages de 50-100 lignes max.
-- `index.html` — 719 lignes. OK en entier si besoin.
+- `admin-web/app.js` — **3571 lignes**. Idem.
+- `supabase/functions/user-data/index.ts` — **1412 lignes**. Idem.
+- `main.js` — 994 lignes. Lire par plages de 50-100 lignes max.
+- `index.html` — 725 lignes. OK en entier si besoin.
+- `admin-web/index.html` — 719 lignes. OK en entier si besoin.
 
 ### Concision
 - Réponses courtes. Pas de résumé de ce qui vient d'être fait.
@@ -50,17 +51,19 @@ spécifiques au lieu de lire le fichier complet :
 - **Build** : electron-builder (DMG arm64, notarize signé sur tags `v*`),
   GitHub Actions Android (debug APK artifact, JDK 21 + android-34 SDK)
 - **Admin web** : app séparée vanilla HTML/JS dans `admin-web/`, déployée
-  sur Cloudflare Pages (`gesturo-admin.pages.dev`). **JAMAIS embarquée
-  dans le DMG public** — séparation physique via la whitelist `files` de
-  package.json. Auth = magic link Supabase, gating server-side via
-  `requireAdmin()` qui lit `profiles.is_admin`.
+  sur Cloudflare Pages (`gesturo-admin.pages.dev`). **Auto-deploy** via
+  GitHub Actions (`.github/workflows/deploy-admin.yml`) : tout push sur
+  main qui touche `admin-web/` déclenche le déploiement automatiquement.
+  **JAMAIS embarquée dans le DMG public** — séparation physique via la
+  whitelist `files` de package.json. Auth = magic link Supabase, gating
+  server-side via `requireAdmin()` qui lit `profiles.is_admin`.
 - Pas de TS, pas de bundler, pas de lint. Vanilla JS dans le renderer.
 
 ## Layout
 
 ```
 main.js                      Process Electron principal — IPC, OAuth loopback,
-                             window mgmt. ~768 lignes.
+                             window mgmt. ~994 lignes.
 preload.js                   Bridge contextIsolation → window.electronAPI
 moodboard-preload.js         Bridge spécifique au webview moodboard
 supabase.js                  Client Supabase (PKCE + storage adapter sur disque)
@@ -68,10 +71,13 @@ config.js                    Constantes publiques (SUPABASE_URL/KEY publishable)
                              ⚠ aucun secret ici, jamais.
 whitelist.json               Emails autorisés en bêta + admin_password local
 .env                         Dev only — NON inclus dans le DMG (cf. package.json
-                             "files"). Gitignored. Si secrets compromis,
-                             ROTATER côté Supabase function secrets.
+                             "files"). Gitignored. Contient aussi les credentials
+                             R2 (ACCESS_KEY_ID, SECRET_ACCESS_KEY) pour l'accès
+                             CLI au bucket gesturo-photos via @aws-sdk/client-s3.
+                             Si secrets compromis, ROTATER côté Supabase function
+                             secrets + Cloudflare R2 API tokens.
 
-index.html                   Squelette HTML (~544 lignes) — markup uniquement
+index.html                   Squelette HTML (~725 lignes) — markup uniquement
 styles/
   base.css                   reset, body, .screen toggle, noise overlays
   screens/{config,session,anim,recap,cinema}.css
@@ -145,7 +151,13 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
 
 .github/workflows/
   build.yml                  electron-builder Mac DMG sur tag v*
+  build-win.yml              electron-builder Windows NSIS sur tag v*
   android.yml                APK debug sur push (mobile/web/android paths)
+  deploy-admin.yml           Auto-deploy admin-web/ sur Cloudflare Pages
+                             (déclenché par push sur main si admin-web/ modifié,
+                             ou manuellement via workflow_dispatch).
+                             Secrets GitHub : CLOUDFLARE_ACCOUNT_ID +
+                             CLOUDFLARE_API_TOKEN.
 ```
 
 ## Sécurité — état actuel
@@ -181,8 +193,10 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
 - ✅ ~~`whitelist.json` shippé avec mot de passe admin~~ — mot de passe
   retiré, fichier gitignored.
 - ✅ ~~Electron 30 obsolète~~ — mis à jour vers Electron 41 (v0.3.0).
-- ✅ ~~`@aws-sdk` dans devDependencies~~ — retiré (scripts morts
-  `clear-r2.js`, `upload-to-r2.js`, `tag-poses.js` supprimés).
+- ✅ ~~`@aws-sdk` dans devDependencies~~ — réintroduit volontairement
+  (`@aws-sdk/client-s3` en devDeps) pour permettre à Claude Code de
+  gérer R2 en CLI (lister, renommer, uploader, supprimer). Pas shippé
+  dans le DMG (devDependencies only).
 
 ### P1 — Important
 
@@ -224,8 +238,10 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   desktop (preload.js), pense à la stub ou l'implémenter dans
   `mobile/mobile-shim.js`, sinon elle sera `undefined` sur Android.
 - **Admin web ≠ app principale** : ne JAMAIS ajouter `admin-web/` à
-  package.json `files`. Si tu touches `admin-web/`, redéployer avec :
-  `npx wrangler pages deploy admin-web --project-name=gesturo-admin --branch=main`
+  package.json `files`. Le deploy est **automatique** via GitHub Actions
+  (`deploy-admin.yml`) : tout push sur main qui touche `admin-web/`
+  déclenche le déploiement sur Cloudflare Pages. Plus besoin de
+  `npx wrangler pages deploy` manuellement.
 - **R2 catalog layout** : `gesturo-photos/Sessions/current/<cat>/<sub>/file`
   pour les poses (pas de split free/pro, gating nudité only),
   `gesturo-photos/Animations/current/{free|pro}/<gender>/<cat>/<sub>/file`
@@ -370,6 +386,28 @@ tels quels sur Animation et Cinéma (qui ont la même structure photo + bar) :
 - **Bottom tab bar** doit utiliser `padding-bottom: env(safe-area-inset-bottom)`
   sinon elle passe sous la gesture bar Android / home indicator iOS.
 
+## Accès R2 en CLI (Claude Code)
+
+Claude Code peut gérer directement le bucket R2 `gesturo-photos` depuis
+le terminal, sans passer par l'admin web. Pas de conflit entre les deux
+— R2 est un stockage cloud sans verrouillage.
+
+**Credentials** : dans `.env` (gitignored) — `R2_ACCESS_KEY_ID`,
+`R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`.
+
+**SDK** : `@aws-sdk/client-s3` en devDependencies. Utiliser Node.js :
+```js
+const { S3Client, ListObjectsV2Command, CopyObjectCommand,
+        DeleteObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+```
+
+**Opérations** :
+- Lister dossiers/fichiers (`ListObjectsV2Command` avec `Delimiter: '/'`)
+- Renommer un dossier = copy chaque objet vers le nouveau préfixe + delete l'ancien
+- Uploader des images locales (`PutObjectCommand`)
+- Compresser/redimensionner avant upload avec `sips` (natif macOS)
+- Supprimer des fichiers (`DeleteObjectCommand`)
+
 ## Workflow préféré
 
 - Commits incrémentaux, un par sujet logique. Le user teste manuellement
@@ -492,6 +530,14 @@ Toutes les features sont **live** sur `gesturo-admin.pages.dev`.
 - Liste avec toggle instantané + delete
 - Côté app : `window.__featureFlags` + helper `window.isFeatureEnabled('key')`
 - Permet de gater des features sans redéployer
+
+**Hard Reset** :
+- Bouton 💀 "RESET TOTAL" dans la section Système de l'admin
+- Supprime TOUTES les données (posts, sessions, favoris, challenges,
+  annonces, flags, erreurs) tout en préservant les comptes utilisateurs
+- Protégé par mot de passe serveur (`HARD_RESET_PASSWORD` env Supabase)
+- Double confirmation : taper "SUPPRIMER" + confirm dialog
+- Backend : action `adminHardReset` dans `user-data/index.ts`
 
 ### 🐛 Erreurs
 
@@ -663,7 +709,7 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 - **Réactiver `webSecurity`** ou documenter + CSP minimal — nécessite
   test avec `npm start` pour vérifier que les images R2 se chargent.
 - **Refactor `main.js` Electron en `src/ipc/` `src/oauth/` `src/r2/`** —
-  pas urgent. main.js fait ~720 lignes, encore lisible.
+  pas urgent. main.js fait ~994 lignes, commence à être long.
 - ✅ ~~Découpage de `src/app.js`~~ — découpé en 7 fichiers thématiques
   (app, categories, community, session, animation, favorites, options).
   Scope global préservé, pas de migration ES modules.
@@ -688,6 +734,11 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 
 ## Commits récents importants
 
+- `5218b51` test: trigger admin auto-deploy via GitHub Actions
+- `18247c7` ci: auto-deploy admin-web to Cloudflare Pages on push
+- `2afab1e` fix(streak): revenir en heure locale client + envoyer tzOffset au serveur
+- `c3fcb4f` fix(streak): alignement UTC client/serveur + merge historique
+- `f1b2204` feat(recap): bouton dessin par pose + fix CSP connect-src
 - `a2fb579` feat(update): auto-update in-app avec bannière UI (v0.3.1)
 - `e46253d` chore: bump v0.3.0 — release avec toutes les features depuis v0.2.2
 - `87448dc` feat(admin): 6 features modération UI — speed review, profil user, audit log
