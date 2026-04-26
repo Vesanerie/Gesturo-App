@@ -16,6 +16,7 @@
     "deploy:functions": "npx supabase functions deploy list-r2-photos --no-verify-jwt && npx supabase functions deploy list-r2-animations --no-verify-jwt && npx supabase functions deploy list-instagram-posts --no-verify-jwt && npx supabase functions deploy user-data --no-verify-jwt && npx supabase functions deploy admin-r2 --no-verify-jwt && npx supabase functions deploy stripe-webhook --no-verify-jwt && npx supabase functions deploy daily-challenge --no-verify-jwt"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1037.0",
     "@capacitor/android": "^8.3.0",
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",

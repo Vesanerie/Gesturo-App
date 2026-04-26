@@ -437,7 +437,11 @@ if (action === 'getStreak') {
       const { data: prof } = await admin.from('profiles').select('banned').eq('email', email).maybeSingle();
       if (prof?.banned) return json({ error: 'Votre compte est suspendu. Vous ne pouvez pas publier.' }, 403);
       const { refImageUrl, username, imageBase64 } = payload || {};
-      const key = `Community/${Date.now()}_${email.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+      // Structure scalable : Community/YYYY/MM/DD/{uuid}.jpg
+      // Pas d'email dans le path (privacy), partitionné par date (perf listing)
+      const now = new Date();
+      const ymd = `${now.getUTCFullYear()}/${String(now.getUTCMonth()+1).padStart(2,'0')}/${String(now.getUTCDate()).padStart(2,'0')}`;
+      const key = `Community/${ymd}/${crypto.randomUUID()}.jpg`;
 
       // If imageBase64 is provided (mobile), moderate before uploading.
       let uploadUrl: string | null = null;
