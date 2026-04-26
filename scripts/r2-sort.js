@@ -225,8 +225,24 @@ async function cmdExecute(prefix, planFile) {
     console.log('  ✓ ' + cat.name + ': ' + moved + ' files moved');
   }
 
+  // Clean up temp files
+  if (fs.existsSync(SORT_DIR)) {
+    fs.rmSync(SORT_DIR, { recursive: true });
+    console.log('\n🧹 Cleaned up ' + SORT_DIR);
+  }
+
   console.log('\nDone!');
   log('SORT', { prefix, plan: plan.map(c => c.name + ':' + c.start + '-' + c.end).join(', ') });
+}
+
+// ── CLEAN ───────────────────────────────────────────────────────────────────
+function cmdClean() {
+  if (fs.existsSync(SORT_DIR)) {
+    fs.rmSync(SORT_DIR, { recursive: true });
+    console.log('🧹 Cleaned up ' + SORT_DIR);
+  } else {
+    console.log('Nothing to clean.');
+  }
 }
 
 // ── CLI Router ──────────────────────────────────────────────────────────────
@@ -240,6 +256,7 @@ const [,, cmd, ...args] = process.argv;
       case 'open':     cmdOpen(); break;
       case 'plan':     await cmdPlan(args[0], args[1]); break;
       case 'execute':  await cmdExecute(args[0], args[1]); break;
+      case 'clean':    cmdClean(); break;
       default:
         console.log(`
 Gesturo R2 Sort — categorize images into sub-folders
@@ -249,7 +266,8 @@ Commands:
   download <prefix> <num>      Download one specific image (e.g. 035)
   open                         Open thumbnails folder in Finder
   plan <prefix> <plan.json>    Preview sort plan (dry run)
-  execute <prefix> <plan.json> Execute sort plan (move files on R2)
+  execute <prefix> <plan.json> Execute sort plan (move files on R2) + clean temp
+  clean                        Delete temp files in /tmp/gesturo-sort/
 
 Workflow:
   1. Sample:    node scripts/r2-sort.js sample Sessions/current/poses-dynamiques/ 50
