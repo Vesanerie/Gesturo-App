@@ -25,3 +25,5 @@ android/capacitor.settings.gradle
 !.claude/agents/
 !.claude/skills/
 scripts/verify-features.js
+backups/
+scripts/r2-audit.log
