@@ -110,6 +110,13 @@ scripts/r2.js                CLI pour gérer le bucket R2 gesturo-photos.
                              scripts/r2-audit.log. Backups JSON dans backups/.
                              Usage : node scripts/r2.js <cmd> [args]
                              L'user parle en français, Claude traduit en commande.
+scripts/r2-sort.js           Tri visuel d'images R2 en sous-catégories.
+                             Workflow : sample (télécharge des échantillons) →
+                             download (image précise pour trouver les frontières) →
+                             plan (dry run avec plan.json) → execute (déplace sur R2).
+                             Approche : recherche binaire sur les transitions,
+                             pas besoin de regarder les 684 images une par une.
+                             Plan JSON : [{ name, start, end }, ...]
 www/                         Généré par sync-web.js — gitignored.
 
 android/                     Capacitor Android scaffold (Manifest contient déjà
@@ -422,10 +429,22 @@ node scripts/r2.js watermark <path> [--text gesturo.art]  # Watermark local (lé
 **Watermark** : texte "gesturo.art" très léger (blanc transparent), en bas
 à droite. Optionnel, jamais automatique — c'est un choix de l'user.
 
+**Tri visuel** : `scripts/r2-sort.js` permet de trier un dossier en
+sous-catégories visuellement. Workflow :
+1. `node scripts/r2-sort.js sample <prefix> 50` — télécharge 50 miniatures
+2. Claude regarde les images avec Read pour identifier les catégories
+3. `node scripts/r2-sort.js download <prefix> <num>` — télécharge des images
+   aux frontières pour trouver les transitions exactes (recherche binaire)
+4. Créer un `plan.json` : `[{ "name": "ballon", "start": 31, "end": 110 }, ...]`
+5. `node scripts/r2-sort.js plan <prefix> plan.json` — dry run
+6. `node scripts/r2-sort.js execute <prefix> plan.json` — déplace sur R2
+
 **État du catalogue** (2026-04-26) : 2553 fichiers, 1.38 GB.
 Tous les fichiers ont été renommés avec le format `nom_001.jpg` :
 - `Sessions/current/` : 7 dossiers, 1919 fichiers (jambes, mains, visage,
   animal, pose, nu, femme)
+  - `poses-dynamiques/` : en cours de tri en sous-catégories (libre, ballon,
+    baton, tabouret, sol, livre). Un autre Claude est en train de le faire.
 - `Animations/current/` : 14 séquences, 613 fichiers (gratuit, main, abdo,
   swing, porter, run, sword, walk, skate1-3, wrun, wwalk, weapon)
 - `Community/` : 16 fichiers (noms générés par l'app, ne pas renommer)
