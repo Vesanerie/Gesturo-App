@@ -46,20 +46,18 @@ function renderHist() {
   // Show a placeholder while fetching server streak — avoids showing 0
   // on a fresh install where localStorage is empty
   const histStreakEl = document.getElementById('hist-streak')
-  histStreakEl.textContent = all.length === 0 ? '…' : localStreak
+  if (histStreakEl) histStreakEl.textContent = all.length === 0 ? '…' : localStreak
   if (window.electronAPI?.getStreak) {
     window.electronAPI.getStreak().then(r => {
       const serverStreak = r.streak || 0
-      // Serveur = source de vérité (même algo UTC que le client maintenant)
-      histStreakEl.textContent = serverStreak
+      if (histStreakEl) histStreakEl.textContent = serverStreak
       const streakEl = document.getElementById('week-streak')
       if (streakEl) { streakEl.textContent = serverStreak + ' j'; streakEl.className = serverStreak === 0 ? 'zero' : '' }
     }).catch(() => {
-      // Fallback: show local streak if server fetch fails
-      histStreakEl.textContent = localStreak
+      if (histStreakEl) histStreakEl.textContent = localStreak
     })
   } else {
-    histStreakEl.textContent = localStreak
+    if (histStreakEl) histStreakEl.textContent = localStreak
   }
   document.getElementById('hist-total-sessions').textContent = all.length
   document.getElementById('hist-total-mins').textContent = all.reduce((a, s) => a + (s.minutes || 0), 0)
