@@ -322,6 +322,11 @@ function cleanupActiveSession() {
     if (typeof animLooping !== 'undefined') animLooping = false
     if (typeof communityInterval !== 'undefined' && communityInterval) { clearInterval(communityInterval); communityInterval = null }
     if (typeof _countdownInterval !== 'undefined' && _countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null }
+    // Clear les preview intervals des cards séquence animation
+    const seqWrap = document.getElementById('sequences-wrap')
+    if (seqWrap) seqWrap.querySelectorAll('div').forEach(card => {
+      if (card._previewInterval) { clearInterval(card._previewInterval); card._previewInterval = null }
+    })
     paused = false
   } catch (e) { /* silent */ }
 }

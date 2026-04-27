@@ -243,6 +243,7 @@ async function scanCommunityDrawing() {
     canvas.toBlob(function(blob) {
       _communityBlob = blob
       const preview = document.getElementById('community-preview-img')
+      if (preview.src && preview.src.startsWith('blob:')) URL.revokeObjectURL(preview.src)
       preview.src = URL.createObjectURL(blob)
       preview.style.display = 'block'
       document.getElementById('community-upload-label').style.display = 'none'
@@ -268,6 +269,7 @@ async function scanShareDrawing() {
     canvas.toBlob(function(blob) {
       _shareBlob = blob
       const preview = document.getElementById('share-preview-img')
+      if (preview.src && preview.src.startsWith('blob:')) URL.revokeObjectURL(preview.src)
       preview.src = URL.createObjectURL(blob)
       preview.style.display = 'block'
       document.getElementById('share-upload-label').style.display = 'none'
@@ -298,6 +300,7 @@ function handleCommunityFile(input) {
       canvas.toBlob(function(blob) {
         _communityBlob = blob
         const preview = document.getElementById('community-preview-img')
+        if (preview.src && preview.src.startsWith('blob:')) URL.revokeObjectURL(preview.src)
         preview.src = URL.createObjectURL(blob)
         preview.style.display = 'block'
         document.getElementById('community-upload-label').style.display = 'none'
@@ -497,6 +500,7 @@ function handleShareFile(input) {
       canvas.toBlob(function(blob) {
         _shareBlob = blob
         const preview = document.getElementById('share-preview-img')
+        if (preview.src && preview.src.startsWith('blob:')) URL.revokeObjectURL(preview.src)
         preview.src = URL.createObjectURL(blob)
         preview.style.display = 'block'
         document.getElementById('share-upload-label').style.display = 'none'

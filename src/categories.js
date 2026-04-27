@@ -538,9 +538,12 @@ async function selectSeq(seq, el) {
   if (preloadCache[seq]) return
   const paths = sequences[seq].paths || sequences[seq]
   const check = el.querySelector('.seq-check'); if (check) check.textContent = '...'
-  await Promise.all(paths.map(p => new Promise(resolve => {
-    const img = new Image(); img.onload = img.onerror = resolve; img.src = isR2Mode ? p : 'file://' + p
-  })))
+  const BATCH = 10
+  for (let i = 0; i < paths.length; i += BATCH) {
+    await Promise.all(paths.slice(i, i + BATCH).map(p => new Promise(resolve => {
+      const img = new Image(); img.onload = img.onerror = resolve; img.src = isR2Mode ? p : 'file://' + p
+    })))
+  }
   preloadCache[seq] = true; _evictPreloadCache(); el.classList.add('ready'); if (check) check.textContent = '✓'
 }
 
@@ -548,6 +551,13 @@ async function selectSeq(seq, el) {
 function switchMainMode(mode) {
   // Skip si on est déjà dans ce mode — évite de relancer un render sur tap répété
   if (mainMode === mode) return
+  // Kill les preview intervals des séquences quand on quitte le mode anim
+  if (mainMode === 'anim') {
+    const seqWrap = document.getElementById('sequences-wrap')
+    if (seqWrap) seqWrap.querySelectorAll('div').forEach(card => {
+      if (card._previewInterval) { clearInterval(card._previewInterval); card._previewInterval = null }
+    })
+  }
   mainMode = mode
   document.getElementById('tab-pose').classList.toggle('active', mode === 'pose')
   document.getElementById('tab-anim').classList.toggle('active', mode === 'anim')
