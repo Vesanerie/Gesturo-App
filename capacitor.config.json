@@ -19,9 +19,6 @@
     "Keyboard": {
       "resize": "native",
       "scrollPadding": false
-    },
-    "CapacitorHttp": {
-      "enabled": true
     }
   }
 }

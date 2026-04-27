@@ -162,13 +162,10 @@
             const filename = url.split('/').pop()
             const filePath = dirPath + '/' + filename
             try {
-              const resp = await fetch(url)
-              if (!resp.ok) throw new Error('HTTP ' + resp.status)
-              const blob = await resp.blob()
-              const base64 = await blobToBase64(blob)
+              const base64 = await imgToBase64(url)
               await FS.writeFile({ path: filePath, data: base64, directory: Dir.DATA })
-              // Bug #13 fix: only count size after successful write
-              sizeBytes += blob.size
+              const stat = await FS.stat({ path: filePath, directory: Dir.DATA })
+              sizeBytes += stat.size || 0
               files[url] = filePath
               successCount++
               const uri = await getUri(filePath)
@@ -235,15 +232,22 @@
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────
-    function blobToBase64(blob) {
+    // Download image via <img> + canvas — bypasses CORS (no fetch needed)
+    function imgToBase64(url) {
       return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          const result = reader.result
-          resolve(result.split(',')[1]) // strip data:...;base64, prefix
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          try {
+            const c = document.createElement('canvas')
+            c.width = img.naturalWidth; c.height = img.naturalHeight
+            c.getContext('2d').drawImage(img, 0, 0)
+            const dataUrl = c.toDataURL('image/jpeg', 0.92)
+            resolve(dataUrl.split(',')[1]) // strip data:...;base64, prefix
+          } catch (e) { reject(e) }
         }
-        reader.onerror = reject
-        reader.readAsDataURL(blob)
+        img.onerror = () => reject(new Error('img load failed'))
+        img.src = url
       })
     }
 
