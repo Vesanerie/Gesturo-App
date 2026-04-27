@@ -15,6 +15,7 @@ const ASSETS = [
   'styles',
   'src',
   'moodboard',
+  'assets',
 ];
 
 // Extra files we add specifically for the mobile build.
