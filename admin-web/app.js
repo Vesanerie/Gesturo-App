@@ -4058,7 +4058,9 @@ async function loadStripeData() {
 let roadmapItems = [];
 let roadmapEditId = null;
 let roadmapEditSubtasks = [];
+let roadmapEditImages = [];
 let roadmapDragId = null;
+const R2_PUBLIC = 'https://pub-06c22b8e08f544fea3cf8dfe718bfe78.r2.dev';
 
 const ROADMAP_CATEGORIES = {
   marketing: { label: 'Marketing', color: '#2983eb', icon: '📈' },
@@ -4193,6 +4195,9 @@ function renderRoadmap() {
           </div>
           <div class="roadmap-card-title">${escapeHtml(item.title)}</div>
           ${item.description ? `<div class="roadmap-card-desc">${escapeHtml(item.description)}</div>` : ''}
+          ${(item.images && item.images.length) ? `<div class="roadmap-card-images">${item.images.slice(0, 4).map((img, idx) =>
+            `<div class="roadmap-card-thumb${item.images.length > 4 && idx === 3 ? ' rm-thumb-more' : ''}" style="background-image:url('${R2_PUBLIC}/${img}')">${item.images.length > 4 && idx === 3 ? `<span>+${item.images.length - 3}</span>` : ''}</div>`
+          ).join('')}</div>` : ''}
           ${subsTotal ? `<div class="roadmap-card-subs">
             <div class="roadmap-sub-bar"><div class="roadmap-sub-fill" style="width:${subsPct}%;background:${subsPct === 100 ? '#22c55e' : 'var(--accent)'}"></div></div>
             <span class="roadmap-sub-text">${subsDone}/${subsTotal}</span>
@@ -4276,6 +4281,7 @@ function moveRoadmapItem(id, direction) {
 function openRoadmapAdd(defaultStatus) {
   roadmapEditId = null;
   roadmapEditSubtasks = [];
+  roadmapEditImages = [];
   $('roadmap-modal-title').textContent = 'Nouvelle tache';
   $('rm-title').value = '';
   $('rm-desc').value = '';
@@ -4284,7 +4290,9 @@ function openRoadmapAdd(defaultStatus) {
   $('rm-status').value = defaultStatus || 'todo';
   $('rm-deadline').value = '';
   $('rm-delete').style.display = 'none';
+  $('rm-image-status').textContent = '';
   renderSubtasksList();
+  renderImagesList();
   $('roadmap-modal').classList.remove('hidden');
   $('rm-title').focus();
 }
@@ -4294,6 +4302,7 @@ function openRoadmapEdit(id) {
   if (!item) return;
   roadmapEditId = id;
   roadmapEditSubtasks = JSON.parse(JSON.stringify(item.subtasks || []));
+  roadmapEditImages = [...(item.images || [])];
   $('roadmap-modal-title').textContent = 'Modifier la tache';
   $('rm-title').value = item.title || '';
   $('rm-desc').value = item.description || '';
@@ -4302,7 +4311,9 @@ function openRoadmapEdit(id) {
   $('rm-status').value = item.status || 'todo';
   $('rm-deadline').value = item.deadline || '';
   $('rm-delete').style.display = '';
+  $('rm-image-status').textContent = '';
   renderSubtasksList();
+  renderImagesList();
   $('roadmap-modal').classList.remove('hidden');
   $('rm-title').focus();
 }
@@ -4311,6 +4322,7 @@ function closeRoadmapModal() {
   $('roadmap-modal').classList.add('hidden');
   roadmapEditId = null;
   roadmapEditSubtasks = [];
+  roadmapEditImages = [];
 }
 
 // ── Subtasks ──
@@ -4360,6 +4372,7 @@ function saveRoadmapItem() {
     status: $('rm-status').value,
     deadline: $('rm-deadline').value || null,
     subtasks: roadmapEditSubtasks,
+    images: roadmapEditImages,
   };
   if (roadmapEditId) {
     const item = roadmapItems.find(i => i.id === roadmapEditId);
@@ -4382,6 +4395,82 @@ function deleteRoadmapItem() {
   renderRoadmap();
   saveRoadmap();
   showToast('Tache supprimee', 'ok');
+}
+
+// ── Images ──
+function renderImagesList() {
+  const container = $('rm-images');
+  if (!roadmapEditImages.length) {
+    container.innerHTML = '<div class="muted" style="padding:4px 0;font-size:12px;">Aucun visuel</div>';
+    return;
+  }
+  container.innerHTML = roadmapEditImages.map((key, i) =>
+    `<div class="rm-image-item">
+      <img src="${R2_PUBLIC}/${key}" alt="" loading="lazy" onclick="window.open('${R2_PUBLIC}/${key}','_blank')">
+      <button class="rm-image-del" onclick="removeRoadmapImage(${i})" title="Retirer">&times;</button>
+    </div>`
+  ).join('');
+}
+
+function removeRoadmapImage(i) {
+  roadmapEditImages.splice(i, 1);
+  renderImagesList();
+}
+
+async function uploadRoadmapImages() {
+  const input = $('rm-image-input');
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  input.value = '';
+
+  const status = $('rm-image-status');
+  status.textContent = `Upload de ${files.length} image${files.length > 1 ? 's' : ''}...`;
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('Pas de session');
+
+    const filesMeta = files.map(f => ({
+      name: f.name,
+      contentType: f.type || 'image/jpeg',
+    }));
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'upload-urls', prefix: 'Roadmap/', files: filesMeta }),
+    });
+    if (!res.ok) throw new Error('Erreur presigned URL');
+    const data = await res.json();
+    const uploads = data.uploads || [];
+
+    let done = 0;
+    for (let i = 0; i < files.length; i++) {
+      const upload = uploads[i];
+      if (!upload) continue;
+      const putRes = await fetch(upload.url, {
+        method: 'PUT',
+        headers: { 'Content-Type': files[i].type || 'image/jpeg' },
+        body: files[i],
+      });
+      if (putRes.ok) {
+        roadmapEditImages.push(upload.key);
+        done++;
+      }
+      status.textContent = `${done}/${files.length} uploadee${done > 1 ? 's' : ''}`;
+    }
+
+    renderImagesList();
+    status.textContent = `${done} image${done > 1 ? 's' : ''} ajoutee${done > 1 ? 's' : ''}`;
+    setTimeout(() => { status.textContent = ''; }, 3000);
+  } catch (e) {
+    status.textContent = 'Erreur: ' + e.message;
+    status.style.color = 'var(--danger)';
+  }
 }
 
 // ── Quick add ──
@@ -4409,6 +4498,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('roadmap-filter-priority')?.addEventListener('change', renderRoadmap);
   $('roadmap-export-btn')?.addEventListener('click', exportRoadmap);
   $('rm-subtask-add')?.addEventListener('click', addSubtask);
+  $('rm-image-add')?.addEventListener('click', () => $('rm-image-input').click());
+  $('rm-image-input')?.addEventListener('change', uploadRoadmapImages);
   $('rm-subtask-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSubtask(); } });
 
   // Search with debounce
