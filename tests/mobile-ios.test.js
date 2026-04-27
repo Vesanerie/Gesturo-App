@@ -150,10 +150,10 @@ describe('mobile build files', () => {
 // ── CSP for mobile ──
 
 describe('CSP compatibility', () => {
-  it('script-src does not have unsafe-inline', () => {
+  it('script-src has unsafe-inline (required for sync-web.js auth init)', () => {
     const cspMatch = html.match(/script-src\s+([^;]+)/)
     expect(cspMatch).toBeTruthy()
-    expect(cspMatch[1]).not.toContain('unsafe-inline')
+    expect(cspMatch[1]).toContain('unsafe-inline')
   })
 
   it('connect-src allows https: and wss:', () => {
