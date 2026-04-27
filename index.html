@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Gesturo">
-  <meta name="theme-color" content="#0a1520">
+  <meta name="theme-color" content="#0a0e18">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; media-src 'self' data: blob:;">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,9 +76,9 @@
 <!-- ══ BOUTON OPTIONS ══ -->
 <div id="plan-badge"></div>
 <a id="discord-btn" href="#" aria-label="Discord" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')"
-  style="position:fixed;top:14px;right:54px;background:#131f2e;border:0.5px solid #1e2d40;border-radius:8px;color:#3a5570;width:32px;height:32px;display:none;align-items:center;justify-content:center;z-index:200;text-decoration:none;"
-  onmouseover="this.style.borderColor='#5865F2';this.style.color='#5865F2';this.style.background='#162030'"
-  onmouseout="this.style.borderColor='#1e2d40';this.style.color='#3a5570';this.style.background='#131f2e'">
+  style="position:fixed;top:14px;right:54px;background:#111828;border:0.5px solid #182034;border-radius:8px;color:#4a5870;width:32px;height:32px;display:none;align-items:center;justify-content:center;z-index:200;text-decoration:none;"
+  onmouseover="this.style.borderColor='#b8a0d8';this.style.color='#b8a0d8';this.style.background='#182034'"
+  onmouseout="this.style.borderColor='#182034';this.style.color='#4a5870';this.style.background='#111828'">
   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
 </a>
 <button id="profile-btn" aria-label="Profil" onclick="openProfile()">
@@ -133,6 +133,9 @@
   <div class="opt-item danger" onclick="confirmResetHistory()">
     <span class="opt-icon">🗑</span><span class="opt-label">Réinitialiser l'historique</span>
   </div>
+  <div class="opt-item danger" id="opt-clear-offline" style="display:none;" onclick="toggleOptions(); clearAllOfflinePacks()">
+    <span class="opt-icon">📦</span><span class="opt-label">Supprimer les packs hors-ligne</span>
+  </div>
 </div>
 
 <!-- ══ CONFIG ══ -->
@@ -141,7 +144,7 @@
     <div class="card" id="admin-source-card" style="display:none;">
       <h3>Base de données</h3>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <button id="btn-source-r2" class="folder-btn" style="justify-content:center;background:#1a2e44;border-color:#5b9bd5;color:#5b9bd5;" onclick="adminSetSource('r2')">☁️ R2 Cloud</button>
+        <button id="btn-source-r2" class="folder-btn" style="justify-content:center;background:#182034;border-color:#b8a0d8;color:#b8a0d8;" onclick="adminSetSource('r2')">☁️ R2 Cloud</button>
         <button id="btn-source-local" class="folder-btn" style="justify-content:center;" onclick="adminSetSource('local')">💻 Local</button>
       </div>
       <button class="folder-btn" onclick="pickFolder()">
@@ -230,7 +233,7 @@
     <div id="anim-options" style="display:none">
       <div class="card">
         <h3>Séquences disponibles</h3>
-        <div id="sequences-wrap"><div id="no-sequences" style="font-size:13px;color:#555">Créez un dossier <strong style="color:#aaa">Animations/</strong> dans votre base avec des sous-dossiers numérotés par séquence.<br><br>Exemple : <span style="color:#5b9bd5">Animations/Course_01/001.jpg, 002.jpg...</span></div></div>
+        <div id="sequences-wrap"><div id="no-sequences" style="font-size:13px;color:#555">Créez un dossier <strong style="color:#aaa">Animations/</strong> dans votre base avec des sous-dossiers numérotés par séquence.<br><br>Exemple : <span style="color:#b8a0d8">Animations/Course_01/001.jpg, 002.jpg...</span></div></div>
       </div>
       <div class="card">
         <h3>Mode</h3>
@@ -312,7 +315,7 @@
           <div class="hsc-label">🏆 Badges</div>
         </div>
       </div>
-      <div id="badges-panel" style="margin-bottom:14px;background:#131f2e;border:0.5px solid #1e2d40;border-radius:12px;padding:16px;">
+      <div id="badges-panel" style="margin-bottom:14px;background:#111828;border:0.5px solid #182034;border-radius:12px;padding:16px;">
         <div id="badges-grid"></div>
       </div>
       <div class="hist-period-tabs">
@@ -433,7 +436,7 @@
 
   <div id="start-bar">
     <button class="btn-start" id="btn-start" onclick="startSession()" disabled>Démarrer</button>
-    <button class="btn-start" id="btn-cinema-start" onclick="startCinemaSession()" style="display:none;background:#1a4a7a;border:0.5px solid #2983eb;">🎬 Démarrer la session cinéma</button>
+    <button class="btn-start" id="btn-cinema-start" onclick="startCinemaSession()" style="display:none;background:#182034;border:0.5px solid #b8a0d8;">🎬 Démarrer la session cinéma</button>
   </div>
 </div>
 
@@ -617,7 +620,7 @@
 
 <!-- ══ MOODBOARD (in-app via webview) ══ -->
 <div class="screen" id="screen-moodboard" style="background:#0f0f0f;flex-direction:column;">
-  <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 84px;background:#0f1923;border-bottom:0.5px solid #1e2d40;-webkit-app-region:drag;">
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 84px;background:#0a0e18;border-bottom:0.5px solid #182034;-webkit-app-region:drag;">
     <button class="s-btn" style="-webkit-app-region:no-drag;" onclick="closeMoodboard()">← Retour</button>
     <span style="font-size:13px;color:#4a6280;">🖼 Moodboard</span>
   </div>
@@ -666,9 +669,9 @@
     <div class="about-row"><span class="label">Version</span><span class="value" id="about-version">—</span></div>
     <div class="about-row"><span class="label">Plan</span><span class="value" id="about-plan">—</span></div>
     <div class="about-row" id="about-expiry-row" style="display:none"><span class="label">Expire le</span><span class="value" id="about-expiry">—</span></div>
-    <div class="about-row"><span class="label">Discord</span><a onclick="window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')" style="color:#5865F2;cursor:pointer;font-size:13px;">Rejoindre</a></div>
-    <div class="about-row"><span class="label">Site</span><a onclick="window.electronAPI.openExternal('https://gesturo.art')" style="color:#2983eb;cursor:pointer;font-size:13px;">gesturo.art</a></div>
-    <div class="about-row"><span class="label">Musique</span><span class="value" style="font-size:13px;">🎵 Soft Hope — <a onclick="window.electronAPI.openExternal('https://www.instagram.com/akr.prod/')" style="color:#2983eb;cursor:pointer;">AKR</a></span></div>
+    <div class="about-row"><span class="label">Discord</span><a onclick="window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')" style="color:#b8a0d8;cursor:pointer;font-size:13px;">Rejoindre</a></div>
+    <div class="about-row"><span class="label">Site</span><a onclick="window.electronAPI.openExternal('https://gesturo.art')" style="color:#b8a0d8;cursor:pointer;font-size:13px;">gesturo.art</a></div>
+    <div class="about-row"><span class="label">Musique</span><span class="value" style="font-size:13px;">🎵 Soft Hope — <a onclick="window.electronAPI.openExternal('https://www.instagram.com/akr.prod/')" style="color:#b8a0d8;cursor:pointer;">AKR</a></span></div>
     <button class="about-upgrade" id="about-upgrade-btn" onclick="window.electronAPI.openExternal('https://gesturo.art');closeAbout()">Passer Pro ⭐</button>
     <button class="about-close" onclick="closeAbout()">Fermer</button>
   </div>

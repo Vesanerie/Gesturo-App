@@ -188,7 +188,20 @@ function applyGrid() {
 function resetGrid() { gridMode = 0; applyGrid() }
 
 // ══ OPTIONS ══
-function toggleOptions() { document.getElementById('options-dropdown').classList.toggle('open') }
+function toggleOptions() {
+  const dd = document.getElementById('options-dropdown')
+  dd.classList.toggle('open')
+  // Show/hide offline clear button based on downloaded packs
+  const offlineBtn = document.getElementById('opt-clear-offline')
+  if (offlineBtn && window.__offlinePacks) {
+    const hasAny = Object.keys(window.__offlinePacks.getAll()).length > 0
+    offlineBtn.style.display = hasAny ? '' : 'none'
+    if (hasAny) {
+      const size = window.__offlinePacks.formatSize(window.__offlinePacks.totalSize())
+      offlineBtn.querySelector('.opt-label').textContent = 'Supprimer les packs hors-ligne (' + size + ')'
+    }
+  }
+}
 
 // ── Musique d'ambiance (background music) ──
 // Démarre au 1er clic user (les navigateurs bloquent l'autoplay avant
