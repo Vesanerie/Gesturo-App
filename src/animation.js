@@ -44,6 +44,9 @@ async function startAnimSession() {
   if (animScreen) animScreen.classList.remove('controls-hidden')
   const paths = sequences[selectedSeq].paths
   const btn = document.getElementById('btn-start'); btn.disabled = true
+  if (window.__offlinePacks && !window.__offlinePacks.ready && window.__offlinePacks.whenReady) {
+    await window.__offlinePacks.whenReady
+  }
   const resolve = (p) => isR2Mode ? ((window.__offlinePacks && window.__offlinePacks.resolveLocal(p)) || p) : 'file://' + p
   animFrames = paths.map(p => ({ path: p, dataUrl: resolve(p) }))
   animIndex = 0; animStudyMode = false; animLoopCount = 0

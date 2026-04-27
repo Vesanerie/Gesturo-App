@@ -189,6 +189,9 @@
     }
 
     // ── Public API ──────────────────────────────────────────────────────
+    let _readyResolve
+    const _readyPromise = new Promise(r => { _readyResolve = r })
+
     window.__offlinePacks = {
       isDownloaded: (catKey) => !!index[catKey],
       getAll: () => {
@@ -206,14 +209,16 @@
       formatSize,
       saveCatalogCache,
       loadCatalogCache,
+      whenReady: _readyPromise,
       ready: false,
     }
 
     // Boot
     loadIndex().then(() => {
       window.__offlinePacks.ready = true
+      _readyResolve()
       console.log('[offline] ready, ' + Object.keys(index).length + ' packs cached')
-    }).catch(e => console.warn('[offline] init error:', e.message))
+    }).catch(e => { _readyResolve(); console.warn('[offline] init error:', e.message) })
   }
   init()
 })()

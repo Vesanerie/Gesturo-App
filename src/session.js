@@ -105,6 +105,9 @@ let _bgPreloadTimer = null
 async function getImageSrc(entry) {
   if (entry.isR2) {
     if (window.__offlinePacks) {
+      if (!window.__offlinePacks.ready && window.__offlinePacks.whenReady) {
+        await window.__offlinePacks.whenReady
+      }
       const local = window.__offlinePacks.resolveLocal(entry.path)
       if (local) return local
     }
@@ -114,11 +117,14 @@ async function getImageSrc(entry) {
 }
 
 function preloadOneImage(entry) {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     if (!entry || entry.type === 'pdf') { resolve(); return }
     const key = entry.path
     if (imgCache.has(key)) { resolve(); return }
     if (entry.isR2) {
+      if (window.__offlinePacks && !window.__offlinePacks.ready && window.__offlinePacks.whenReady) {
+        await window.__offlinePacks.whenReady
+      }
       const src = (window.__offlinePacks && window.__offlinePacks.resolveLocal(entry.path)) || entry.path
       const im = new Image()
       im.onload = () => { imgCache.set(key, src); if (imgCache.size > IMG_CACHE_MAX) { imgCache.delete(imgCache.keys().next().value) } resolve() }
