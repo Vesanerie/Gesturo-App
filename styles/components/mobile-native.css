@@ -249,3 +249,80 @@
 @keyframes ptr-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── 13. Timer pulse (5s warning) et shake (0s) ── */
+@keyframes timer-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes timer-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+#timer-display.warning {
+  animation: timer-pulse 0.8s ease infinite;
+}
+#timer-display.shake {
+  animation: timer-shake 0.4s ease;
+}
+
+/* ── 14. Peek preview (long press catégorie) ── */
+.peek-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  z-index: 99998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: peek-fade-in 0.15s ease;
+}
+@keyframes peek-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.peek-card {
+  background: #111828;
+  border: 0.5px solid #182034;
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 340px;
+  width: 100%;
+  animation: peek-pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes peek-pop {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.peek-images {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+.peek-images img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  display: block;
+}
+.peek-info {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.peek-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+.peek-count {
+  font-size: 13px;
+  color: #4a5870;
+}
