@@ -10,5 +10,6 @@ import UIKit
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(VisionKitScannerPlugin())
+        bridge?.registerPluginInstance(GesturoWidgetBridge())
     }
 }

@@ -77,6 +77,7 @@
     authNotAllowed: [],
     authExpired: [],
     authRequired: [],
+    dailyPoseDeepLink: [],
   };
   const on = (key) => (cb) => { listeners[key].push(cb); };
 
@@ -526,6 +527,26 @@
         return { ok: false, error: String(e) || e.message || 'unknown' };
       }
     },
+
+    // ── Widget (iOS only) — write daily pose data to App Group ──
+    updateWidgetData: async ({ poseURL, category, streak, isPro }) => {
+      if (!window.__isIOS) return { ok: false };
+      const Bridge = plugins.GesturoWidgetBridge;
+      if (!Bridge || !Bridge.updateDailyPose) return { ok: false };
+      // Deterministic date string (YYYY-MM-DD local)
+      const now = new Date();
+      const date = now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0');
+      try {
+        await Bridge.updateDailyPose({ poseURL, category, streak, isPro, date });
+        return { ok: true };
+      } catch (e) {
+        console.warn('[shim] updateWidgetData error', e);
+        return { ok: false };
+      }
+    },
+    onDailyPoseDeepLink: on('dailyPoseDeepLink'),
 
     // ── Moodboard webview path — N/A on mobile ──
     getMoodboardPreloadPath: async () => null,

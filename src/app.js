@@ -255,6 +255,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
       }
       loadR2(isPro)
+      // Widget deep link handler (iOS)
+      if (window.electronAPI.onDailyPoseDeepLink) {
+        window.electronAPI.onDailyPoseDeepLink(() => _handleDailyPoseDeepLink())
+      }
       syncFavsFromServer()
       syncHistFromServer()
       syncBadgesFromServer().then(() => checkBadges())
@@ -529,6 +533,9 @@ async function loadR2(isPro) {
     const r2Status = document.getElementById('r2-status')
     if (r2Status) r2Status.textContent = allEntries.length + ' photos chargées ✓'
     document.getElementById('btn-start').disabled = allEntries.length === 0
+
+    // Widget iOS — push daily pose data to App Group
+    _updateWidgetDailyPose(isPro)
   } catch(e) {
     
     const msg = (e && e.message) || String(e)
@@ -544,6 +551,63 @@ async function loadR2(isPro) {
     if (r2Status) r2Status.textContent = hint
     document.getElementById('btn-start').disabled = true
   }
+}
+
+// ── Widget iOS : "Pose du jour" ──
+// Seeded random based on date → same pose all day, changes at midnight.
+function _dailyPoseSeed() {
+  const d = new Date()
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()
+}
+function _seededRandom(seed) {
+  let s = seed
+  return function () { s = (s * 16807 + 0) % 2147483647; return s / 2147483647 }
+}
+
+let _dailyPoseEntry = null
+
+async function _updateWidgetDailyPose(isPro) {
+  if (!window.__isIOS || !window.electronAPI?.updateWidgetData) return
+  if (!allEntries.length) return
+  const rng = _seededRandom(_dailyPoseSeed())
+  // Filter eligible entries (FREE = poses-dynamiques only)
+  const eligible = isPro ? allEntries : allEntries.filter(e => e.category === 'poses-dynamiques')
+  if (!eligible.length) return
+  const idx = Math.floor(rng() * eligible.length)
+  const entry = eligible[idx]
+  _dailyPoseEntry = entry
+  // Build thumb URL (400px) — R2 images path → direct URL
+  const thumbUrl = entry.path
+  // Get streak
+  let streak = 0
+  try { const s = await window.electronAPI.getStreak(); streak = s?.streak || 0 } catch (e) {}
+  window.electronAPI.updateWidgetData({
+    poseURL: thumbUrl,
+    category: entry.category,
+    streak,
+    isPro: !!isPro
+  })
+}
+
+// Deep link from widget tap → open session with daily pose
+function _handleDailyPoseDeepLink() {
+  if (!_dailyPoseEntry && allEntries.length) {
+    // Recalculate if not set yet (cold start)
+    const rng = _seededRandom(_dailyPoseSeed())
+    const eligible = currentUserIsPro ? allEntries : allEntries.filter(e => e.category === 'poses-dynamiques')
+    if (eligible.length) {
+      const idx = Math.floor(rng() * eligible.length)
+      _dailyPoseEntry = eligible[idx]
+    }
+  }
+  if (!_dailyPoseEntry) return
+  // Same pattern as participateChallenge() — single-image session
+  sessionEntries = [{ type: 'image', path: _dailyPoseEntry.path, category: _dailyPoseEntry.category, isR2: true }]
+  currentIndex = 0; sessionLog = []; _challengeSession = false
+  mainMode = 'pose'; currentSubMode = 'class'
+  if (typeof closeEndConfirm === 'function') closeEndConfirm()
+  document.getElementById('controls').style.display = 'flex'
+  showScreen('screen-session'); loadAndShow(0)
 }
 
 async function pickFolder() {

@@ -157,7 +157,13 @@
     const App = window.Capacitor?.Plugins?.App;
     if (App?.addListener) {
       App.addListener('appUrlOpen', (event) => {
-        if (event?.url && event.url.startsWith('com.gesturo.app://')) {
+        if (!event?.url) return;
+        // Daily pose deep link from widget — emit event for app.js to handle
+        if (event.url.startsWith('com.gesturo.app://daily-pose')) {
+          window.__mobileBus?.emit('dailyPoseDeepLink');
+          return;
+        }
+        if (event.url.startsWith('com.gesturo.app://')) {
           handleCallback(event.url);
         }
       });
