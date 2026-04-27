@@ -84,7 +84,7 @@
     <button id="profile-btn" aria-label="Profil">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
     </button>
-    <a id="discord-btn" href="#" aria-label="Discord" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')">
+    <a id="discord-btn" href="#" aria-label="Discord">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
     </a>
     <button id="options-btn" aria-label="Options">⋯</button>
@@ -146,10 +146,10 @@
     <div class="card" id="admin-source-card" style="display:none;">
       <h3>Base de données</h3>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <button id="btn-source-r2" class="folder-btn" style="justify-content:center;background:#1a2e44;border-color:#5b9bd5;color:#5b9bd5;" onclick="adminSetSource('r2')">☁️ R2 Cloud</button>
-        <button id="btn-source-local" class="folder-btn" style="justify-content:center;" onclick="adminSetSource('local')">💻 Local</button>
+        <button id="btn-source-r2" class="folder-btn" style="justify-content:center;background:#1a2e44;border-color:#5b9bd5;color:#5b9bd5;">☁️ R2 Cloud</button>
+        <button id="btn-source-local" class="folder-btn" style="justify-content:center;">💻 Local</button>
       </div>
-      <button class="folder-btn" onclick="pickFolder()">
+      <button class="folder-btn" id="btn-pick-folder">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
         Choisir un autre dossier
       </button>
@@ -222,7 +222,7 @@
         <div class="row" style="margin-bottom:0">
           <label>Images à l'envers</label>
           <div style="display:flex;align-items:center;gap:10px;">
-            <div id="flip-toggle" onclick="toggleFlipMode()" style="width:40px;height:22px;background:#2e2e2e;border:0.5px solid #444;border-radius:99px;cursor:pointer;position:relative;transition:background 0.2s;">
+            <div id="flip-toggle" style="width:40px;height:22px;background:#2e2e2e;border:0.5px solid #444;border-radius:99px;cursor:pointer;position:relative;transition:background 0.2s;">
               <div id="flip-knob" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:#666;border-radius:50%;transition:left 0.2s,background 0.2s;"></div>
             </div>
             <span id="flip-label" style="font-size:13px;color:#555;">Désactivé</span>
@@ -470,10 +470,10 @@
     </div>
     <div id="transform-controls">
       <button class="transform-btn" id="grid-btn" aria-label="Grille de composition" title="Grille de composition">⊞</button>
-      <button class="transform-btn" id="bw-btn" onclick="toggleBW()" aria-label="Noir et blanc" title="Noir et blanc">◑</button>
-      <button class="transform-btn" onclick="flipH()" aria-label="Miroir horizontal" title="Miroir horizontal">⇆</button>
-      <button class="transform-btn" onclick="rotateLeft()" aria-label="Rotation gauche" title="Rotation gauche">↺</button>
-      <button class="transform-btn" onclick="rotateRight()" aria-label="Rotation droite" title="Rotation droite">↻</button>
+      <button class="transform-btn" id="bw-btn" aria-label="Noir et blanc" title="Noir et blanc">◑</button>
+      <button class="transform-btn" id="btn-flip-h" aria-label="Miroir horizontal" title="Miroir horizontal">⇆</button>
+      <button class="transform-btn" id="btn-rotate-left" aria-label="Rotation gauche" title="Rotation gauche">↺</button>
+      <button class="transform-btn" id="btn-rotate-right" aria-label="Rotation droite" title="Rotation droite">↻</button>
     </div>
     <button class="fav-star-btn" id="pose-fav-btn" onclick="toggleFavPose()" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
   </div>
@@ -552,7 +552,7 @@
       </div>
     </div>
     <div class="end-btns">
-      <button class="end-btn end-btn-primary" id="btn-new-session" onclick="showScreen('screen-config'); if(mainMode==='cinema') switchMainMode('cinema')">Retour au menu</button>
+      <button class="end-btn end-btn-primary" id="btn-new-session">Retour au menu</button>
       <button class="end-btn" onclick="replaySession()">Recommencer</button>
       <button class="end-btn end-btn-share" id="btn-share-drawing" onclick="openShareDrawing()">Partager mon dessin</button>
     </div>
@@ -623,7 +623,7 @@
 <!-- ══ MOODBOARD (in-app via webview) ══ -->
 <div class="screen" id="screen-moodboard" style="background:#0f0f0f;flex-direction:column;">
   <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 84px;background:#0f1923;border-bottom:0.5px solid #1e2d40;-webkit-app-region:drag;">
-    <button class="s-btn" style="-webkit-app-region:no-drag;" onclick="closeMoodboard()">← Retour</button>
+    <button class="s-btn" id="btn-moodboard-back" style="-webkit-app-region:no-drag;">← Retour</button>
     <span style="font-size:13px;color:#4a6280;">🖼 Moodboard</span>
   </div>
   <webview id="moodboard-webview" style="flex:1;width:100%;"></webview>
@@ -709,7 +709,10 @@
       <div class="profile-value" id="profile-plan">Free</div>
     </div>
     <div class="profile-stats">
-      <!-- streak disabled — will redo later -->
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profile-streak">0</div>
+        <div class="profile-stat-label">Streak</div>
+      </div>
       <div class="profile-stat">
         <div class="profile-stat-value" id="profile-poses">0</div>
         <div class="profile-stat-label">Poses</div>

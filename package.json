@@ -8,6 +8,7 @@
     "start": "electron .",
     "build": "electron-builder --mac",
     "build:win": "electron-builder --win",
+    "test": "vitest run",
     "check": "node scripts/health-check.js",
     "smoke": "node scripts/smoke-test.js",
     "mobile:sync": "node scripts/sync-web.js && cap sync",
@@ -30,7 +31,8 @@
     "electron": "^41.2.0",
     "electron-builder": "^26.8.1",
     "electron-reloader": "^1.2.3",
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "vitest": "^4.1.5"
   },
   "build": {
     "appId": "com.gesturo.app",

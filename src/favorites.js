@@ -2,11 +2,8 @@
 // ══ FAVORIS ══
 const FAV_KEY = 'gd4_favorites'
 
-// Suffixe les clés localStorage par l'email du compte courant pour qu'un
-// switch de compte sur la même machine ne mélange pas les données. Si
-// aucun email connu (avant auth), on retombe sur la clé brute pour ne
-// pas casser le boot. Migration auto dans les loaders : si la clé scopée
-// n'existe pas mais la clé brute oui, on copie une fois.
+// Scoped storage helpers — canonical implementation in src/lib/scoped-storage.js
+// Kept as thin wrappers here so existing global callers still work.
 function _scopedKey(base) {
   const email = (typeof _communityEmail === 'string' ? _communityEmail : '').toLowerCase()
   return email ? base + ':' + email : base
@@ -15,9 +12,6 @@ function _readScoped(base) {
   const sk = _scopedKey(base)
   let raw = localStorage.getItem(sk)
   if (raw === null && sk !== base) {
-    // Migration one-shot : on récupère l'ancienne clé brute (pré-scope) et
-    // on l'attribue au compte courant (1er user qui se connecte hérite des
-    // datas anonymes locales). Les comptes suivants partent vides.
     const legacy = localStorage.getItem(base)
     if (legacy !== null) {
       localStorage.setItem(sk, legacy)

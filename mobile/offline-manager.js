@@ -85,13 +85,17 @@
     }
 
     // ── R2 catalog cache (for offline boot) ─────────────────────────────
+    let _catalogSaveQueue = Promise.resolve()
     async function saveCatalogCache(photos, anims) {
-      await ensureDir(BASE)
-      const existing = await readJSON(BASE + '/catalog-cache.json') || {}
-      if (photos) existing.photos = photos
-      if (anims) existing.anims = anims
-      existing.savedAt = new Date().toISOString()
-      await writeJSON(BASE + '/catalog-cache.json', existing)
+      _catalogSaveQueue = _catalogSaveQueue.then(async () => {
+        await ensureDir(BASE)
+        const existing = await readJSON(BASE + '/catalog-cache.json') || {}
+        if (photos) existing.photos = photos
+        if (anims) existing.anims = anims
+        existing.savedAt = new Date().toISOString()
+        await writeJSON(BASE + '/catalog-cache.json', existing)
+      })
+      return _catalogSaveQueue
     }
     async function loadCatalogCache() {
       return await readJSON(BASE + '/catalog-cache.json')
@@ -99,6 +103,9 @@
 
     // ── Download a pack ─────────────────────────────────────────────────
     function download(catKey, r2Urls) {
+      // Prevent duplicate concurrent downloads for the same catKey
+      if (activeDownloads.has(catKey)) return null
+
       let cancelled = false
       let progress = 0
       const total = r2Urls.length
@@ -161,6 +168,9 @@
 
     // ── Delete a pack ───────────────────────────────────────────────────
     async function deletePack(catKey) {
+      // Cancel any active download before deleting
+      const dl = activeDownloads.get(catKey)
+      if (dl && dl.cancel) { dl.cancel(); activeDownloads.delete(catKey) }
       const pack = index[catKey]
       if (pack?.files) {
         for (const r2Url of Object.keys(pack.files)) urlToLocal.delete(r2Url)
