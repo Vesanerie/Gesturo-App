@@ -1197,6 +1197,7 @@ async function executeMove() {
 
   // Move individual files
   if (keysToMove.length > 0) {
+    console.log('[move] keys:', keysToMove, 'dest:', destPrefix);
     await callAdmin('move', { keys: keysToMove, destPrefix }, `Déplacement de ${keysToMove.length} fichier${keysToMove.length > 1 ? 's' : ''}…`);
   }
   // Move folders: list all files inside, then move them to destPrefix/folderName/
