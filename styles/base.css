@@ -1,21 +1,23 @@
 :root {
-  /* Or chaud Gesturo — utilisé pour les titres, favoris, streaks, highlights */
-  --warm: #f0c040;
-  --warm-halo: rgba(240, 192, 64, 0.3);
+  /* Pêche Gesturo — utilisé pour les titres, favoris, streaks, highlights */
+  --warm: #e8a088;
+  --warm-halo: rgba(232, 160, 136, 0.3);
 
   /* Couleurs */
-  --primary: #2983eb;
+  --primary: #b8a0d8;
+  --accent-strong: #a87ce0;
   --danger: #E24B4A;
-  --bg-body: #0f1923;
-  --bg-screen: #0a1520;
-  --bg-card: #131f2e;
-  --bg-hover: #162030;
-  --border: #1e2d40;
+  --success: #a8d090;
+  --bg-body: #0a0e18;
+  --bg-screen: #0a0e18;
+  --bg-card: #111828;
+  --bg-hover: #182034;
+  --border: rgba(180, 190, 220, 0.08);
 
   /* Surfaces semi-transparentes (overlays, barres flottantes) */
-  --surface-light: rgba(10, 21, 32, 0.6);
-  --surface-medium: rgba(10, 21, 32, 0.75);
-  --surface-heavy: rgba(10, 21, 32, 0.9);
+  --surface-light: rgba(17, 24, 40, 0.6);
+  --surface-medium: rgba(17, 24, 40, 0.75);
+  --surface-heavy: rgba(17, 24, 40, 0.9);
 
   /* Backdrop blur — 3 niveaux */
   --blur-sm: 8px;
@@ -26,28 +28,32 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 ::-webkit-scrollbar { display: none; }
 
-/* Gesturo brand : le "o" final des titres en or chaud avec halo */
+/* Gesturo brand : gradient pêche → lavande holographique */
 .gesturo-o {
-  color: var(--warm);
-  text-shadow: 0 0 8px var(--warm-halo);
+  background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Mobile polish : supprimer le flash gris/bleu des taps sur Android WebView
    + iOS Safari. Zéro impact desktop (la propriété est -webkit- only). */
 * { -webkit-tap-highlight-color: transparent; }
 
-/* Mobile polish : empêcher la sélection de texte au long-press sur les
-   boutons (évite le popup "Copier" intempestif). Inputs/textarea non
-   concernés. */
-@media (max-width: 767px) {
-  button, .bottom-tab, .s-btn, .transform-btn {
-    -webkit-user-select: none;
-            user-select: none;
-    -webkit-touch-callout: none;
-  }
+/* Mobile polish : empêcher toute sélection de texte (effet natif).
+   Inputs/textarea restent sélectionnables pour l'édition. */
+body {
+  -webkit-user-select: none;
+          user-select: none;
+  -webkit-touch-callout: none;
+}
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+          user-select: text;
+  -webkit-touch-callout: default;
 }
 
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1923; color: #e0e0e0; height: 100vh; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e18; color: #f0eae4; height: 100vh; overflow: hidden; }
 .screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
 .screen.active { display: flex; }
 
@@ -97,7 +103,7 @@ body::after {
     bottom: 0;
     z-index: 500;
     padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 8px);
-    background: rgba(10, 21, 32, 0.92);
+    background: rgba(17, 24, 40, 0.92);
     -webkit-backdrop-filter: blur(var(--blur-lg));
             backdrop-filter: blur(var(--blur-lg));
     border-top: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -130,8 +136,8 @@ body::after {
     line-height: 1;
   }
   .bottom-tab.active {
-    color: #5b9bd5;
-    background: rgba(91, 155, 213, 0.1);
+    color: #b8a0d8;
+    background: rgba(184, 160, 216, 0.1);
   }
 
   /* Réserver de la place en bas du config pour ne pas que la dernière
@@ -160,9 +166,9 @@ body::after {
     right: 0;
     height: calc(env(safe-area-inset-top, 0px) + 58px);
     background: linear-gradient(180deg,
-      rgba(15, 25, 35, 0.92) 0%,
-      rgba(15, 25, 35, 0.85) 70%,
-      rgba(15, 25, 35, 0) 100%);
+      rgba(10, 14, 24, 0.92) 0%,
+      rgba(10, 14, 24, 0.85) 70%,
+      rgba(10, 14, 24, 0) 100%);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     pointer-events: none;
@@ -234,7 +240,7 @@ body::after {
   input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
     border-radius: 3px;
-    background: #1e2d40;
+    background: #182034;
   }
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -242,8 +248,8 @@ body::after {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #2983eb;
-    border: 2px solid #0f1923;
+    background: #b8a0d8;
+    border: 2px solid #0a0e18;
     margin-top: -11px;
     cursor: pointer;
   }
@@ -327,7 +333,7 @@ body::after {
 .maintenance-overlay {
   position: fixed;
   inset: 0;
-  background: #0a1520;
+  background: #0a0e18;
   z-index: 100000;
   display: flex;
   align-items: center;
@@ -355,11 +361,16 @@ body::after {
   margin-bottom: 12px;
 }
 .maintenance-card p {
-  color: #6a8aa8;
+  color: #8898b0;
   font-size: 15px;
   line-height: 1.5;
 }
-.gesturo-o { color: var(--warm, #f0c040); }
+.gesturo-o {
+  background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 /* ═══ Announcement modal (center screen) ═══ */
 .announcement-backdrop {
@@ -381,8 +392,8 @@ body::after {
 }
 .announcement-card {
   position: relative;
-  background: var(--bg-card, #131f2e);
-  border: 1px solid rgba(41, 131, 235, 0.4);
+  background: var(--bg-card, #111828);
+  border: 1px solid rgba(184, 160, 216, 0.4);
   border-radius: 16px;
   padding: 36px 28px 28px;
   max-width: 420px;
@@ -395,7 +406,7 @@ body::after {
   from { opacity: 0; transform: scale(0.92) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
-.announcement-backdrop.kind-warning .announcement-card { border-color: rgba(240, 192, 64, 0.5); }
+.announcement-backdrop.kind-warning .announcement-card { border-color: rgba(232, 160, 136, 0.5); }
 .announcement-backdrop.kind-success .announcement-card { border-color: rgba(95, 207, 127, 0.5); }
 .announcement-icon {
   font-size: 42px;
@@ -403,7 +414,7 @@ body::after {
   margin-bottom: 14px;
 }
 .announcement-message {
-  color: #e6edf5;
+  color: #f0eae4;
   font-size: 16px;
   line-height: 1.45;
   margin: 0 0 18px;
@@ -411,7 +422,7 @@ body::after {
 }
 .announcement-link {
   display: inline-block;
-  background: var(--primary, #2983eb);
+  background: var(--primary, #b8a0d8);
   color: #fff;
   font-weight: 600;
   font-size: 14px;
@@ -421,15 +432,15 @@ body::after {
   transition: opacity 0.06s;
 }
 .announcement-link:hover { opacity: 0.85; }
-.announcement-backdrop.kind-warning .announcement-link { background: var(--warm, #f0c040); color: #0a1520; }
-.announcement-backdrop.kind-success .announcement-link { background: #5fcf7f; color: #0a1520; }
+.announcement-backdrop.kind-warning .announcement-link { background: var(--warm, #e8a088); color: #0a0e18; }
+.announcement-backdrop.kind-success .announcement-link { background: #a8d090; color: #0a0e18; }
 .announcement-close {
   position: absolute;
   top: 10px;
   right: 12px;
   background: transparent;
   border: none;
-  color: #6a8aa8;
+  color: #8898b0;
   font-size: 26px;
   line-height: 1;
   cursor: pointer;
