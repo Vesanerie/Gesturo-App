@@ -14,6 +14,11 @@ Solo dev, français, commits incrémentaux, push auto après chaque modif.
   `index.html` correspondent à une fonction existante.
 - **Après modif `preload.js`** : vérifier que `mobile/mobile-shim.js`
   expose les mêmes méthodes.
+- **Badges** : 18 badges dans `BADGES_DEF` (options.js). Stockage scopé
+  via `_readScoped`/`_writeScoped`. `checkBadges()` appelé à chaque fin
+  de session (`logSession`) ET au boot après `syncBadgesFromServer`.
+  `unlockBadge()` a un guard anti-doublon. `speed_master` vérifie
+  `s.timer === 30` — le champ `timer` est logué depuis v0.3.1+.
 
 ## Stack
 
