@@ -156,7 +156,7 @@
       <div id="folder-path">Chargement...</div>
       <div id="file-count"></div>
     </div>
-    <div id="r2-status" style="font-size:12px;color:#4CAF50;margin-bottom:14px;min-height:16px;"></div>
+    <div id="r2-status" style="display:none;"></div>
 
     <!-- week-bar disabled — will redo later -->
     <div id="week-bar" style="display:none;">
@@ -165,13 +165,13 @@
     </div>
 
     <div class="mode-tabs">
-      <button class="mode-tab active" id="tab-pose" onclick="switchMainMode('pose')">🖌 Poses</button>
-      <button class="mode-tab" id="tab-anim" onclick="switchMainMode('anim')">🎞 Animation</button>
-      <button class="mode-tab" id="tab-cinema" onclick="switchMainMode('cinema')">🎬 Cinéma</button>
-      <button class="mode-tab" id="tab-moodboard" onclick="openMoodboard()">🖼 Moodboard</button>
-      <button class="mode-tab" id="tab-favs" onclick="switchMainMode('favs')">⭐ Favoris</button>
-      <button class="mode-tab" id="tab-hist" onclick="switchMainMode('hist')">📈 Historique</button>
-      <button class="mode-tab" id="tab-community" onclick="switchMainMode('community')">🌍 Commu.</button>
+      <button class="mode-tab active" id="tab-pose">🖌 Poses</button>
+      <button class="mode-tab" id="tab-anim">🎞 Animation</button>
+      <button class="mode-tab" id="tab-cinema">🎬 Cinéma</button>
+      <button class="mode-tab" id="tab-moodboard">🖼 Moodboard</button>
+      <button class="mode-tab" id="tab-favs">⭐ Favoris</button>
+      <button class="mode-tab" id="tab-hist">📈 Historique</button>
+      <button class="mode-tab" id="tab-community">🌍 Commu.</button>
     </div>
 
     <!-- ═ POSE OPTIONS ═ -->
@@ -422,7 +422,7 @@
   <div id="selection-pile" class="pile-hidden">
     <div id="pile-header">
       <span id="pile-title">Sélection</span>
-      <button id="pile-clear" onclick="clearSelectionPile()">Tout vider</button>
+      <button id="pile-clear">Tout vider</button>
     </div>
     <div id="pile-cards"></div>
     <div id="pile-footer">
@@ -431,7 +431,7 @@
   </div>
 
   <!-- ═ MINI BARRE MOBILE (résumé sticky bottom) ═ -->
-  <div id="pile-mini-bar" class="pile-hidden" onclick="togglePileSheet()">
+  <div id="pile-mini-bar" class="pile-hidden">
     <span id="pile-mini-text"></span>
     <span id="pile-mini-arrow">▲</span>
   </div>
@@ -681,11 +681,11 @@
 
 <!-- Bottom tab bar — visible uniquement sur mobile via CSS -->
 <nav id="bottom-tab-bar">
-  <button class="bottom-tab" id="btab-start" onclick="switchMainMode('pose')">
+  <button class="bottom-tab" id="btab-start">
     <span class="btab-icon">▶</span>
     <span class="btab-label">Démarrer</span>
   </button>
-  <button class="bottom-tab" id="btab-community" onclick="switchMainMode('community')">
+  <button class="bottom-tab" id="btab-community">
     <span class="btab-icon">🌍</span>
     <span class="btab-label">Communauté</span>
   </button>

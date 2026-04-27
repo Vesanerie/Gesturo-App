@@ -737,3 +737,23 @@ function switchMainMode(mode) {
 
 const preloadCache = {}
 
+function _initCategoriesListeners() {
+  document.getElementById('tab-pose').addEventListener('click', function() { switchMainMode('pose') })
+  document.getElementById('tab-anim').addEventListener('click', function() { switchMainMode('anim') })
+  document.getElementById('tab-cinema').addEventListener('click', function() { switchMainMode('cinema') })
+  document.getElementById('tab-moodboard').addEventListener('click', openMoodboard)
+  document.getElementById('tab-favs').addEventListener('click', function() { switchMainMode('favs') })
+  document.getElementById('tab-hist').addEventListener('click', function() { switchMainMode('hist') })
+  document.getElementById('tab-community').addEventListener('click', function() { switchMainMode('community') })
+  document.getElementById('pile-clear').addEventListener('click', clearSelectionPile)
+  document.getElementById('pile-mini-bar').addEventListener('click', togglePileSheet)
+  document.getElementById('btab-start').addEventListener('click', function() { switchMainMode('pose') })
+  document.getElementById('btab-community').addEventListener('click', function() { switchMainMode('community') })
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initCategoriesListeners)
+} else {
+  _initCategoriesListeners()
+}
+
