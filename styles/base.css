@@ -63,9 +63,9 @@ body::before {
   z-index: 101;
 }
 
-/* Mobile : badge PRO à gauche du bouton Discord */
+/* Mobile : badge PRO aligné à gauche du bouton Discord */
 @media (max-width: 767px) {
-  #plan-badge { right: 100px !important; }
+  #plan-badge { right: 94px !important; top: calc(env(safe-area-inset-top, 0px) + 14px) !important; height: 40px !important; }
 }
 
 body::after {
