@@ -37,7 +37,7 @@ struct PoseOfDayView: View {
                 SmallView(entry: entry)
             }
         }
-        .containerBackground(bgColor, for: .widget)
+        .modifier(WidgetBackgroundModifier())
     }
 }
 
@@ -220,6 +220,18 @@ private struct RoundedCorner: Shape {
             cornerRadii: CGSize(width: radius, height: radius)
         )
         return Path(path.cgPath)
+    }
+}
+
+// MARK: - iOS 16/17 background compat
+
+private struct WidgetBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            content.containerBackground(bgColor, for: .widget)
+        } else {
+            content.background(bgColor)
+        }
     }
 }
 
