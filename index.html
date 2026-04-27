@@ -58,9 +58,9 @@
 </div>
 
 <!-- Announcement modal (center screen, hidden by default) -->
-<div id="announcement-banner" class="announcement-backdrop" style="display:none;" onclick="if(event.target===this)dismissAnnouncement()">
+<div id="announcement-banner" class="announcement-backdrop" style="display:none;">
   <div class="announcement-card">
-    <button id="announcement-close" class="announcement-close" aria-label="Fermer" onclick="dismissAnnouncement()">&times;</button>
+    <button id="announcement-close" class="announcement-close" aria-label="Fermer">&times;</button>
     <div id="announcement-icon" class="announcement-icon">💙</div>
     <p id="announcement-message" class="announcement-message"></p>
     <a id="announcement-link" class="announcement-link" target="_blank" rel="noopener" style="display:none;"></a>
@@ -475,7 +475,7 @@
       <button class="transform-btn" id="btn-rotate-left" aria-label="Rotation gauche" title="Rotation gauche">↺</button>
       <button class="transform-btn" id="btn-rotate-right" aria-label="Rotation droite" title="Rotation droite">↻</button>
     </div>
-    <button class="fav-star-btn" id="pose-fav-btn" onclick="toggleFavPose()" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
+    <button class="fav-star-btn" id="pose-fav-btn" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
   </div>
   <div id="session-bar">
     <svg id="countdown-circle" viewBox="0 0 48 48">
@@ -512,7 +512,7 @@
     </div>
     <div id="anim-mode-badge" class="loop">Boucle</div>
     <div id="anim-frame-info">Image 1 / 1</div>
-    <button class="fav-star-btn" id="anim-fav-btn" onclick="toggleFavAnim()" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
+    <button class="fav-star-btn" id="anim-fav-btn" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
   </div>
   <div id="anim-bar">
     <div id="timeline-wrap">
@@ -630,11 +630,11 @@
 </div>
 
 <!-- LIGHTBOX -->
-<div id="lightbox" onclick="closeLightbox()">
+<div id="lightbox">
   <div id="lightbox-close">✕</div>
   <img src="" alt="">
   <div id="lightbox-info"></div>
-  <button id="lb-fav-remove" onclick="event.stopPropagation(); removeFavFromLightbox()">✕ Retirer des favoris</button>
+  <button id="lb-fav-remove">✕ Retirer des favoris</button>
 </div>
 
 <!-- COMMUNITY COMPARE OVERLAY -->

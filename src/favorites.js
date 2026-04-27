@@ -443,3 +443,18 @@ function openLightboxFav(src, index) {
   lb.classList.add('open'); document.addEventListener('keydown', onLbKey)
 }
 function removeFavFromLightbox() { if (!lbFavSrc) return; removeFav(lbFavSrc); lbFavSrc = null; closeLightbox(); renderFavsConfig() }
+
+function _initFavoritesListeners() {
+  document.getElementById('announcement-banner').addEventListener('click', function(e) { if (e.target === this) dismissAnnouncement() })
+  document.getElementById('announcement-close').addEventListener('click', dismissAnnouncement)
+  document.getElementById('pose-fav-btn').addEventListener('click', toggleFavPose)
+  document.getElementById('anim-fav-btn').addEventListener('click', toggleFavAnim)
+  document.getElementById('lightbox').addEventListener('click', closeLightbox)
+  document.getElementById('lb-fav-remove').addEventListener('click', function(e) { e.stopPropagation(); removeFavFromLightbox() })
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initFavoritesListeners)
+} else {
+  _initFavoritesListeners()
+}
