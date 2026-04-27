@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,28 +11,74 @@
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
-		DC402B32BD6548CE81C5EFA8 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C91B141AEEF4ED7A5F74EB2 /* MainViewController.swift */; };
-		A231771F58CE49C7877A4ADF /* VisionKitScannerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2F2EBA433D4A579D2151E2 /* VisionKitScannerPlugin.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		A231771F58CE49C7877A4ADF /* VisionKitScannerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2F2EBA433D4A579D2151E2 /* VisionKitScannerPlugin.swift */; };
+		BCD8D6302FA030000079F620 /* GesturoWidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD8D62F2FA030000079F620 /* GesturoWidgetBridge.swift */; };
+		BCD8D6182FA02CBD0079F620 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCD8D6172FA02CBD0079F620 /* WidgetKit.framework */; };
+		BCD8D61A2FA02CBD0079F620 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCD8D6192FA02CBD0079F620 /* SwiftUI.framework */; };
+		BCD8D6252FA02CBF0079F620 /* GesturoWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCD8D6152FA02CBD0079F620 /* GesturoWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DC402B32BD6548CE81C5EFA8 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C91B141AEEF4ED7A5F74EB2 /* MainViewController.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BCD8D6232FA02CBF0079F620 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BCD8D6142FA02CBD0079F620;
+			remoteInfo = GesturoWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BCD8D6262FA02CBF0079F620 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BCD8D6252FA02CBF0079F620 /* GesturoWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		8C91B141AEEF4ED7A5F74EB2 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
-		AA2F2EBA433D4A579D2151E2 /* VisionKitScannerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionKitScannerPlugin.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		8C91B141AEEF4ED7A5F74EB2 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		AA2F2EBA433D4A579D2151E2 /* VisionKitScannerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionKitScannerPlugin.swift; sourceTree = "<group>"; };
+		BCD8D62F2FA030000079F620 /* GesturoWidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GesturoWidgetBridge.swift; sourceTree = "<group>"; };
+		BCD8D6152FA02CBD0079F620 /* GesturoWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GesturoWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCD8D6172FA02CBD0079F620 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		BCD8D6192FA02CBD0079F620 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BCD8D6292FA02CBF0079F620 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BCD8D6142FA02CBD0079F620 /* GesturoWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BCD8D61B2FA02CBD0079F620 /* GesturoWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (BCD8D6292FA02CBF0079F620 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = GesturoWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		504EC3011FED79650016851F /* Frameworks */ = {
@@ -40,6 +86,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BCD8D6122FA02CBD0079F620 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BCD8D61A2FA02CBD0079F620 /* SwiftUI.framework in Frameworks */,
+				BCD8D6182FA02CBD0079F620 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -51,6 +106,8 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				BCD8D61B2FA02CBD0079F620 /* GesturoWidget */,
+				BCD8D6162FA02CBD0079F620 /* Frameworks */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -59,6 +116,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				BCD8D6152FA02CBD0079F620 /* GesturoWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +128,7 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				8C91B141AEEF4ED7A5F74EB2 /* MainViewController.swift */,
 				AA2F2EBA433D4A579D2151E2 /* VisionKitScannerPlugin.swift */,
+				BCD8D62F2FA030000079F620 /* GesturoWidgetBridge.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -78,6 +137,15 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		BCD8D6162FA02CBD0079F620 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				BCD8D6172FA02CBD0079F620 /* WidgetKit.framework */,
+				BCD8D6192FA02CBD0079F620 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -90,10 +158,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				BCD8D6262FA02CBF0079F620 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				BCD8D6242FA02CBF0079F620 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -103,19 +173,44 @@
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
 		};
+		BCD8D6142FA02CBD0079F620 /* GesturoWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCD8D62A2FA02CBF0079F620 /* Build configuration list for PBXNativeTarget "GesturoWidgetExtension" */;
+			buildPhases = (
+				BCD8D6112FA02CBD0079F620 /* Sources */,
+				BCD8D6122FA02CBD0079F620 /* Frameworks */,
+				BCD8D6132FA02CBD0079F620 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BCD8D61B2FA02CBD0079F620 /* GesturoWidget */,
+			);
+			name = GesturoWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = GesturoWidgetExtension;
+			productReference = BCD8D6152FA02CBD0079F620 /* GesturoWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		504EC2FC1FED79650016851F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 0920;
+				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 0920;
 				TargetAttributes = {
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
 						ProvisioningStyle = Automatic;
+					};
+					BCD8D6142FA02CBD0079F620 = {
+						CreatedOnToolsVersion = 26.4.1;
 					};
 				};
 			};
@@ -136,6 +231,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				BCD8D6142FA02CBD0079F620 /* GesturoWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -154,6 +250,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BCD8D6132FA02CBD0079F620 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -164,10 +267,26 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				DC402B32BD6548CE81C5EFA8 /* MainViewController.swift in Sources */,
 				A231771F58CE49C7877A4ADF /* VisionKitScannerPlugin.swift in Sources */,
+				BCD8D6302FA030000079F620 /* GesturoWidgetBridge.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BCD8D6112FA02CBD0079F620 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BCD8D6242FA02CBF0079F620 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BCD8D6142FA02CBD0079F620 /* GesturoWidgetExtension */;
+			targetProxy = BCD8D6232FA02CBF0079F620 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -344,6 +463,90 @@
 			};
 			name = Release;
 		};
+		BCD8D6272FA02CBF0079F620 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Q4W8LZ8636;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GesturoWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GesturoWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gesturo.app.GesturoWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BCD8D6282FA02CBF0079F620 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Q4W8LZ8636;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GesturoWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GesturoWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gesturo.app.GesturoWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -361,6 +564,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BCD8D62A2FA02CBF0079F620 /* Build configuration list for PBXNativeTarget "GesturoWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BCD8D6272FA02CBF0079F620 /* Debug */,
+				BCD8D6282FA02CBF0079F620 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
