@@ -183,11 +183,11 @@
       <div class="card">
         <h3>Mode de session</h3>
         <div class="sub-mode-cards">
-          <div class="sub-mode-card selected" data-mode="custom" onclick="selectSubMode('custom')">
+          <div class="sub-mode-card selected" data-mode="custom">
             <div class="t">Personnalisé</div>
             <div class="d">Durée fixe pour toutes les poses</div>
           </div>
-          <div class="sub-mode-card" data-mode="progressive" onclick="selectSubMode('progressive')">
+          <div class="sub-mode-card" data-mode="progressive">
             <div class="t">Progressif</div>
             <div class="d">10×30s → 5×1min → 5×2min → 2×5min</div>
           </div>
@@ -270,7 +270,7 @@
         <h3>Vitesse de lecture</h3>
         <div class="fps-row">
           <label>Boucle</label>
-          <input type="range" id="fps-slider" min="1" max="24" value="8" oninput="updateFps()">
+          <input type="range" id="fps-slider" min="1" max="24" value="8">
           <span class="fps-val" id="fps-val">8 fps</span>
         </div>
         <div class="fps-row" style="margin-top:10px">
@@ -437,7 +437,7 @@
   </div>
 
   <div id="start-bar">
-    <button class="btn-start" id="btn-start" onclick="startSession()" disabled>Démarrer</button>
+    <button class="btn-start" id="btn-start" disabled>Démarrer</button>
     <button class="btn-start" id="btn-cinema-start" onclick="startCinemaSession()" style="display:none;background:#1a4a7a;border:0.5px solid #2983eb;">🎬 Démarrer la session cinéma</button>
   </div>
 </div>

@@ -1,7 +1,7 @@
 /* ── BOUTON OPTIONS ── */
-#options-btn { position: fixed; top: 14px; right: 14px; background: #111828; border: 0.5px solid #182034; border-radius: 8px; color: #4a5870; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: none; align-items: center; justify-content: center; z-index: 200; line-height: 1; }
+/* Position handled by #titlebar-actions on desktop */
 #options-btn:hover { background: #182034; color: #8898b0; }
-#options-dropdown { display: none; position: fixed; top: 52px; right: 14px; background: #111828; border: 0.5px solid #182034; border-radius: 12px; padding: 8px; z-index: 201; min-width: 240px; box-shadow: 0 12px 32px rgba(10,14,24,0.7), 0 0 0 1px rgba(255,255,255,0.02) inset; }
+#options-dropdown { display: none; position: fixed; top: 52px; right: 14px; background: #111828; border: 0.5px solid #182034; border-radius: 12px; padding: 8px; z-index: 301; min-width: 240px; box-shadow: 0 12px 32px rgba(10,14,24,0.7), 0 0 0 1px rgba(255,255,255,0.02) inset; }
 #options-dropdown.open { display: block; }
 
 /* Section label : petit titre en maj pour grouper les items */

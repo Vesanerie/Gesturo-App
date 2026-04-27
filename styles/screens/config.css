@@ -956,8 +956,11 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
     font-family: 'Syne', sans-serif;
     font-size: 24px;
     font-weight: 800;
-    color: #fff;
     letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #f0c0a0 0%, #e8a088 35%, #b8a0d8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   body:not(.legacy-ui) #screen-config .mode-tabs::after {
     content: '';

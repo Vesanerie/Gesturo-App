@@ -57,6 +57,77 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
 .screen.active { display: flex; }
 
+/* ══ TITLEBAR (desktop draggable region) ══ */
+#titlebar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+  height: 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px 0 100px;
+  -webkit-app-region: drag;
+  background: transparent;
+}
+#titlebar-logo {
+  display: flex; align-items: center; gap: 8px;
+  -webkit-app-region: drag;
+}
+.titlebar-icon { width: 22px; height: 22px; border-radius: 5px; }
+.titlebar-text {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 15px; letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+#titlebar-actions {
+  display: flex; align-items: center; gap: 8px;
+  -webkit-app-region: no-drag;
+}
+#titlebar-actions #plan-badge {
+  position: static; font-size: 11px; font-weight: 600;
+  padding: 4px 8px; border-radius: 6px; display: none;
+  height: 32px; align-items: center; justify-content: center;
+}
+#titlebar-actions #profile-btn {
+  position: static; background: #111828; border: 0.5px solid #182034;
+  border-radius: 8px; color: #4a5870; width: 32px; height: 32px;
+  cursor: pointer; font-size: 16px; display: none; align-items: center;
+  justify-content: center; line-height: 1;
+}
+#titlebar-actions #profile-btn:hover { background: #182034; color: #8898b0; }
+#titlebar-actions #discord-btn {
+  position: static; background: #131f2e; border: 0.5px solid #1e2d40;
+  border-radius: 8px; color: #3a5570; width: 32px; height: 32px;
+  display: none; align-items: center; justify-content: center;
+  text-decoration: none;
+}
+#titlebar-actions #discord-btn:hover { border-color: #5865F2; color: #5865F2; background: #162030; }
+#titlebar-actions #options-btn {
+  position: static; background: #111828; border: 0.5px solid #182034;
+  border-radius: 8px; color: #4a5870; width: 32px; height: 32px;
+  cursor: pointer; font-size: 18px; display: none; align-items: center;
+  justify-content: center; line-height: 1;
+}
+#titlebar-actions #options-btn:hover { background: #182034; color: #8898b0; }
+
+/* Push content below titlebar */
+.screen { padding-top: 40px; }
+
+/* Small window: show logo centered */
+@media (max-width: 767px) {
+  #titlebar {
+    justify-content: center;
+    padding: 0 14px;
+  }
+  #titlebar-actions { display: none; }
+  .screen { padding-top: 40px; }
+}
+/* Tablet/Desktop with sidebar: hide titlebar logo (sidebar has its own) */
+@media (min-width: 768px) {
+  #titlebar-logo { display: none; }
+}
+
 body::before {
   content: '';
   position: fixed;
