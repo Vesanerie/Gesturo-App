@@ -243,6 +243,10 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
 - 🟡 Liens Stripe test dupliqués entre `main.js` et `mobile-shim.js`.
 - ✅ ~~Liens Discord incohérents~~ — unifié sur `f9pf3vmgg2`.
 - ✅ ~~`ANIM_LOOP_TARGET` vestige~~ — remplacé par `getLoopTarget()`.
+- ✅ ~~Mobile shim `deleteCommunityPost` envoyait `{id}` au lieu de
+  `{postId}`~~ — corrigé 2026-04-27.
+- ✅ ~~CSP bloquait `import()` depuis `esm.sh` sur iOS~~ — ajouté
+  `https://esm.sh` à `script-src` dans `index.html`.
 
 ## Conventions / gotchas
 
@@ -696,18 +700,23 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
   `daily-challenge` (auto-gen).
 - **Refonte tablet** (branch `tablet-version`) — breakpoints phone ≤767px,
   tablet 768-1399px, desktop ≥1400px. Config sidebar + Session controls XL.
-- **1er run Android sur device** — refonte UI mobile terminée, Manifest OK,
-  Edge Functions OK, shim mobile OK. Reste à valider gestes tactiles +
-  safe-area-inset + deep link auth sur device réel.
+- **1er run iOS sur device RÉUSSI** (2026-04-27) — iPhone de valentin,
+  build + install + launch via CLI (`xcodebuild` + `devicectl`).
+  Google OAuth fonctionne (CSP corrigée pour `https://esm.sh`).
+  Suppression de posts community fixée (shim envoyait `id` au lieu de
+  `postId`). Android pas encore testé sur device réel.
 - **Pile de sélection** (non commitée sur main) — sidebar fixe à droite
   sur l'écran Config qui montre les catégories sélectionnées en mode Poses.
-  Mini barre bottom sheet sur mobile. Fichiers modifiés non commités :
-  `index.html` (HTML pile + mini bar), `src/app.js` (hide pile hors config),
-  `src/categories.js` (toggleCat simplifié, plus de modale Ajouter/Remplacer,
-  thumbUrl proxy, renderSelectionPile, lazy preload animations via
-  IntersectionObserver), `styles/screens/config.css` (+234 lignes pile CSS).
-  **Statut incertain** — possiblement un test abandonné ou en cours.
-  Demander à l'user avant de committer ou de revert.
+  Clic sur catégorie = ajout direct (plus de modale Ajouter/Remplacer).
+  Retrait depuis la pile (bouton ×) ou re-clic sur la catégorie.
+  Mini barre bottom sheet sur mobile. Fichiers modifiés :
+  `index.html` (HTML pile + mini bar), `src/app.js` (hide pile hors config,
+  restore pile au retour sur config), `src/categories.js` (toggleCat
+  simplifié, thumbUrl proxy wsrv.nl pour previews animation, 
+  renderSelectionPile, preview animation au clic seulement avec 10 frames
+  échantillonnées), `styles/screens/config.css` (pile CSS, class-based
+  `.pile-hidden` pour toggling mobile-safe).
+  **Validé par l'user, à committer.**
 
 ### À faire plus tard
 - **Activer la modération auto des images communauté** — le code est en
