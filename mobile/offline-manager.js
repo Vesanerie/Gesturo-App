@@ -58,11 +58,23 @@
       const data = await readJSON(BASE + '/index.json')
       index = data || {}
       urlToLocal.clear()
-      for (const [catKey, pack] of Object.entries(index)) {
-        if (pack.files) {
-          for (const [r2Url, localPath] of Object.entries(pack.files)) {
-            const uri = await getUri(localPath)
-            if (uri) urlToLocal.set(r2Url, window.Capacitor.convertFileSrc(uri))
+      // Build URL→local map from index (no async getUri per file — too slow)
+      // We resolve one path to get the base directory URI, then derive the rest
+      let baseUri = null
+      try {
+        const r = await FS.getUri({ path: BASE, directory: Dir.DATA })
+        baseUri = r.uri
+      } catch {}
+      if (baseUri) {
+        for (const [catKey, pack] of Object.entries(index)) {
+          if (pack.files) {
+            for (const [r2Url, localPath] of Object.entries(pack.files)) {
+              // localPath = "offline-packs/catKey/filename.jpg"
+              // baseUri = file:///.../.../offline-packs
+              const filename = localPath.split('/').pop()
+              const fileUri = baseUri + '/' + catKey + '/' + filename
+              urlToLocal.set(r2Url, window.Capacitor.convertFileSrc(fileUri))
+            }
           }
         }
       }
@@ -70,6 +82,19 @@
     async function saveIndex() {
       await ensureDir(BASE)
       await writeJSON(BASE + '/index.json', index)
+    }
+
+    // ── R2 catalog cache (for offline boot) ─────────────────────────────
+    async function saveCatalogCache(photos, anims) {
+      await ensureDir(BASE)
+      const existing = await readJSON(BASE + '/catalog-cache.json') || {}
+      if (photos) existing.photos = photos
+      if (anims) existing.anims = anims
+      existing.savedAt = new Date().toISOString()
+      await writeJSON(BASE + '/catalog-cache.json', existing)
+    }
+    async function loadCatalogCache() {
+      return await readJSON(BASE + '/catalog-cache.json')
     }
 
     // ── Download a pack ─────────────────────────────────────────────────
@@ -179,6 +204,8 @@
       totalSize: () => Object.values(index).reduce((s, p) => s + (p.sizeBytes || 0), 0),
       activeDownloads,
       formatSize,
+      saveCatalogCache,
+      loadCatalogCache,
       ready: false,
     }
 
