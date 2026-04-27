@@ -208,6 +208,15 @@ body::after {
   body:has(#screen-cinema.active)::before {
     display: none;
   }
+
+  /* Désactiver la texture papier SVG sur mobile — coûteuse en GPU
+     (feTurbulence + mix-blend-mode recomposité à chaque frame) */
+  body::after { display: none; }
+}
+
+/* Désactiver les textures SVG sur tablet aussi */
+@media (min-width: 768px) and (max-width: 1399px) {
+  body::after { display: none; }
 }
 
 /* Auth styles moved to styles/components/auth.css */

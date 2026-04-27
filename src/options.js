@@ -104,24 +104,52 @@ function renderWeekActivity(all) {
   ).join('')
 }
 
+const HIST_PAGE_SIZE = 50
+let _histRenderedCount = 0
+
+function _buildHistRow(s) {
+  const row = document.createElement('div'); row.className = 'hist-session-row'
+  const dot = document.createElement('div'); dot.className = 'hist-session-dot' + (s.type === 'anim' ? ' anim' : '')
+  const info = document.createElement('div'); info.className = 'hist-session-info'
+  const typeLabel = s.type === 'anim' ? 'Animation' + (s.seq ? ' — ' + s.seq : '') : s.type === 'cinema' ? '🎬 Cinéma' + (s.film ? ' — ' + s.film : '') : 'Poses' + (s.subMode === 'progressive' ? ' (progressif)' : '')
+  const catsLabel = s.cats ? '<span style="color:#666"> · ' + s.cats + '</span>' : ''
+  info.innerHTML = typeLabel + catsLabel + '<div class="hist-session-meta">' + (s.poses || 0) + ' frames · ' + (s.minutes || 0) + ' min</div>'
+  const time = document.createElement('div'); time.className = 'hist-session-time'; time.textContent = formatHistDate(s.ts)
+  row.appendChild(dot); row.appendChild(info); row.appendChild(time)
+  return row
+}
+
 function renderHistList() {
   const all = loadHist(); const now = Date.now()
   const cutoff = histPeriod === 'week' ? now - 7 * 86400000 : histPeriod === 'month' ? now - 30 * 86400000 : 0
   const filtered = all.filter(s => s.ts >= cutoff).reverse()
   const list = document.getElementById('hist-sessions-list'); const empty = document.getElementById('hist-empty')
   list.innerHTML = ''
-  if (filtered.length === 0) { empty.style.display = 'block'; return }
+  if (filtered.length === 0) { empty.style.display = 'block'; _histRenderedCount = 0; return }
   empty.style.display = 'none'
-  filtered.forEach(s => {
-    const row = document.createElement('div'); row.className = 'hist-session-row'
-    const dot = document.createElement('div'); dot.className = 'hist-session-dot' + (s.type === 'anim' ? ' anim' : '')
-    const info = document.createElement('div'); info.className = 'hist-session-info'
-    const typeLabel = s.type === 'anim' ? 'Animation' + (s.seq ? ' — ' + s.seq : '') : s.type === 'cinema' ? '🎬 Cinéma' + (s.film ? ' — ' + s.film : '') : 'Poses' + (s.subMode === 'progressive' ? ' (progressif)' : '')
-    const catsLabel = s.cats ? '<span style="color:#666"> · ' + s.cats + '</span>' : ''
-    info.innerHTML = typeLabel + catsLabel + '<div class="hist-session-meta">' + (s.poses || 0) + ' frames · ' + (s.minutes || 0) + ' min</div>'
-    const time = document.createElement('div'); time.className = 'hist-session-time'; time.textContent = formatHistDate(s.ts)
-    row.appendChild(dot); row.appendChild(info); row.appendChild(time); list.appendChild(row)
-  })
+  // Rendu paginé : max 50 items d'un coup, bouton "Voir plus" pour le reste
+  const page = filtered.slice(0, HIST_PAGE_SIZE)
+  page.forEach(s => list.appendChild(_buildHistRow(s)))
+  _histRenderedCount = page.length
+  if (filtered.length > HIST_PAGE_SIZE) _appendHistMore(list, filtered)
+}
+
+function _appendHistMore(list, filtered) {
+  const existing = list.querySelector('.hist-more-btn')
+  if (existing) existing.remove()
+  if (_histRenderedCount >= filtered.length) return
+  const btn = document.createElement('button')
+  btn.className = 'hist-more-btn'
+  btn.style.cssText = 'display:block;width:100%;padding:12px;margin-top:8px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:8px;color:#4a6280;font-size:13px;cursor:pointer;'
+  btn.textContent = 'Voir plus (' + (filtered.length - _histRenderedCount) + ' restantes)'
+  btn.onclick = () => {
+    btn.remove()
+    const next = filtered.slice(_histRenderedCount, _histRenderedCount + HIST_PAGE_SIZE)
+    next.forEach(s => list.appendChild(_buildHistRow(s)))
+    _histRenderedCount += next.length
+    if (_histRenderedCount < filtered.length) _appendHistMore(list, filtered)
+  }
+  list.appendChild(btn)
 }
 
 function formatHistDate(ts) {

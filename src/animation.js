@@ -226,15 +226,30 @@ function buildTimeline() {
   const inner = oldInner.cloneNode(false)
   oldInner.parentNode.replaceChild(inner, oldInner)
   inner.innerHTML = ''
+  // Lazy-load thumbs : seules les images visibles dans le scroll horizontal sont chargées
+  const observer = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return
+      const img = e.target.querySelector('img[data-src]')
+      if (img) { img.src = img.dataset.src; img.removeAttribute('data-src') }
+      observer.unobserve(e.target)
+    })
+  }, { root: inner, rootMargin: '0px 200px' }) : null
   animFrames.forEach((frame, i) => {
     const item = document.createElement('div')
     item.className = 'thumb-item' + (i === 0 ? ' active' : ''); item.dataset.idx = i
-    const img = document.createElement('img'); if (frame) img.src = frame.dataUrl; img.loading = 'lazy'
+    const img = document.createElement('img')
+    // Les 10 premières : chargement immédiat. Le reste : lazy via IntersectionObserver.
+    if (frame) {
+      if (i < 10 || !observer) { img.src = frame.dataUrl }
+      else { img.dataset.src = frame.dataUrl }
+    }
     item.appendChild(img)
     const num = document.createElement('div'); num.className = 'thumb-num'; num.textContent = i + 1; item.appendChild(num)
     item.onclick = () => { showFrame(i); if (animStudyMode) startStudyTimer() }
     item.addEventListener('mouseenter', () => { if (!animLooping && !animStudyMode) showFrame(i) })
     inner.appendChild(item)
+    if (observer && i >= 10) observer.observe(item)
   })
   let isDragging = false
   inner.addEventListener('mousedown', (e) => { isDragging = true; slideToMouse(e) })
