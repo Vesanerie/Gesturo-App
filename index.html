@@ -438,7 +438,7 @@
 
   <div id="start-bar">
     <button class="btn-start" id="btn-start" disabled>Démarrer</button>
-    <button class="btn-start" id="btn-cinema-start" onclick="startCinemaSession()" style="display:none;background:#1a4a7a;border:0.5px solid #2983eb;">🎬 Démarrer la session cinéma</button>
+    <button class="btn-start" id="btn-cinema-start" style="display:none;background:#1a4a7a;border:0.5px solid #2983eb;">🎬 Démarrer la session cinéma</button>
   </div>
 </div>
 
@@ -588,7 +588,7 @@
 
 <!-- ══ SESSION CINÉMA ══ -->
 <div class="screen" id="screen-cinema">
-  <div id="cinema-photo-area" onclick="cinemaNext()">
+  <div id="cinema-photo-area">
     <img id="cinema-img" src="" alt="frame cinéma">
     <div id="cinema-loader"><div class="cinema-spinner"></div></div>
     <div id="cinema-film-badge"></div>
@@ -603,20 +603,20 @@
       </svg>
     </div>
     <div id="cinema-transform-controls">
-      <button class="transform-btn" id="cinema-grid-btn" onclick="event.stopPropagation(); toggleCinemaGrid()" aria-label="Grille" title="Grille">⊞</button>
-      <button class="transform-btn" id="cinema-bw-btn" onclick="event.stopPropagation(); toggleCinemaBW()" aria-label="N&B" title="N&B">◑</button>
-      <button class="transform-btn" onclick="event.stopPropagation(); flipCinemaH()" aria-label="Miroir" title="Miroir">⇆</button>
+      <button class="transform-btn" id="cinema-grid-btn" aria-label="Grille" title="Grille">⊞</button>
+      <button class="transform-btn" id="cinema-bw-btn" aria-label="N&B" title="N&B">◑</button>
+      <button class="transform-btn" id="cinema-flip-btn" aria-label="Miroir" title="Miroir">⇆</button>
     </div>
     <!-- PATCH 1 : bouton favori cinéma -->
-    <button class="fav-star-btn" id="cinema-fav-btn" onclick="event.stopPropagation(); toggleFavCinema()" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
+    <button class="fav-star-btn" id="cinema-fav-btn" aria-label="Ajouter aux favoris" title="Ajouter aux favoris">☆</button>
   </div>
   <div id="cinema-bar">
     <span id="cinema-frame-counter">0 / 0</span>
     <div id="cinema-progress-wrap"><div id="cinema-progress-bar"></div></div>
     <span id="cinema-film-name"></span>
-    <button class="s-btn" onclick="cinemaPrev()" id="cinema-btn-prev" disabled>← Préc.</button>
-    <button class="s-btn s-btn-blue" onclick="cinemaNext()" id="cinema-btn-next">Suiv. →</button>
-    <button class="s-btn s-btn-danger" onclick="openEndConfirm('cinema')">Terminer</button>
+    <button class="s-btn" id="cinema-btn-prev" disabled>← Préc.</button>
+    <button class="s-btn s-btn-blue" id="cinema-btn-next">Suiv. →</button>
+    <button class="s-btn s-btn-danger" id="btn-end-cinema">Terminer</button>
   </div>
 </div>
 

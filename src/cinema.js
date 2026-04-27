@@ -198,3 +198,21 @@ function applyCinemaTransforms() {
   img.style.transform = cinemaState.flipH ? 'scaleX(-1)' : ''
   img.style.filter = cinemaState.bwMode ? 'grayscale(100%)' : ''
 }
+
+function _initCinemaListeners() {
+  document.getElementById('btn-cinema-start').addEventListener('click', startCinemaSession)
+  document.getElementById('cinema-photo-area').addEventListener('click', cinemaNext)
+  document.getElementById('cinema-grid-btn').addEventListener('click', function(e) { e.stopPropagation(); toggleCinemaGrid() })
+  document.getElementById('cinema-bw-btn').addEventListener('click', function(e) { e.stopPropagation(); toggleCinemaBW() })
+  document.getElementById('cinema-flip-btn').addEventListener('click', function(e) { e.stopPropagation(); flipCinemaH() })
+  document.getElementById('cinema-fav-btn').addEventListener('click', function(e) { e.stopPropagation(); toggleFavCinema() })
+  document.getElementById('cinema-btn-prev').addEventListener('click', cinemaPrev)
+  document.getElementById('cinema-btn-next').addEventListener('click', cinemaNext)
+  document.getElementById('btn-end-cinema').addEventListener('click', function() { openEndConfirm('cinema') })
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initCinemaListeners)
+} else {
+  _initCinemaListeners()
+}
