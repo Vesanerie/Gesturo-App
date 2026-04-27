@@ -1064,3 +1064,36 @@ async function renderLeaderboard() {
     empty.style.display = 'block'; empty.textContent = 'Erreur de chargement.'
   }
 }
+
+function _initCommunityListeners() {
+  document.getElementById('btn-community-upload').addEventListener('click', openCommunityUpload)
+  document.getElementById('link-instagram').addEventListener('click', function(e) { e.preventDefault(); window.electronAPI.openExternal('https://www.instagram.com/gesturo.art') })
+  document.getElementById('link-discord-community').addEventListener('click', function(e) { e.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2') })
+  document.getElementById('ctab-feed').addEventListener('click', function() { switchCommunityTab('feed') })
+  document.getElementById('ctab-mine').addEventListener('click', function() { switchCommunityTab('mine') })
+  document.getElementById('ctab-leaderboard').addEventListener('click', function() { switchCommunityTab('leaderboard') })
+  document.getElementById('challenge-select').addEventListener('change', filterByChallenge)
+  document.getElementById('community-upload-overlay').addEventListener('click', function(e) { if (e.target === this) closeCommunityUpload() })
+  document.getElementById('community-file-input').addEventListener('change', function() { handleCommunityFile(this) })
+  document.getElementById('community-scan-btn').addEventListener('click', scanCommunityDrawing)
+  document.getElementById('btn-confirm-community-upload').addEventListener('click', confirmCommunityUpload)
+  document.getElementById('btn-cancel-community-upload').addEventListener('click', closeCommunityUpload)
+  document.getElementById('btn-close-community-upload').addEventListener('click', closeCommunityUpload)
+  document.getElementById('btn-share-drawing').addEventListener('click', openShareDrawing)
+  document.getElementById('share-drawing-overlay').addEventListener('click', function(e) { if (e.target === this) closeShareDrawing() })
+  document.getElementById('share-file-input').addEventListener('change', function() { handleShareFile(this) })
+  document.getElementById('share-scan-btn').addEventListener('click', scanShareDrawing)
+  document.getElementById('btn-confirm-share').addEventListener('click', confirmShareDrawing)
+  document.getElementById('btn-cancel-share').addEventListener('click', closeShareDrawing)
+  document.getElementById('btn-close-share').addEventListener('click', closeShareDrawing)
+  document.getElementById('community-compare').addEventListener('click', function(e) { if (!e.target.closest('button, a')) closeCommunityCompare() })
+  document.getElementById('cc-close-btn').addEventListener('click', closeCommunityCompare)
+  document.getElementById('cc-draw-btn').addEventListener('click', drawFromCompare)
+  document.getElementById('cc-share-btn').addEventListener('click', shareFromCompare)
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initCommunityListeners)
+} else {
+  _initCommunityListeners()
+}

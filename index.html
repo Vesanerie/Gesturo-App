@@ -335,19 +335,19 @@
     <div id="community-options" style="display:none">
       <!-- CTA partage -->
       <div class="card community-cta" style="text-align:center;padding:14px 16px 10px;">
-        <button class="s-btn s-btn-blue" onclick="openCommunityUpload()" style="margin-bottom:8px;">Partager mon dessin</button>
+        <button class="s-btn s-btn-blue" id="btn-community-upload" style="margin-bottom:8px;">Partager mon dessin</button>
         <div style="font-size:11px;color:#4a6280;display:flex;gap:12px;justify-content:center;align-items:center;">
-          <a href="#" onclick="event.preventDefault(); window.electronAPI.openExternal('https://www.instagram.com/gesturo.art')" style="color:#4a6280;text-decoration:none;">@gesturo.art</a>
+          <a href="#" id="link-instagram" style="color:#4a6280;text-decoration:none;">@gesturo.art</a>
           <span style="opacity:0.4;">|</span>
-          <a href="#" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')" style="color:#4a6280;text-decoration:none;">Discord</a>
+          <a href="#" id="link-discord-community" style="color:#4a6280;text-decoration:none;">Discord</a>
         </div>
       </div>
 
       <!-- Sub-tabs -->
       <div class="community-tabs">
-        <button class="community-tab active" id="ctab-feed" onclick="switchCommunityTab('feed')">Fil</button>
-        <button class="community-tab" id="ctab-mine" onclick="switchCommunityTab('mine')">Mes dessins</button>
-        <button class="community-tab" id="ctab-leaderboard" onclick="switchCommunityTab('leaderboard')">Top artistes</button>
+        <button class="community-tab active" id="ctab-feed">Fil</button>
+        <button class="community-tab" id="ctab-mine">Mes dessins</button>
+        <button class="community-tab" id="ctab-leaderboard">Top artistes</button>
       </div>
 
       <!-- Challenge banner -->
@@ -355,7 +355,7 @@
 
       <!-- Challenge filter -->
       <div id="challenge-filter" style="display:none;">
-        <select id="challenge-select" onchange="filterByChallenge()">
+        <select id="challenge-select">
           <option value="">Tous les posts</option>
         </select>
       </div>
@@ -370,28 +370,28 @@
       <div id="community-empty" style="font-size:13px;color:#556;text-align:center;padding:30px 0;display:none;">Chargement...</div>
 
       <!-- Upload overlay (from community tab) -->
-      <div id="community-upload-overlay" style="display:none;" onclick="if(event.target===this)closeCommunityUpload()">
+      <div id="community-upload-overlay" style="display:none;">
         <div class="share-drawing-box">
           <h3>Partage ton dessin</h3>
           <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
           <div id="community-upload-choices">
             <label class="share-upload-label" id="community-upload-label">
-              <input type="file" accept="image/jpeg,image/png" capture="environment" id="community-file-input" onchange="handleCommunityFile(this)">
+              <input type="file" accept="image/jpeg,image/png" capture="environment" id="community-file-input">
               <span class="share-upload-text-mobile">📷 Photo</span>
               <span class="share-upload-text-desktop">Choisir une photo</span>
             </label>
 
-            <button class="share-upload-label share-scan-btn" id="community-scan-btn" onclick="scanCommunityDrawing()" style="display:none;">
+            <button class="share-upload-label share-scan-btn" id="community-scan-btn" style="display:none;">
               📄 Scanner
             </button>
           </div>
           <img id="community-preview-img" style="display:none;">
           <div id="community-upload-status" style="display:none;"></div>
           <div class="share-actions" style="display:none;" id="community-upload-actions">
-            <button class="end-btn end-btn-primary" onclick="confirmCommunityUpload()">Publier</button>
-            <button class="end-btn" onclick="closeCommunityUpload()">Annuler</button>
+            <button class="end-btn end-btn-primary" id="btn-confirm-community-upload">Publier</button>
+            <button class="end-btn" id="btn-cancel-community-upload">Annuler</button>
           </div>
-          <button class="share-close" onclick="closeCommunityUpload()">&times;</button>
+          <button class="share-close" id="btn-close-community-upload">&times;</button>
         </div>
       </div>
     </div>
@@ -554,21 +554,21 @@
     <div class="end-btns">
       <button class="end-btn end-btn-primary" id="btn-new-session">Retour au menu</button>
       <button class="end-btn" id="btn-replay">Recommencer</button>
-      <button class="end-btn end-btn-share" id="btn-share-drawing" onclick="openShareDrawing()">Partager mon dessin</button>
+      <button class="end-btn end-btn-share" id="btn-share-drawing">Partager mon dessin</button>
     </div>
     <!-- Upload overlay -->
-    <div id="share-drawing-overlay" style="display:none;" onclick="if(event.target===this)closeShareDrawing()">
+    <div id="share-drawing-overlay" style="display:none;">
       <div class="share-drawing-box">
         <h3>Partage ton dessin</h3>
         <p>Prends en photo ton croquis pour le montrer à la communauté !</p>
         <div id="share-upload-choices">
           <label class="share-upload-label" id="share-upload-label">
-            <input type="file" accept="image/jpeg,image/png" capture="environment" id="share-file-input" onchange="handleShareFile(this)">
+            <input type="file" accept="image/jpeg,image/png" capture="environment" id="share-file-input">
             <span class="share-upload-text-mobile">📷 Photo</span>
             <span class="share-upload-text-desktop">Choisir une photo</span>
           </label>
 
-          <button class="share-upload-label share-scan-btn" id="share-scan-btn" onclick="scanShareDrawing()" style="display:none;">
+          <button class="share-upload-label share-scan-btn" id="share-scan-btn" style="display:none;">
             📄 Scanner
           </button>
         </div>
@@ -576,10 +576,10 @@
         <img id="share-preview-img" style="display:none;">
         <div id="share-status" style="display:none;"></div>
         <div class="share-actions" style="display:none;" id="share-actions">
-          <button class="end-btn end-btn-primary" onclick="confirmShareDrawing()">Publier</button>
-          <button class="end-btn" onclick="closeShareDrawing()">Annuler</button>
+          <button class="end-btn end-btn-primary" id="btn-confirm-share">Publier</button>
+          <button class="end-btn" id="btn-cancel-share">Annuler</button>
         </div>
-        <button class="share-close" onclick="closeShareDrawing()">&times;</button>
+        <button class="share-close" id="btn-close-share">&times;</button>
       </div>
     </div>
   </div>
@@ -638,8 +638,8 @@
 </div>
 
 <!-- COMMUNITY COMPARE OVERLAY -->
-<div id="community-compare" class="community-compare" style="display:none;" onclick="if(!event.target.closest('button, a'))closeCommunityCompare()">
-  <button class="cc-close" onclick="closeCommunityCompare()">✕</button>
+<div id="community-compare" class="community-compare" style="display:none;">
+  <button class="cc-close" id="cc-close-btn">✕</button>
   <div class="cc-content">
     <div class="cc-images">
       <figure class="cc-image-wrap">
@@ -659,8 +659,8 @@
       <div class="cc-reactions" id="cc-reactions"></div>
     </div>
     <div class="cc-actions">
-      <button id="cc-draw-btn" class="cc-draw-btn" onclick="drawFromCompare()">🎨 Dessiner cette ref</button>
-      <button id="cc-share-btn" class="cc-share-btn" onclick="shareFromCompare()">📤 Partager</button>
+      <button id="cc-draw-btn" class="cc-draw-btn">🎨 Dessiner cette ref</button>
+      <button id="cc-share-btn" class="cc-share-btn">📤 Partager</button>
     </div>
   </div>
 </div>
