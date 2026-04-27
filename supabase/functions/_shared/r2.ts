@@ -173,9 +173,9 @@ export function sanitizeFilename(name: string): string {
 
 // Generate a short-lived presigned PUT URL so the browser can upload directly to R2.
 // The Edge Function never sees the file bytes — it just signs the URL.
-export async function presignPut(key: string, contentType?: string, expiresInSec = 300): Promise<string> {
+export async function presignPut(key: string, contentType?: string, expiresInSec = 300, bucketOverride?: string): Promise<string> {
   const client = r2Client();
-  const bucket = Deno.env.get('R2_BUCKET')!;
+  const bucket = bucketOverride || Deno.env.get('R2_BUCKET')!;
   const cmd = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
