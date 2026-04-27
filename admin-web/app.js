@@ -1322,6 +1322,7 @@ $('prompt-input').addEventListener('keydown', (e) => {
 // Clic droit dans le vide → menu "Nouveau dossier"
 document.addEventListener('contextmenu', (e) => {
   if ($('screen-admin').classList.contains('hidden')) return;
+  if (!e.target.closest('#panel-files')) return;
   if (e.target.closest('.grid-item')) return;
   if (e.target.closest('button, input, select, textarea, a, .ctx-menu, .modal-backdrop, .lightbox:not(.hidden)')) return;
   e.preventDefault();
@@ -4722,7 +4723,7 @@ function fireConfetti() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   const ctx = canvas.getContext('2d');
-  const colors = ['#f0c040', '#2983eb', '#22c55e', '#ec4899', '#a855f7', '#f97316', '#ef4444'];
+  const colors = ['#e8a088', '#b8a0d8', '#22c55e', '#ec4899', '#a855f7', '#f97316', '#ef4444'];
   const particles = [];
   for (let i = 0; i < 80; i++) {
     particles.push({
