@@ -613,9 +613,13 @@ Regles :
     <!-- ═ ROADMAP MARKETING PANEL ═ -->
     <div id="panel-roadmap" class="admin-panel hidden">
       <div class="roadmap-container">
-        <div class="roadmap-header">
-          <h2>🗺 Roadmap Marketing & Communication</h2>
-          <div class="roadmap-actions">
+        <!-- Stats bar -->
+        <div class="roadmap-stats" id="roadmap-stats"></div>
+
+        <!-- Toolbar -->
+        <div class="roadmap-toolbar">
+          <div class="roadmap-toolbar-left">
+            <input id="roadmap-search" type="search" placeholder="Rechercher une tache..." autocomplete="off" class="roadmap-search">
             <select id="roadmap-filter-cat" title="Filtrer par categorie">
               <option value="all">Toutes categories</option>
               <option value="marketing">Marketing</option>
@@ -627,9 +631,21 @@ Regles :
               <option value="aso">ASO / SEO</option>
               <option value="paid">Paid / Ads</option>
             </select>
+            <select id="roadmap-filter-priority" title="Filtrer par priorite">
+              <option value="all">Toutes priorites</option>
+              <option value="urgent">Urgente</option>
+              <option value="high">Haute</option>
+              <option value="medium">Moyenne</option>
+              <option value="low">Basse</option>
+            </select>
+          </div>
+          <div class="roadmap-toolbar-right">
+            <button id="roadmap-export-btn" class="btn-secondary" title="Exporter en JSON">Exporter</button>
             <button id="roadmap-add-btn" class="add-btn">＋ Nouvelle tache</button>
           </div>
         </div>
+
+        <!-- Board -->
         <div class="roadmap-board">
           <div class="roadmap-column" data-status="todo">
             <div class="roadmap-col-header">
@@ -638,6 +654,7 @@ Regles :
               <span class="roadmap-col-count" id="roadmap-count-todo">0</span>
             </div>
             <div class="roadmap-col-items" id="roadmap-items-todo"></div>
+            <button class="roadmap-quick-add" data-status="todo" title="Ajout rapide">＋</button>
           </div>
           <div class="roadmap-column" data-status="inprogress">
             <div class="roadmap-col-header">
@@ -646,6 +663,7 @@ Regles :
               <span class="roadmap-col-count" id="roadmap-count-inprogress">0</span>
             </div>
             <div class="roadmap-col-items" id="roadmap-items-inprogress"></div>
+            <button class="roadmap-quick-add" data-status="inprogress" title="Ajout rapide">＋</button>
           </div>
           <div class="roadmap-column" data-status="done">
             <div class="roadmap-col-header">
@@ -654,6 +672,7 @@ Regles :
               <span class="roadmap-col-count" id="roadmap-count-done">0</span>
             </div>
             <div class="roadmap-col-items" id="roadmap-items-done"></div>
+            <button class="roadmap-quick-add" data-status="done" title="Ajout rapide">＋</button>
           </div>
         </div>
       </div>
@@ -668,7 +687,7 @@ Regles :
           <input id="rm-title" type="text" placeholder="Ex : Campagne TikTok artistes" autocomplete="off">
         </div>
         <div class="form-group">
-          <label for="rm-desc">Description</label>
+          <label for="rm-desc">Description / Notes</label>
           <textarea id="rm-desc" rows="3" placeholder="Details, liens, notes..." style="width:100%;font-size:13px;resize:vertical;"></textarea>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -709,6 +728,17 @@ Regles :
             <input id="rm-deadline" type="date">
           </div>
         </div>
+
+        <!-- Subtasks / Checklist -->
+        <div class="form-group">
+          <label>Sous-taches</label>
+          <div id="rm-subtasks" class="rm-subtasks"></div>
+          <div class="rm-add-subtask">
+            <input id="rm-subtask-input" type="text" placeholder="Ajouter une sous-tache..." autocomplete="off">
+            <button id="rm-subtask-add" class="btn-secondary" type="button">＋</button>
+          </div>
+        </div>
+
         <div class="modal-buttons">
           <button id="rm-delete" class="btn-danger" style="margin-right:auto;display:none;">Supprimer</button>
           <button id="rm-cancel" class="btn-ghost">Annuler</button>
