@@ -97,3 +97,80 @@
     transition: transform 0.08s ease;
   }
 }
+
+/* ── 7. Splash screen ──
+   Plein écran, fond identique à l'app, logo + texte qui apparaissent
+   puis le tout fade out après le chargement. Desktop : caché. */
+#splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  background: #0a0e18;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  transition: opacity 0.4s ease;
+}
+#splash-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.splash-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  animation: splash-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.splash-text {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.5px;
+  color: #fff;
+  opacity: 0;
+  animation: splash-text-in 0.5s ease 0.3s forwards;
+}
+@keyframes splash-pop {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes splash-text-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Desktop : pas de splash (Electron a son propre loading) */
+@media (min-width: 1400px) {
+  #splash-screen { display: none; }
+}
+
+/* ── 8. Rubber band scroll (iOS native feel) ──
+   WKWebView a le bounce natif. On s'assure que le scroll
+   du config utilise l'inertie native iOS. */
+@media (max-width: 1399px) {
+  #screen-config {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── 9. Swipe indicator (bord gauche pour swipe back) ── */
+@media (max-width: 1399px) {
+  .swipe-back-hint {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(135deg, #e8a088, #b8a0d8);
+    border-radius: 0 4px 4px 0;
+    opacity: 0;
+    z-index: 9998;
+    transition: opacity 0.15s, width 0.15s;
+    pointer-events: none;
+  }
+  .swipe-back-hint.visible {
+    opacity: 0.6;
+    width: 5px;
+  }
+}

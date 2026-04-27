@@ -95,6 +95,7 @@
     "@capacitor-mlkit/document-scanner": "^8.0.1",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/share": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@supabase/supabase-js": "^2.101.1",
     "electron-updater": "^6.8.3",
     "playwright-core": "^1.59.1"

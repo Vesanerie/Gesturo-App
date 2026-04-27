@@ -35,6 +35,12 @@
 </head>
 <body>
 
+<!-- ══ SPLASH SCREEN (mobile, hidden by JS after load) ══ -->
+<div id="splash-screen">
+  <img src="assets/icon.png" class="splash-icon" alt="">
+  <span class="splash-text">Gestur<span class="gesturo-o">o</span></span>
+</div>
+
 <!-- Maintenance overlay (blocks app if admin toggled maintenance mode on) -->
 <div id="maintenance-overlay" class="maintenance-overlay" style="display:none;">
   <div class="maintenance-card">
@@ -722,5 +728,6 @@
 <script src="src/options.js"></script>
 <script src="src/bubbles.js"></script>
 <script src="src/cinema.js"></script>
+<script src="src/mobile-native.js"></script>
 </body>
 </html>

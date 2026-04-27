@@ -13,8 +13,9 @@
     },
     "SplashScreen": {
       "launchAutoHide": false,
+      "launchShowDuration": 0,
       "showSpinner": false,
-      "backgroundColor": "#0a1520"
+      "backgroundColor": "#0a0e18"
     },
     "Keyboard": {
       "resize": "native",
