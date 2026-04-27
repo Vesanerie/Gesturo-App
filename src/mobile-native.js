@@ -181,7 +181,7 @@
 ;(function () {
   const screen = document.getElementById('screen-config')
   if (!screen) return
-  const MODES = ['pose', 'anim', 'cinema']
+  const MODES = ['pose', 'anim', 'cinema', 'favs']
   let swStartX = 0, swStartY = 0, swActive = false
 
   screen.addEventListener('touchstart', (e) => {
