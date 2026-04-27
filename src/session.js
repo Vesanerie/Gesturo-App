@@ -282,3 +282,21 @@ function prevPhoto() { if (currentIndex === 0) return; clearInterval(ticker); ti
 function advance() { clearInterval(ticker); ticker = null; currentIndex++; if (currentIndex >= sessionEntries.length) { finishSession(); return }; loadAndShow(currentIndex) }
 function askEnd() { paused = true; document.getElementById('btn-pause').textContent = 'Reprendre'; openEndConfirm('pose') }
 
+function _initSessionListeners() {
+  document.querySelectorAll('.sub-mode-card[data-mode]').forEach(function(c) {
+    c.addEventListener('click', function() { selectSubMode(this.dataset.mode) })
+  })
+  document.getElementById('fps-slider').addEventListener('input', updateFps)
+  document.getElementById('btn-start').addEventListener('click', startSession)
+  document.getElementById('btn-prev').addEventListener('click', prevPhoto)
+  document.getElementById('btn-pause').addEventListener('click', togglePause)
+  document.getElementById('btn-next').addEventListener('click', nextPhoto)
+  document.getElementById('btn-end-session').addEventListener('click', askEnd)
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initSessionListeners)
+} else {
+  _initSessionListeners()
+}
+
