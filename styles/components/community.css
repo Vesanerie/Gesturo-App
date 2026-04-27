@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  color: #2983eb;
+  color: #b8a0d8;
   pointer-events: none;
   transition: height 0.06s ease, opacity 0.06s;
   opacity: 0;
@@ -27,7 +27,7 @@
 .community-compare {
   position: fixed;
   inset: 0;
-  background: rgba(5, 10, 18, 0.95);
+  background: rgba(10, 14, 24, 0.95);
   backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
   z-index: 1000;
@@ -47,9 +47,9 @@
   top: 16px;
   right: 20px;
   background: rgba(20, 30, 45, 0.85);
-  border: 0.5px solid #1e2d40;
+  border: 0.5px solid #182034;
   border-radius: 50%;
-  color: #c8d6e5;
+  color: #d8ccc4;
   width: 36px;
   height: 36px;
   font-size: 16px;
@@ -96,13 +96,13 @@
   max-width: 100%;
   object-fit: contain;
   border-radius: 10px;
-  border: 0.5px solid #1e2d40;
-  background: #0a1520;
+  border: 0.5px solid #182034;
+  background: #0a0e18;
   display: block;
 }
 .cc-image-wrap figcaption {
   font-size: 11px;
-  color: #4a6280;
+  color: #4a5870;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   font-weight: 600;
@@ -127,11 +127,11 @@
   font-size: 13px;
 }
 .cc-user {
-  color: #c8d6e5;
+  color: #d8ccc4;
   font-weight: 600;
 }
 .cc-date {
-  color: #4a6280;
+  color: #4a5870;
 }
 
 .cc-reactions {
@@ -157,9 +157,9 @@
   cursor: pointer;
   transition: background 0.06s, transform 0.1s;
 }
-.cc-draw-btn { background: #2983eb; }
+.cc-draw-btn { background: #b8a0d8; }
 .cc-draw-btn:hover { background: #4499f5; }
-.cc-share-btn { background: #1a2738; border: 0.5px solid #1e2d40; color: #c8d6e5; }
+.cc-share-btn { background: #1a2738; border: 0.5px solid #182034; color: #d8ccc4; }
 .cc-share-btn:hover { background: #243448; }
 .cc-draw-btn:active, .cc-share-btn:active { transform: scale(0.97); }
 
@@ -183,13 +183,13 @@
   margin-bottom: 10px;
   border-radius: 8px;
   overflow: hidden;
-  border: 0.5px solid #1e2d40;
+  border: 0.5px solid #182034;
 }
 .community-tab {
   flex: 1;
-  background: #0d1825;
+  background: #111828;
   border: none;
-  color: #4a6280;
+  color: #4a5870;
   font-size: 13px;
   font-weight: 600;
   padding: 8px 0;
@@ -197,11 +197,11 @@
   transition: background 0.06s, color 0.06s;
 }
 .community-tab:hover {
-  background: #162030;
+  background: #182034;
 }
 .community-tab.active {
   background: #1a2738;
-  color: #c8d6e5;
+  color: #d8ccc4;
 }
 
 /* ═══ CHALLENGE ═══ */
@@ -214,7 +214,7 @@
 
 /* Cartes compactes (2e challenge et suivants) */
 .challenge-card-compact {
-  border-color: #1e2d4088;
+  border-color: #18203488;
 }
 .challenge-card-compact .challenge-ref {
   width: 72px;
@@ -229,8 +229,8 @@
 .challenge-card {
   display: flex;
   gap: 14px;
-  background: linear-gradient(135deg, #1a2738 0%, #0d1825 100%);
-  border: 1px solid #2983eb44;
+  background: linear-gradient(135deg, #1a2738 0%, #111828 100%);
+  border: 1px solid #b8a0d844;
   border-radius: 12px;
   padding: 14px;
   overflow: hidden;
@@ -241,7 +241,7 @@
   height: 100px;
   border-radius: 8px;
   overflow: hidden;
-  background: #0a1520;
+  background: #0a0e18;
 }
 .challenge-ref img {
   width: 100%;
@@ -259,13 +259,13 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.2px;
-  color: #2983eb;
+  color: #b8a0d8;
   text-transform: uppercase;
 }
 .challenge-info h3 {
   font-size: 15px;
   font-weight: 600;
-  color: #c8d6e5;
+  color: #d8ccc4;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -273,14 +273,14 @@
 }
 .challenge-deadline {
   font-size: 11px;
-  color: #f0c040;
+  color: #e8a088;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   margin-bottom: 2px;
 }
 .challenge-participants {
   font-size: 11px;
-  color: #4a6280;
+  color: #4a5870;
   margin-bottom: 4px;
 }
 .challenge-info .end-btn-share {
@@ -295,7 +295,7 @@
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 12px;
-  border: 1px solid #2983eb44;
+  border: 1px solid #b8a0d844;
 }
 .challenge-hero-img {
   width: 100%;
@@ -311,13 +311,13 @@
   flex-direction: column;
   justify-content: flex-end;
   padding: 18px;
-  background: linear-gradient(transparent 30%, rgba(10,21,32,0.85) 100%);
+  background: linear-gradient(transparent 30%, rgba(17,24,40,0.85) 100%);
 }
 .challenge-hero-overlay .challenge-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.2px;
-  color: #2983eb;
+  color: #b8a0d8;
   text-transform: uppercase;
   margin-bottom: 4px;
 }
@@ -329,7 +329,7 @@
 }
 .challenge-hero-count {
   font-size: 13px;
-  color: #8899aa;
+  color: #8898b0;
   margin-top: 4px;
 }
 
@@ -339,10 +339,10 @@
 }
 #challenge-select {
   width: 100%;
-  background: #0d1825;
-  border: 0.5px solid #1e2d40;
+  background: #111828;
+  border: 0.5px solid #182034;
   border-radius: 8px;
-  color: #c8d6e5;
+  color: #d8ccc4;
   padding: 8px 12px;
   font-size: 13px;
   cursor: pointer;
@@ -354,7 +354,7 @@
 }
 #challenge-select:focus {
   outline: none;
-  border-color: #2983eb;
+  border-color: #b8a0d8;
 }
 
 /* Feed section separators */
@@ -366,14 +366,14 @@
   padding: 6px 0;
   font-size: 12px;
   font-weight: 600;
-  color: #4a6280;
+  color: #4a5870;
   letter-spacing: 0.3px;
 }
 .feed-separator::after {
   content: '';
   flex: 1;
   height: 0.5px;
-  background: #1e2d40;
+  background: #182034;
 }
 
 /* Mes dessins grid (same as feed) */
@@ -388,7 +388,7 @@
   grid-column: 1 / -1;
   text-align: center;
   font-size: 13px;
-  color: #4a6280;
+  color: #4a5870;
   padding: 30px 0;
 }
 
@@ -420,16 +420,16 @@
 .community-cta {
   text-align: center;
   font-size: 13px;
-  color: #8899aa;
+  color: #8898b0;
   padding: 14px 18px;
 }
 .community-cta strong {
-  color: #c8d6e5;
+  color: #d8ccc4;
 }
 .community-cta .s-btn-blue {
-  background: #2983eb;
+  background: #b8a0d8;
   color: #fff;
-  border-color: #2983eb;
+  border-color: #b8a0d8;
   font-weight: 600;
   padding: 10px 24px;
   font-size: 14px;
@@ -457,13 +457,13 @@
   background: #141e2a;
   border-radius: 10px;
   overflow: hidden;
-  border: 0.5px solid #1e2d40;
+  border: 0.5px solid #182034;
   transition: border-color 0.06s, transform 0.06s;
   animation: community-fade-in 0.35s ease both;
   position: relative;
 }
 .community-post:hover {
-  border-color: #2983eb44;
+  border-color: #b8a0d844;
   transform: translateY(-2px);
 }
 
@@ -474,7 +474,7 @@
   object-fit: cover;
   display: block;
   cursor: pointer;
-  background: #0a1520;
+  background: #0a0e18;
   transition: filter 0.06s;
 }
 .community-post-img:hover {
@@ -486,7 +486,7 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(41, 131, 235, 0.85);
+  background: rgba(184, 160, 216, 0.85);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -507,8 +507,8 @@
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: #0d1825;
-  border-top: 0.5px solid #1e2d40;
+  background: #111828;
+  border-top: 0.5px solid #182034;
 }
 .community-ref-thumb {
   width: 36px;
@@ -519,14 +519,14 @@
 }
 .community-ref-label {
   font-size: 11px;
-  color: #4a6280;
+  color: #4a5870;
   flex: 1;
 }
 .community-ref-btn {
-  background: #2983eb22;
-  border: 0.5px solid #2983eb44;
+  background: #b8a0d822;
+  border: 0.5px solid #b8a0d844;
   border-radius: 6px;
-  color: #2983eb;
+  color: #b8a0d8;
   font-size: 11px;
   font-weight: 600;
   padding: 5px 10px;
@@ -535,14 +535,14 @@
   transition: background 0.06s;
 }
 .community-ref-btn:hover {
-  background: #2983eb33;
+  background: #b8a0d833;
 }
 
 /* Upload overlay in community tab */
 #community-upload-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(5,10,18,0.9);
+  background: rgba(10,14,24,0.9);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -574,7 +574,7 @@
 .community-post-user {
   font-size: 12px;
   font-weight: 600;
-  color: #c8d6e5;
+  color: #d8ccc4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -582,18 +582,18 @@
   transition: color 0.06s;
 }
 .community-post-user:hover {
-  color: #2983eb;
+  color: #b8a0d8;
 }
 
 .community-post-date {
   font-size: 11px;
-  color: #4a6280;
+  color: #4a5870;
   white-space: nowrap;
 }
 
 .community-post-likes {
   font-size: 12px;
-  color: #8899aa;
+  color: #8898b0;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -608,8 +608,8 @@
 }
 
 .community-reaction-btn {
-  background: #0d1825;
-  border: 0.5px solid #1e2d40;
+  background: #111828;
+  border: 0.5px solid #182034;
   border-radius: 20px;
   padding: 3px 8px;
   font-size: 14px;
@@ -618,28 +618,28 @@
   align-items: center;
   gap: 3px;
   transition: background 0.06s, border-color 0.06s, transform 0.1s;
-  color: #8899aa;
+  color: #8898b0;
   line-height: 1;
 }
 .community-reaction-btn:hover {
   background: #1a2738;
-  border-color: #2983eb44;
+  border-color: #b8a0d844;
 }
 .community-reaction-btn:active {
   transform: scale(0.92);
 }
 .community-reaction-btn.active {
   background: #1a2738;
-  border-color: #2983eb;
+  border-color: #b8a0d8;
 }
 .community-reaction-btn .count {
   font-size: 11px;
   min-width: 8px;
   text-align: center;
-  color: #8899aa;
+  color: #8898b0;
 }
 .community-reaction-btn.active .count {
-  color: #2983eb;
+  color: #b8a0d8;
 }
 
 /* Reaction tooltip (usernames on hover) */
@@ -653,7 +653,7 @@
   left: 50%;
   transform: translateX(-50%);
   background: rgba(10, 15, 25, 0.92);
-  color: #c8d6e5;
+  color: #d8ccc4;
   font-size: 11px;
   font-weight: 400;
   padding: 4px 8px;
@@ -666,7 +666,7 @@
   z-index: 10;
   backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
-  border: 0.5px solid #1e2d40;
+  border: 0.5px solid #182034;
 }
 .community-reaction-btn:hover .reaction-tooltip {
   display: block;
@@ -679,10 +679,10 @@
   padding: 10px 14px;
   margin-bottom: 10px;
   background: #141e2a;
-  border: 0.5px solid #1e2d40;
+  border: 0.5px solid #182034;
   border-radius: 10px;
   font-size: 13px;
-  color: #c8d6e5;
+  color: #d8ccc4;
   font-weight: 600;
 }
 
@@ -762,20 +762,20 @@
   align-items: center;
   gap: 12px;
   background: #141e2a;
-  border: 0.5px solid #1e2d40;
+  border: 0.5px solid #182034;
   border-radius: 10px;
   padding: 10px 14px;
   animation: community-fade-in 0.35s ease both;
   transition: border-color 0.06s, transform 0.06s;
 }
 .leaderboard-row:hover {
-  border-color: #2983eb44;
+  border-color: #b8a0d844;
   transform: translateY(-1px);
 }
 
 .leaderboard-top {
   background: #1a2738;
-  border-color: #2983eb33;
+  border-color: #b8a0d833;
 }
 
 .leaderboard-rank {
@@ -783,7 +783,7 @@
   min-width: 36px;
   text-align: center;
   font-weight: 700;
-  color: #4a6280;
+  color: #4a5870;
 }
 .leaderboard-top .leaderboard-rank {
   color: inherit;
@@ -793,7 +793,7 @@
   flex: 1;
   font-size: 14px;
   font-weight: 600;
-  color: #c8d6e5;
+  color: #d8ccc4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -803,7 +803,7 @@
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: #8899aa;
+  color: #8898b0;
   white-space: nowrap;
 }
 .lb-posts::before { content: '📝 '; }

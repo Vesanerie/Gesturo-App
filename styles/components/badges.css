@@ -1,9 +1,9 @@
 /* ── BADGE POPUP PS5 ── */
 #badge-popup {
   position: fixed; top: 20px; left: 20px;
-  background: rgba(15, 25, 35, 0.93);
-  border: 0.5px solid rgba(240,192,64,0.4);
-  border-left: 3px solid #f0c040;
+  background: rgba(10, 14, 24, 0.93);
+  border: 0.5px solid rgba(232,160,136,0.4);
+  border-left: 3px solid #e8a088;
   border-radius: 10px;
   padding: 12px 16px;
   z-index: 1050;
@@ -27,19 +27,19 @@
 }
 #badge-popup .bp-emoji { font-size: 28px; flex-shrink: 0; }
 #badge-popup .bp-text { flex: 1; min-width: 0; }
-#badge-popup .bp-title { font-size: 9px; color: #f0c040; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+#badge-popup .bp-title { font-size: 9px; color: #e8a088; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
 #badge-popup .bp-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #badge-popup .bp-progress { height: 2px; background: rgba(255,255,255,0.1); border-radius: 99px; margin-top: 6px; overflow: hidden; }
-#badge-popup .bp-progress-bar { height: 100%; background: #f0c040; border-radius: 99px; width: 100%; transition: width linear; }
+#badge-popup .bp-progress-bar { height: 100%; background: #e8a088; border-radius: 99px; width: 100%; transition: width linear; }
 
 /* ── BADGE CARDS (grille dans #badges-panel) ── */
 .badge-card {
-  background: #131f2e; border: 0.5px solid #1e2d40; border-radius: 12px;
+  background: #111828; border: 0.5px solid #182034; border-radius: 12px;
   padding: 14px; text-align: center; cursor: pointer;
   opacity: 0.3; filter: grayscale(1);
   transition: transform 0.06s, border-color 0.06s;
 }
-.badge-card.unlocked { background: #1c1a08; border-color: #f0c040; opacity: 1; filter: none; }
+.badge-card.unlocked { background: #1c1a08; border-color: #e8a088; opacity: 1; filter: none; }
 .badge-card:hover { transform: scale(1.05); border-color: #5ba0f0; }
 .badge-card.unlocked:hover { border-color: #f5d060; }
 
@@ -50,13 +50,13 @@
   display: flex; align-items: center; justify-content: center;
 }
 .badge-detail-card {
-  background: rgba(15,25,35,0.95); border: 0.5px solid #1e2d40; border-radius: 16px;
+  background: rgba(10,14,24,0.95); border: 0.5px solid #182034; border-radius: 16px;
   padding: 32px 40px; text-align: center; min-width: 240px; max-width: 320px;
   animation: badge-detail-in 0.06s ease;
 }
 @keyframes badge-detail-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 .badge-detail-emoji { font-size: 48px; margin-bottom: 12px; }
 .badge-detail-name { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 6px; }
-.badge-detail-desc { font-size: 13px; color: #8aaccc; margin-bottom: 10px; }
-.badge-detail-date { font-size: 12px; color: #f0c040; }
-.badge-detail-locked { font-size: 12px; color: #3a5570; font-style: italic; }
+.badge-detail-desc { font-size: 13px; color: #8898b0; margin-bottom: 10px; }
+.badge-detail-date { font-size: 12px; color: #e8a088; }
+.badge-detail-locked { font-size: 12px; color: #4a5870; font-style: italic; }

@@ -1,14 +1,14 @@
 /* ── BOUTON OPTIONS ── */
-#options-btn { position: fixed; top: 14px; right: 14px; background: #131f2e; border: 0.5px solid #1e2d40; border-radius: 8px; color: #3a5570; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: none; align-items: center; justify-content: center; z-index: 200; line-height: 1; }
-#options-btn:hover { background: #162030; color: #6a8aaa; }
-#options-dropdown { display: none; position: fixed; top: 52px; right: 14px; background: #131f2e; border: 0.5px solid #1e2d40; border-radius: 12px; padding: 8px; z-index: 201; min-width: 240px; box-shadow: 0 12px 32px rgba(5,10,18,0.7), 0 0 0 1px rgba(255,255,255,0.02) inset; }
+#options-btn { position: fixed; top: 14px; right: 14px; background: #111828; border: 0.5px solid #182034; border-radius: 8px; color: #4a5870; width: 32px; height: 32px; cursor: pointer; font-size: 18px; display: none; align-items: center; justify-content: center; z-index: 200; line-height: 1; }
+#options-btn:hover { background: #182034; color: #8898b0; }
+#options-dropdown { display: none; position: fixed; top: 52px; right: 14px; background: #111828; border: 0.5px solid #182034; border-radius: 12px; padding: 8px; z-index: 201; min-width: 240px; box-shadow: 0 12px 32px rgba(10,14,24,0.7), 0 0 0 1px rgba(255,255,255,0.02) inset; }
 #options-dropdown.open { display: block; }
 
 /* Section label : petit titre en maj pour grouper les items */
 .opt-section {
   font-size: 10px;
   font-weight: 600;
-  color: #4a6280;
+  color: #4a5870;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   padding: 8px 12px 4px;
@@ -18,41 +18,41 @@
 /* Séparateur horizontal subtil entre les groupes */
 .opt-sep {
   height: 0.5px;
-  background: #1e2d40;
+  background: #182034;
   margin: 6px 0;
 }
 
 /* Item standard — icône fixe à gauche, label ensuite, alignement constant */
-.opt-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #c8d6e5; user-select: none; transition: background 0.06s, color 0.06s; }
-.opt-item:hover { background: #162030; color: #fff; }
+.opt-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #d8ccc4; user-select: none; transition: background 0.06s, color 0.06s; }
+.opt-item:hover { background: #182034; color: #fff; }
 .opt-item.danger { color: #E24B4A; }
 .opt-item.danger:hover { background: rgba(226, 75, 74, 0.1); color: #ff6b6a; }
 
 .opt-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
 .opt-label { flex: 1; line-height: 1.3; }
-.opt-value { font-size: 11px; color: #6a8aaa; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+.opt-value { font-size: 11px; color: #8898b0; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Ligne musique — slider occupe l'espace restant, hover différent (pas le
    plein hover qui brouille l'interaction avec le slider) */
 .opt-bgm-row { cursor: default; }
-.opt-bgm-row:hover { background: transparent; color: #c8d6e5; }
-.opt-bgm-row input[type="range"] { flex: 1; height: 6px; cursor: pointer; -webkit-appearance: none; appearance: none; background: #1e2d40; border-radius: 3px; outline: none; }
-.opt-bgm-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #2983eb; cursor: pointer; transition: transform 0.12s; margin-top: -6px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.opt-bgm-row:hover { background: transparent; color: #d8ccc4; }
+.opt-bgm-row input[type="range"] { flex: 1; height: 6px; cursor: pointer; -webkit-appearance: none; appearance: none; background: #182034; border-radius: 3px; outline: none; }
+.opt-bgm-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #b8a0d8; cursor: pointer; transition: transform 0.12s; margin-top: -6px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
 .opt-bgm-row input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 .opt-bgm-row #opt-bgm-icon:hover { color: #fff; transform: scale(1.15); transition: transform 0.12s, color 0.12s; }
 
 /* About modal */
-#about-modal { display:none; position:fixed; inset:0; background:rgba(5,10,18,0.85); z-index:1000; align-items:center; justify-content:center; }
+#about-modal { display:none; position:fixed; inset:0; background:rgba(10,14,24,0.85); z-index:1000; align-items:center; justify-content:center; }
 #about-modal.open { display:flex; }
-.about-box { background:#131f2e; border:0.5px solid #1e2d40; border-radius:16px; padding:28px; width:320px; }
+.about-box { background:#111828; border:0.5px solid #182034; border-radius:16px; padding:28px; width:320px; }
 .about-box h3 { font-size:16px; font-weight:600; color:#fff; margin-bottom:16px; }
-.about-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:0.5px solid #1e2d40; font-size:13px; }
+.about-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:0.5px solid #182034; font-size:13px; }
 .about-row:last-of-type { border-bottom:none; }
-.about-row .label { color:#4a6280; }
+.about-row .label { color:#4a5870; }
 .about-row .value { color:#fff; font-weight:500; }
-.about-row .value.pro { color:#f0c040; }
-.about-row .value.free { color:#3a5570; }
-.about-close { width:100%; margin-top:16px; padding:10px; background:#162030; border:0.5px solid #1e2d40; border-radius:8px; color:#6a8aaa; font-size:13px; cursor:pointer; }
+.about-row .value.pro { color:#e8a088; }
+.about-row .value.free { color:#4a5870; }
+.about-close { width:100%; margin-top:16px; padding:10px; background:#182034; border:0.5px solid #182034; border-radius:8px; color:#8898b0; font-size:13px; cursor:pointer; }
 .about-close:hover { background:#1a2840; }
-.about-upgrade { width:100%; margin-top:8px; padding:10px; background:#2983eb; border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+.about-upgrade { width:100%; margin-top:8px; padding:10px; background:#b8a0d8; border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
 .about-upgrade:hover { background:#1a6fd4; }

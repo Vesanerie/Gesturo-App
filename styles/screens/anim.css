@@ -1,5 +1,5 @@
 /* ── MODE ANIMATION ── */
-#screen-anim { background: #0a1520; }
+#screen-anim { background: #0a0e18; }
 
 /* Modale confirm "Terminer la session ?" — commune aux 3 modes (Poses, Anim, Cinéma).
    top-level, utilise .open pour afficher. Cachée par défaut. */
@@ -39,44 +39,44 @@
   color: #fff;
   border-color: #E24B4A;
 }
-#anim-photo-area { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #0a1520; overflow: hidden; position: relative; }
+#anim-photo-area { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #0a0e18; overflow: hidden; position: relative; }
 #anim-photo-area img { max-width: 100%; max-height: 100%; object-fit: contain; }
-#anim-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,21,32,0.6); }
+#anim-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(17,24,40,0.6); }
 #anim-overlay.hidden { display: none; }
-.anim-big-btn { background: rgba(41,131,235,0.2); border: 1.5px solid rgba(41,131,235,0.4); border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 32px; color: #fff; backdrop-filter: blur(var(--blur-sm)); }
-.anim-big-btn:hover { background: rgba(41,131,235,0.35); }
-.seq-item .seq-status { font-size: 11px; color: #3a5570; margin-left: 6px; }
-.seq-item.preloading .seq-name { color: #5b9bd5; }
+.anim-big-btn { background: rgba(184,160,216,0.2); border: 1.5px solid rgba(184,160,216,0.4); border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 32px; color: #fff; backdrop-filter: blur(var(--blur-sm)); }
+.anim-big-btn:hover { background: rgba(184,160,216,0.35); }
+.seq-item .seq-status { font-size: 11px; color: #4a5870; margin-left: 6px; }
+.seq-item.preloading .seq-name { color: #b8a0d8; }
 .seq-item.ready .seq-name { color: #4CAF50; }
 #anim-mode-badge { position: absolute; top: 14px; left: 14px; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; }
-#anim-mode-badge.loop { background: rgba(41,131,235,0.15); border: 0.5px solid #2983eb; color: #5b9bd5; }
-#anim-mode-badge.study { background: rgba(255,255,255,0.06); border: 0.5px solid #1e2d40; color: #6a8aaa; }
-#anim-frame-info { position: absolute; top: 14px; right: 14px; font-size: 12px; color: #3a5570; background: rgba(10,21,32,0.7); padding: 5px 10px; border-radius: 6px; }
+#anim-mode-badge.loop { background: rgba(184,160,216,0.15); border: 0.5px solid #b8a0d8; color: #b8a0d8; }
+#anim-mode-badge.study { background: rgba(255,255,255,0.06); border: 0.5px solid #182034; color: #8898b0; }
+#anim-frame-info { position: absolute; top: 14px; right: 14px; font-size: 12px; color: #4a5870; background: rgba(17,24,40,0.7); padding: 5px 10px; border-radius: 6px; }
 
 /* Timeline miniatures */
-#anim-bar { flex-shrink: 0; background: #0f1923; border-top: 0.5px solid #1e2d40; }
-#timeline-wrap { width: 100%; overflow-x: auto; overflow-y: hidden; padding: 10px 16px 0; scrollbar-width: thin; scrollbar-color: #1e2d40 transparent; }
+#anim-bar { flex-shrink: 0; background: #0a0e18; border-top: 0.5px solid #182034; }
+#timeline-wrap { width: 100%; overflow-x: auto; overflow-y: hidden; padding: 10px 16px 0; scrollbar-width: thin; scrollbar-color: #182034 transparent; }
 #timeline-wrap::-webkit-scrollbar { height: 4px; }
 #timeline-wrap::-webkit-scrollbar-track { background: transparent; }
-#timeline-wrap::-webkit-scrollbar-thumb { background: #1e2d40; border-radius: 2px; }
+#timeline-wrap::-webkit-scrollbar-thumb { background: #182034; border-radius: 2px; }
 #timeline-inner { display: flex; gap: 4px; align-items: flex-end; min-width: max-content; padding-bottom: 8px; }
-.thumb-item { flex-shrink: 0; width: 52px; height: 70px; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative; border: 2px solid transparent; transition: border-color 0.06s, transform 0.06s; background: #131f2e; }
-.thumb-item:hover { transform: translateY(-3px); border-color: #1e2d40; }
-.thumb-item.active { border-color: #2983eb; transform: translateY(-4px); }
+.thumb-item { flex-shrink: 0; width: 52px; height: 70px; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative; border: 2px solid transparent; transition: border-color 0.06s, transform 0.06s; background: #111828; }
+.thumb-item:hover { transform: translateY(-3px); border-color: #182034; }
+.thumb-item.active { border-color: #b8a0d8; transform: translateY(-4px); }
 .thumb-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumb-num { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 9px; color: rgba(255,255,255,0.3); }
-.thumb-item.active .thumb-num { color: #2983eb; }
+.thumb-item.active .thumb-num { color: #b8a0d8; }
 
 /* Barre de contrôles anim */
 #anim-controls-bar { display: flex; align-items: center; gap: 12px; padding: 8px 16px 12px; }
-#anim-seq-name { font-size: 12px; color: #3a5570; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#anim-seq-name { font-size: 12px; color: #4a5870; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Timer étude */
 #study-timer-wrap { display: flex; align-items: center; gap: 12px; }
 #study-timer { font-size: 28px; font-weight: 300; color: #fff; letter-spacing: -1px; font-variant-numeric: tabular-nums; min-width: 70px; }
 #study-timer.warning { color: #E24B4A; }
-#study-prog-wrap { width: 80px; height: 2px; background: #1e2d40; border-radius: 99px; }
-#study-prog-bar { height: 2px; background: #2983eb; border-radius: 99px; width: 100%; transition: width 0.5s linear; }
+#study-prog-wrap { width: 80px; height: 2px; background: #182034; border-radius: 99px; }
+#study-prog-bar { height: 2px; background: #b8a0d8; border-radius: 99px; width: 100%; transition: width 0.5s linear; }
 
 /* ─────────────────────────────────────────────────────────────────────
    MOBILE — Animation (≤768px)
@@ -96,7 +96,7 @@
     left: 8px;
     right: 8px;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
-    background: rgba(10, 21, 32, 0.62);
+    background: rgba(17, 24, 40, 0.62);
     -webkit-backdrop-filter: blur(var(--blur-lg));
             backdrop-filter: blur(var(--blur-lg));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -169,7 +169,7 @@
     top: calc(env(safe-area-inset-top, 0px) + 14px);
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(10, 21, 32, 0.6);
+    background: rgba(17, 24, 40, 0.6);
     -webkit-backdrop-filter: blur(var(--blur-md));
             backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.1);
@@ -183,7 +183,7 @@
     top: calc(env(safe-area-inset-top, 0px) + 14px);
     left: 14px;
     right: auto;
-    background: rgba(10, 21, 32, 0.6);
+    background: rgba(17, 24, 40, 0.6);
     -webkit-backdrop-filter: blur(var(--blur-md));
             backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -201,7 +201,7 @@
     left: auto;
     width: 44px;
     height: 44px;
-    background: rgba(10, 21, 32, 0.62);
+    background: rgba(17, 24, 40, 0.62);
     -webkit-backdrop-filter: blur(var(--blur-md));
             backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -245,7 +245,7 @@
     transform: translateX(-50%);
     align-items: center;
     gap: 10px;
-    background: rgba(10, 21, 32, 0.62);
+    background: rgba(17, 24, 40, 0.62);
     -webkit-backdrop-filter: blur(var(--blur-lg));
     backdrop-filter: blur(var(--blur-lg));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -264,13 +264,13 @@
   #anim-float-timer .float-timer-prog {
     width: 60px;
     height: 2px;
-    background: #1e2d40;
+    background: #182034;
     border-radius: 99px;
     overflow: hidden;
   }
   #anim-float-timer .float-timer-bar {
     height: 2px;
-    background: #2983eb;
+    background: #b8a0d8;
     border-radius: 99px;
     width: 100%;
     transition: width 0.5s linear;
@@ -299,7 +299,7 @@
     left: 40px;
     right: 40px;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
-    background: rgba(10, 21, 32, 0.62);
+    background: rgba(17, 24, 40, 0.62);
     -webkit-backdrop-filter: blur(var(--blur-lg));
             backdrop-filter: blur(var(--blur-lg));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -367,7 +367,7 @@
     top: calc(env(safe-area-inset-top, 0px) + 20px);
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(10, 21, 32, 0.62);
+    background: rgba(17, 24, 40, 0.62);
     -webkit-backdrop-filter: blur(var(--blur-md));
             backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.1);
@@ -381,7 +381,7 @@
     top: calc(env(safe-area-inset-top, 0px) + 20px);
     left: 24px;
     right: auto;
-    background: rgba(10, 21, 32, 0.62);
+    background: rgba(17, 24, 40, 0.62);
     -webkit-backdrop-filter: blur(var(--blur-md));
             backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -399,7 +399,7 @@
     left: auto;
     width: 52px;
     height: 52px;
-    background: rgba(10, 21, 32, 0.62);
+    background: rgba(17, 24, 40, 0.62);
     -webkit-backdrop-filter: blur(var(--blur-md));
             backdrop-filter: blur(var(--blur-md));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -442,7 +442,7 @@
     transform: translateX(-50%);
     align-items: center;
     gap: 12px;
-    background: rgba(10, 21, 32, 0.62);
+    background: rgba(17, 24, 40, 0.62);
     -webkit-backdrop-filter: blur(var(--blur-lg));
     backdrop-filter: blur(var(--blur-lg));
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -461,13 +461,13 @@
   #anim-float-timer .float-timer-prog {
     width: 80px;
     height: 2px;
-    background: #1e2d40;
+    background: #182034;
     border-radius: 99px;
     overflow: hidden;
   }
   #anim-float-timer .float-timer-bar {
     height: 2px;
-    background: #2983eb;
+    background: #b8a0d8;
     border-radius: 99px;
     width: 100%;
     transition: width 0.5s linear;

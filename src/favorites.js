@@ -260,7 +260,7 @@ function renderFavsConfig() {
   favs.forEach((fav, i) => {
     const item = document.createElement('div'); item.className = 'fav-item'; item.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;background:#242424;aspect-ratio:3/4;cursor:zoom-in;'
     const img = document.createElement('img'); img.src = fav.src; img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;'; item.appendChild(img)
-    const lbl = document.createElement('div'); lbl.style.cssText = 'position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.7);border-radius:4px;padding:2px 6px;font-size:11px;color:#f0c040;'; lbl.textContent = '★ ' + (i + 1); item.appendChild(lbl)
+    const lbl = document.createElement('div'); lbl.style.cssText = 'position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.7);border-radius:4px;padding:2px 6px;font-size:11px;color:#e8a088;'; lbl.textContent = '★ ' + (i + 1); item.appendChild(lbl)
     // Pin moodboard button
     const pinBtn = document.createElement('button')
     pinBtn.className = 'fav-pin-btn' + (isPinnedInMoodboard(fav.src) ? ' pinned' : '')

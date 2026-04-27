@@ -68,6 +68,15 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('discord-btn').style.display = 'flex'
   document.getElementById('profile-btn').style.display = 'flex'
 
+  // ── Logo icon dans la sidebar tablet (injecté avant le ::before pseudo) ──
+  const tabs = document.querySelector('#screen-config .mode-tabs')
+  if (tabs) {
+    const logo = document.createElement('img')
+    logo.src = 'assets/icon.png'
+    logo.className = 'sidebar-logo-icon'
+    tabs.prepend(logo)
+  }
+
   // ── Auto-update UI ──
   if (window.electronAPI?.onUpdateStatus) {
     window.electronAPI.onUpdateStatus(({ status, version }) => {
@@ -76,7 +85,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!banner) {
           banner = document.createElement('div')
           banner.id = 'update-banner'
-          banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1a5c2a,#2a7a3a);color:#fff;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;font-size:13px;font-family:inherit;box-shadow:0 2px 12px rgba(0,0,0,0.3);'
+          banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1a2040,#2a3050);color:#fff;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;font-size:13px;font-family:inherit;box-shadow:0 2px 12px rgba(0,0,0,0.3);'
           banner.innerHTML = '<span>Mise \u00e0 jour v' + version + ' en cours de t\u00e9l\u00e9chargement\u2026</span>'
           document.body.appendChild(banner)
         }
@@ -86,9 +95,9 @@ window.addEventListener('DOMContentLoaded', () => {
           banner.id = 'update-banner'
           document.body.appendChild(banner)
         }
-        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1a5c2a,#2a7a3a);color:#fff;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;font-size:13px;font-family:inherit;box-shadow:0 2px 12px rgba(0,0,0,0.3);'
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#1a2040,#2a3050);color:#fff;display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;font-size:13px;font-family:inherit;box-shadow:0 2px 12px rgba(0,0,0,0.3);'
         banner.innerHTML = '<span>Gesturo v' + version + ' est pr\u00eat !</span>'
-          + '<button onclick="window.electronAPI.installUpdate()" style="background:#f0c040;color:#111;border:none;border-radius:6px;padding:6px 16px;font-weight:600;cursor:pointer;font-size:13px;">Installer et relancer</button>'
+          + '<button onclick="window.electronAPI.installUpdate()" style="background:#e8a088;color:#111;border:none;border-radius:6px;padding:6px 16px;font-weight:600;cursor:pointer;font-size:13px;">Installer et relancer</button>'
           + '<button onclick="this.parentElement.remove()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;">Plus tard</button>'
       }
     })
@@ -115,7 +124,7 @@ window.addEventListener('DOMContentLoaded', () => {
       div.className = 'auth-screen'
       div.innerHTML = `
         <div class="auth-card">
-          <div class="auth-logo"><span class="auth-logo-text">Gestur<span class="gesturo-o">o</span><span class="auth-logo-dot">.</span></span></div>
+          <div class="auth-logo"><img src="assets/icon.png" class="auth-logo-icon" alt="Gesturo"><span class="auth-logo-text">Gestur<span class="gesturo-o">o</span><span class="auth-logo-dot">.</span></span></div>
           <div class="auth-subtitle">Entrainement au dessin de poses</div>
           <div id="auth-login-form" class="auth-form">
             <div class="auth-input-wrap">
@@ -195,7 +204,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (password.length < 6) { msg.textContent = 'Mot de passe trop court (6 car. min)'; return }
         btn.disabled = true; msg.textContent = 'Inscription...'
         window.electronAPI.authSignup({ email, password, username }).then(result => {
-          if (result?.needsConfirmation) { msg.textContent = 'Vérifie tes emails pour confirmer ton compte !'; msg.style.color = '#2ecc71'; return }
+          if (result?.needsConfirmation) { msg.textContent = 'Vérifie tes emails pour confirmer ton compte !'; msg.style.color = '#a8d090'; return }
           if (result?.success) location.reload()
           else { msg.textContent = result?.message || 'Inscription échouée'; btn.disabled = false }
         }).catch(e => { msg.textContent = e.message; btn.disabled = false })
@@ -210,9 +219,9 @@ window.addEventListener('DOMContentLoaded', () => {
         const email = document.getElementById('auth-email').value.trim()
         const msg = document.getElementById('auth-msg')
         if (!email) { msg.textContent = 'Entre ton email ci-dessus d\'abord'; msg.style.color = '#e24b4a'; return }
-        msg.textContent = 'Envoi du lien...'; msg.style.color = '#4a6280'
+        msg.textContent = 'Envoi du lien...'; msg.style.color = '#4a5870'
         window.electronAPI.authResetPassword(email).then(result => {
-          if (result?.success) { msg.textContent = 'Lien envoyé ! Vérifie tes emails.'; msg.style.color = '#2ecc71' }
+          if (result?.success) { msg.textContent = 'Lien envoyé ! Vérifie tes emails.'; msg.style.color = '#a8d090' }
           else { msg.textContent = result?.message || 'Erreur'; msg.style.color = '#e24b4a' }
         }).catch(e => { msg.textContent = e.message; msg.style.color = '#e24b4a' })
       })
@@ -229,9 +238,9 @@ window.addEventListener('DOMContentLoaded', () => {
         badge.style.display = 'flex'
         if (isPro) {
           badge.textContent = '⭐ PRO'
-          badge.style.background = 'rgba(240,192,64,0.15)'
-          badge.style.border = '0.5px solid #f0c040'
-          badge.style.color = '#f0c040'
+          badge.style.background = 'linear-gradient(135deg, rgba(232,160,136,0.15), rgba(184,160,216,0.15))'
+          badge.style.border = '0.5px solid #b8a0d8'
+          badge.style.color = '#b8a0d8'
         } else {
           badge.textContent = 'FREE'
           badge.style.background = 'rgba(255,255,255,0.05)'
@@ -257,17 +266,15 @@ window.addEventListener('DOMContentLoaded', () => {
 })
 
 function adminSetSource(source) {
+  const r2 = document.getElementById('btn-source-r2')
+  const local = document.getElementById('btn-source-local')
   if (source === 'r2') {
-    document.getElementById('btn-source-r2').style.cssText += ';background:#1a2e44;border-color:#5b9bd5;color:#5b9bd5'
-    document.getElementById('btn-source-local').style.background = ''
-    document.getElementById('btn-source-local').style.borderColor = ''
-    document.getElementById('btn-source-local').style.color = ''
+    if (r2) r2.style.cssText += ';background:#182034;border-color:#b8a0d8;color:#b8a0d8'
+    if (local) { local.style.background = ''; local.style.borderColor = ''; local.style.color = '' }
     window.electronAPI.adminSwitchSource({ useLocal: false })
   } else {
-    document.getElementById('btn-source-local').style.cssText += ';background:#1a2e44;border-color:#5b9bd5;color:#5b9bd5'
-    document.getElementById('btn-source-r2').style.background = ''
-    document.getElementById('btn-source-r2').style.borderColor = ''
-    document.getElementById('btn-source-r2').style.color = ''
+    if (local) local.style.cssText += ';background:#182034;border-color:#b8a0d8;color:#b8a0d8'
+    if (r2) { r2.style.background = ''; r2.style.borderColor = ''; r2.style.color = '' }
     window.electronAPI.adminSwitchSource({ useLocal: true })
   }
 }
@@ -324,7 +331,8 @@ function showScreen(id) {
     cleanupActiveSession()
   }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
-  document.getElementById(id).classList.add('active')
+  const screen = document.getElementById(id)
+  if (screen) screen.classList.add('active')
   const visible = id === 'screen-config'
   // Cacher la pile de sélection quand on quitte l'écran Config
   const pile = document.getElementById('selection-pile')
@@ -358,18 +366,20 @@ function applyTransform() {
   const scaleX = currentFlipH ? -1 : 1
   const transform = 'rotate(' + currentRotation + 'deg) scaleX(' + scaleX + ')'
   const filter = currentBW ? 'grayscale(1)' : ''
-  document.getElementById('photo-img').style.transform = transform
-  document.getElementById('photo-img').style.filter = filter
-  document.getElementById('pdf-canvas').style.transform = transform
-  document.getElementById('pdf-canvas').style.filter = filter
+  const img = document.getElementById('photo-img')
+  const pdf = document.getElementById('pdf-canvas')
+  if (img) { img.style.transform = transform; img.style.filter = filter }
+  if (pdf) { pdf.style.transform = transform; pdf.style.filter = filter }
 }
 
 function toggleBW() {
   currentBW = !currentBW
   const btn = document.getElementById('bw-btn')
-  btn.style.color = currentBW ? '#fff' : ''
-  btn.style.background = currentBW ? 'rgba(255,255,255,0.15)' : ''
-  btn.style.borderColor = currentBW ? 'rgba(255,255,255,0.4)' : ''
+  if (btn) {
+    btn.style.color = currentBW ? '#fff' : ''
+    btn.style.background = currentBW ? 'rgba(255,255,255,0.15)' : ''
+    btn.style.borderColor = currentBW ? 'rgba(255,255,255,0.4)' : ''
+  }
   applyTransform()
 }
 function rotateLeft() { currentRotation = (currentRotation - 90 + 360) % 360; applyTransform() }

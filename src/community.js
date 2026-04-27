@@ -324,7 +324,7 @@ async function confirmCommunityUpload() {
   _uploading = true
   const status = document.getElementById('community-upload-status')
   status.style.display = 'block'
-  status.style.color = '#6a8aaa'
+  status.style.color = '#8898b0'
   status.textContent = 'Envoi en cours...'
   document.getElementById('community-upload-actions').style.display = 'none'
   try {
@@ -352,7 +352,7 @@ async function confirmCommunityUpload() {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) {}
     }
     status.textContent = 'Publié !'
-    status.style.color = '#2ecc71'
+    status.style.color = '#a8d090'
     _communityStats = null; checkBadges()
     setTimeout(() => { _uploading = false; closeCommunityUpload(); renderCommunity() }, 1500)
   } catch(e) {
@@ -413,7 +413,7 @@ function openSharePoseSelector() {
   if (overlay) overlay.remove()
   overlay = document.createElement('div')
   overlay.id = 'share-pose-selector'
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,10,18,0.9);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,14,24,0.9);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;'
 
   const box = document.createElement('div')
   box.className = 'share-drawing-box'
@@ -423,7 +423,7 @@ function openSharePoseSelector() {
     '<h3 style="margin:0;text-align:center;">Choisis la pose correspondante</h3>' +
     '<p style="margin:0;text-align:center;">Sélectionne la photo qui a servi de référence à ton dessin.</p>' +
     '<div id="sps-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;overflow-y:auto;padding:4px;"></div>' +
-    '<button id="sps-skip" style="background:transparent;border:none;color:#6a8aaa;font-size:13px;cursor:pointer;padding:8px;text-decoration:underline;">Partager sans référence</button>'
+    '<button id="sps-skip" style="background:transparent;border:none;color:#8898b0;font-size:13px;cursor:pointer;padding:8px;text-decoration:underline;">Partager sans référence</button>'
 
   overlay.appendChild(box)
   document.body.appendChild(overlay)
@@ -433,9 +433,9 @@ function openSharePoseSelector() {
     const item = document.createElement('div')
     const ratio = pose.isCinema ? '16/9' : '3/4'
     const label = pose.isCinema ? 'Frame ' : 'Pose '
-    item.style.cssText = 'position:relative;aspect-ratio:' + ratio + ';background:#131f2e;border:1.5px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color 0.15s, transform 0.1s;'
-    item.innerHTML = '<img src="' + pose.src + '" style="width:100%;height:100%;object-fit:cover;display:block;"><div style="position:absolute;bottom:4px;left:4px;background:rgba(10,21,32,0.85);border-radius:4px;padding:2px 6px;font-size:10px;color:#c8d6e5;">' + label + (pose.index + 1) + '</div>'
-    item.onmouseover = () => { item.style.borderColor = '#2983eb'; item.style.transform = 'scale(1.02)' }
+    item.style.cssText = 'position:relative;aspect-ratio:' + ratio + ';background:#111828;border:1.5px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer;transition:border-color 0.15s, transform 0.1s;'
+    item.innerHTML = '<img src="' + pose.src + '" style="width:100%;height:100%;object-fit:cover;display:block;"><div style="position:absolute;bottom:4px;left:4px;background:rgba(17,24,40,0.85);border-radius:4px;padding:2px 6px;font-size:10px;color:#d8ccc4;">' + label + (pose.index + 1) + '</div>'
+    item.onmouseover = () => { item.style.borderColor = '#b8a0d8'; item.style.transform = 'scale(1.02)' }
     item.onmouseout = () => { item.style.borderColor = 'transparent'; item.style.transform = 'none' }
     item.onclick = () => {
       _selectedShareRef = pose.src
@@ -542,7 +542,7 @@ async function confirmShareDrawing() {
       try { await window.electronAPI.tagPostToChallenge(res.postId, _activeChallenges[0].id) } catch(e) { /* silent */ }
     }
     status.textContent = 'Publié ! Ton dessin est visible dans la Communauté.'
-    status.style.color = '#2ecc71'
+    status.style.color = '#a8d090'
     _communityStats = null; checkBadges()
     setTimeout(() => { _uploading = false; closeShareDrawing() }, 2000)
   } catch(e) {

@@ -1,12 +1,12 @@
 /* ═══ PROFILE BUTTON ═══ */
 #profile-btn {
   position: fixed; top: 14px; right: 94px;
-  background: #131f2e; border: 0.5px solid #1e2d40; border-radius: 8px;
-  color: #3a5570; width: 32px; height: 32px; cursor: pointer;
+  background: #111828; border: 0.5px solid #182034; border-radius: 8px;
+  color: #4a5870; width: 32px; height: 32px; cursor: pointer;
   font-size: 16px; display: none; align-items: center; justify-content: center;
   z-index: 200; line-height: 1;
 }
-#profile-btn:hover { background: #162030; color: #6a8aaa; }
+#profile-btn:hover { background: #182034; color: #8898b0; }
 
 /* ═══ PROFILE MODAL ═══ */
 .profile-overlay {
@@ -15,57 +15,57 @@
   z-index: 1000;
 }
 .profile-card {
-  background: #141e2a; border: 0.5px solid #1e2d40; border-radius: 16px;
+  background: #141e2a; border: 0.5px solid #182034; border-radius: 16px;
   padding: 32px 28px; width: 340px; max-width: 92vw;
   position: relative; text-align: center;
 }
 .profile-close {
   position: absolute; top: 12px; right: 14px;
-  background: none; border: none; color: #4a6280; font-size: 22px;
+  background: none; border: none; color: #4a5870; font-size: 22px;
   cursor: pointer; line-height: 1;
 }
-.profile-close:hover { color: #c8d6e5; }
+.profile-close:hover { color: #d8ccc4; }
 
 .profile-avatar {
   width: 56px; height: 56px; border-radius: 50%;
-  background: #2983eb; color: #fff; font-size: 24px; font-weight: 700;
+  background: #b8a0d8; color: #fff; font-size: 24px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 18px;
 }
 
 .profile-field { text-align: left; margin-bottom: 14px; }
 .profile-field label {
-  font-size: 11px; font-weight: 600; color: #4a6280;
+  font-size: 11px; font-weight: 600; color: #4a5870;
   text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: block;
 }
-.profile-value { font-size: 14px; color: #c8d6e5; padding: 8px 0; }
+.profile-value { font-size: 14px; color: #d8ccc4; padding: 8px 0; }
 
 .profile-username-row { display: flex; gap: 6px; }
 .profile-username-row input {
-  flex: 1; background: #0d1825; border: 0.5px solid #1e2d40; border-radius: 8px;
-  color: #e0e0e0; padding: 8px 12px; font-size: 14px; outline: none;
+  flex: 1; background: #111828; border: 0.5px solid #182034; border-radius: 8px;
+  color: #f0eae4; padding: 8px 12px; font-size: 14px; outline: none;
 }
-.profile-username-row input:focus { border-color: #2983eb; }
+.profile-username-row input:focus { border-color: #b8a0d8; }
 .profile-save-btn {
-  background: #2983eb; border: none; border-radius: 8px; color: #fff;
+  background: #b8a0d8; border: none; border-radius: 8px; color: #fff;
   padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .profile-save-btn:hover { background: #4499f5; }
 .profile-msg { font-size: 12px; min-height: 16px; margin-top: 4px; }
 
 .profile-stats {
-  display: flex; gap: 0; margin: 18px 0; border: 0.5px solid #1e2d40; border-radius: 10px; overflow: hidden;
+  display: flex; gap: 0; margin: 18px 0; border: 0.5px solid #182034; border-radius: 10px; overflow: hidden;
 }
 .profile-stat {
   flex: 1; padding: 12px 8px; text-align: center;
-  background: #0d1825;
+  background: #111828;
 }
-.profile-stat + .profile-stat { border-left: 0.5px solid #1e2d40; }
-.profile-stat-value { font-size: 20px; font-weight: 700; color: #c8d6e5; }
-.profile-stat-label { font-size: 11px; color: #4a6280; margin-top: 2px; }
+.profile-stat + .profile-stat { border-left: 0.5px solid #182034; }
+.profile-stat-value { font-size: 20px; font-weight: 700; color: #d8ccc4; }
+.profile-stat-label { font-size: 11px; color: #4a5870; margin-top: 2px; }
 
 .profile-logout-btn {
-  width: 100%; background: none; border: 0.5px solid #1e2d40; border-radius: 10px;
+  width: 100%; background: none; border: 0.5px solid #182034; border-radius: 10px;
   color: #e24b4a; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
   transition: background 0.06s;
 }
@@ -86,7 +86,7 @@
   to { opacity: 1; }
 }
 .username-modal-card {
-  background: #141e2a; border: 0.5px solid #1e2d40; border-radius: 16px;
+  background: #141e2a; border: 0.5px solid #182034; border-radius: 16px;
   padding: 36px 32px; width: 400px; max-width: 100%;
   box-shadow: 0 24px 64px rgba(0,0,0,0.5);
   text-align: center;
@@ -102,29 +102,29 @@
   margin: 0 0 8px; letter-spacing: -0.3px;
 }
 .username-modal-subtitle {
-  font-size: 14px; color: #8899aa;
+  font-size: 14px; color: #8898b0;
   margin: 0 0 24px; line-height: 1.5;
 }
 .username-modal-input {
   width: 100%; box-sizing: border-box;
-  background: #0d1825; border: 0.5px solid #1e2d40; border-radius: 10px;
+  background: #111828; border: 0.5px solid #182034; border-radius: 10px;
   color: #fff; padding: 14px 16px; font-size: 15px;
   outline: none; transition: border-color 0.06s;
   font-family: inherit; text-align: center;
 }
-.username-modal-input:focus { border-color: #2983eb; }
-.username-modal-input::placeholder { color: #4a6280; }
+.username-modal-input:focus { border-color: #b8a0d8; }
+.username-modal-input::placeholder { color: #4a5870; }
 .username-modal-msg {
   font-size: 13px; color: #e24b4a; min-height: 18px;
   margin: 10px 0 4px;
 }
 .username-modal-confirm {
   width: 100%; margin-top: 16px;
-  background: #2983eb; color: #fff; border: none;
+  background: #b8a0d8; color: #fff; border: none;
   border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 600;
   cursor: pointer; transition: background 0.06s, transform 0.1s;
   font-family: inherit;
-  box-shadow: 0 8px 24px rgba(41,131,235,0.25);
+  box-shadow: 0 8px 24px rgba(184,160,216,0.25);
 }
 .username-modal-confirm:hover { background: #4499f5; }
 .username-modal-confirm:active { transform: scale(0.98); }

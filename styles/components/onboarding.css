@@ -18,7 +18,7 @@
 .onboarding-card {
   position: relative;
   background: #141e2a;
-  border: 0.5px solid #1e2d40;
+  border: 0.5px solid #182034;
   border-radius: 20px;
   width: 560px; max-width: 100%;
   height: 620px; max-height: calc(100vh - 48px);
@@ -35,13 +35,13 @@
 /* ── Skip button ── */
 .onboarding-skip {
   position: absolute; top: 16px; right: 18px;
-  background: none; border: none; color: #4a6280;
+  background: none; border: none; color: #4a5870;
   font-size: 13px; font-family: inherit; cursor: pointer;
   padding: 6px 10px; border-radius: 6px;
   transition: color 0.06s, background 0.06s;
   z-index: 2;
 }
-.onboarding-skip:hover { color: #8aaccc; background: rgba(255,255,255,0.04); }
+.onboarding-skip:hover { color: #8898b0; background: rgba(255,255,255,0.04); }
 
 /* ── Slides container ── */
 .onboarding-viewport {
@@ -73,18 +73,27 @@
 
 .onboarding-logo {
   font-family: 'Syne', sans-serif;
-  font-size: 64px; font-weight: 800; color: #fff;
+  font-size: 64px; font-weight: 800;
   letter-spacing: -2.5px; line-height: 1;
   margin-bottom: 36px;
+  background: linear-gradient(135deg, #f0c0a0 0%, #e8a088 35%, #b8a0d8 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-.onboarding-logo-dot { color: #2983eb; }
+.onboarding-logo-icon {
+  width: 80px; height: 80px; object-fit: contain;
+  display: block; margin: 0 auto 12px;
+}
+.onboarding-logo-dot {
+  background: linear-gradient(135deg, #b8a0d8 0%, #a87ce0 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
 
 .onboarding-title {
   font-size: 26px; font-weight: 700; color: #fff;
   margin: 0 0 14px; letter-spacing: -0.5px;
 }
 .onboarding-subtitle {
-  font-size: 15px; color: #8899aa;
+  font-size: 15px; color: #8898b0;
   margin: 0; line-height: 1.6; max-width: 380px;
   font-weight: 400;
 }
@@ -92,12 +101,12 @@
 /* ── Start button (slide 4) ── */
 .onboarding-start-btn {
   margin-top: 40px;
-  background: #2983eb; color: #fff; border: none;
+  background: #b8a0d8; color: #fff; border: none;
   border-radius: 10px; padding: 14px 40px;
   font-size: 15px; font-weight: 600;
   font-family: inherit; cursor: pointer;
   transition: background 0.06s, transform 0.1s;
-  box-shadow: 0 8px 24px rgba(41,131,235,0.25);
+  box-shadow: 0 8px 24px rgba(184,160,216,0.25);
 }
 .onboarding-start-btn:hover { background: #4499f5; }
 .onboarding-start-btn:active { transform: scale(0.97); }
@@ -107,20 +116,20 @@
   flex-shrink: 0; padding: 20px 32px 28px;
   display: flex; align-items: center; justify-content: space-between;
   gap: 20px;
-  border-top: 0.5px solid #1e2d40;
+  border-top: 0.5px solid #182034;
   background: rgba(10, 17, 26, 0.4);
 }
 
 .onboarding-arrow {
-  background: #0d1825; border: 0.5px solid #1e2d40; border-radius: 50%;
+  background: #111828; border: 0.5px solid #182034; border-radius: 50%;
   width: 38px; height: 38px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: #8aaccc; transition: background 0.06s, border-color 0.06s, opacity 0.06s;
+  color: #8898b0; transition: background 0.06s, border-color 0.06s, opacity 0.06s;
   flex-shrink: 0;
 }
-.onboarding-arrow:hover { background: #162030; border-color: #2983eb; }
+.onboarding-arrow:hover { background: #182034; border-color: #b8a0d8; }
 .onboarding-arrow:disabled { opacity: 0.25; cursor: default; }
-.onboarding-arrow:disabled:hover { background: #0d1825; border-color: #1e2d40; }
+.onboarding-arrow:disabled:hover { background: #111828; border-color: #182034; }
 .onboarding-arrow svg { width: 16px; height: 16px; }
 
 /* ── Dots ── */
@@ -129,11 +138,11 @@
 }
 .onboarding-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: #1e2d40; cursor: pointer;
+  background: #182034; cursor: pointer;
   transition: background 0.06s, width 0.06s;
   border: none; padding: 0;
 }
-.onboarding-dot.active { background: #2983eb; width: 24px; border-radius: 4px; }
+.onboarding-dot.active { background: #b8a0d8; width: 24px; border-radius: 4px; }
 .onboarding-dot:hover:not(.active) { background: #2e3d50; }
 
 /* ═══ MOBILE (≤767px) ═══ */
@@ -177,7 +186,7 @@
     flex-direction: column;
     padding: 12px;
     border-top: none;
-    border-left: 0.5px solid #1e2d40;
+    border-left: 0.5px solid #182034;
     width: 60px;
     flex-shrink: 0;
     justify-content: center;

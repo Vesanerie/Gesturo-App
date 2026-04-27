@@ -67,7 +67,8 @@ app.whenReady().then(() => {
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280, height: 900, minWidth: 360, minHeight: 600,
-    titleBarStyle: 'hiddenInset', backgroundColor: '#111111',
+    titleBarStyle: 'hiddenInset', backgroundColor: '#0a0e18',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

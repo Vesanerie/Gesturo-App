@@ -142,7 +142,7 @@
   body:not(.legacy-ui) textarea:focus-visible,
   body:not(.legacy-ui) [role="button"]:focus-visible,
   body:not(.legacy-ui) [tabindex]:focus-visible {
-    outline: 2px solid #2983eb;
+    outline: 2px solid #b8a0d8;
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -151,7 +151,7 @@
   body:not(.legacy-ui) input:focus,
   body:not(.legacy-ui) textarea:focus,
   body:not(.legacy-ui) select:focus {
-    outline: 2px solid #2983eb;
+    outline: 2px solid #b8a0d8;
     outline-offset: 1px;
   }
 }
