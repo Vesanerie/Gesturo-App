@@ -80,7 +80,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // ── Auto-update UI ──
   if (window.electronAPI?.onUpdateStatus) {
-    window.electronAPI.onUpdateStatus(({ status, version }) => {
+    window.electronAPI.onUpdateStatus(({ status, version, message }) => {
       let banner = document.getElementById('update-banner')
       if (status === 'downloading') {
         if (!banner) {
@@ -100,6 +100,11 @@ window.addEventListener('DOMContentLoaded', () => {
         banner.innerHTML = '<span>Gesturo v' + version + ' est pr\u00eat !</span>'
           + '<button onclick="window.electronAPI.installUpdate()" style="background:#e8a088;color:#111;border:none;border-radius:6px;padding:6px 16px;font-weight:600;cursor:pointer;font-size:13px;">Installer et relancer</button>'
           + '<button onclick="this.parentElement.remove()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;">Plus tard</button>'
+      } else if (status === 'error') {
+        if (banner) {
+          banner.innerHTML = '<span>Erreur de mise \u00e0 jour : ' + (message || 'inconnue') + '</span>'
+            + '<button onclick="this.parentElement.remove()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;">Fermer</button>'
+        }
       }
     })
   }

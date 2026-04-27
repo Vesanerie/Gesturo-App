@@ -50,15 +50,25 @@ app.whenReady().then(() => {
   autoUpdater.autoInstallOnAppQuit = true
 
   autoUpdater.on('update-available', (info) => {
+    console.log('[auto-update] update available:', info.version)
     if (mainWindow && !mainWindow.isDestroyed())
       mainWindow.webContents.send('update-status', { status: 'downloading', version: info.version })
   })
+  autoUpdater.on('download-progress', (progress) => {
+    console.log('[auto-update] download progress:', Math.round(progress.percent) + '%')
+  })
   autoUpdater.on('update-downloaded', (info) => {
+    console.log('[auto-update] downloaded:', info.version)
     if (mainWindow && !mainWindow.isDestroyed())
       mainWindow.webContents.send('update-status', { status: 'ready', version: info.version })
   })
+  autoUpdater.on('update-not-available', () => {
+    console.log('[auto-update] no update available')
+  })
   autoUpdater.on('error', (err) => {
-    console.log('Auto-update error:', err.message)
+    console.log('[auto-update] error:', err.message)
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send('update-status', { status: 'error', message: err.message })
   })
 
   autoUpdater.checkForUpdates().catch(() => {})
