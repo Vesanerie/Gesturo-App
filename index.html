@@ -73,22 +73,27 @@
 
 <canvas id="bubbles-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:1;"></canvas>
 
-<!-- ══ BOUTON OPTIONS ══ -->
-<div id="plan-badge"></div>
-<a id="discord-btn" href="#" aria-label="Discord" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')"
-  style="position:fixed;top:14px;right:54px;background:#131f2e;border:0.5px solid #1e2d40;border-radius:8px;color:#3a5570;width:32px;height:32px;display:none;align-items:center;justify-content:center;z-index:200;text-decoration:none;"
-  onmouseover="this.style.borderColor='#5865F2';this.style.color='#5865F2';this.style.background='#162030'"
-  onmouseout="this.style.borderColor='#1e2d40';this.style.color='#3a5570';this.style.background='#131f2e'">
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-</a>
-<button id="profile-btn" aria-label="Profil" onclick="openProfile()">
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-</button>
-<button id="options-btn" aria-label="Options" onclick="toggleOptions()">⋯</button>
+<!-- ══ TITLEBAR (desktop drag region) ══ -->
+<div id="titlebar">
+  <div id="titlebar-logo">
+    <img src="assets/icon.png" alt="Gesturo" class="titlebar-icon">
+    <span class="titlebar-text">Gestur<span class="gesturo-o">o</span></span>
+  </div>
+  <div id="titlebar-actions">
+    <div id="plan-badge"></div>
+    <button id="profile-btn" aria-label="Profil">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+    </button>
+    <a id="discord-btn" href="#" aria-label="Discord" onclick="event.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+    </a>
+    <button id="options-btn" aria-label="Options">⋯</button>
+  </div>
+</div>
 <div id="options-dropdown">
   <!-- Navigation -->
   <div class="opt-section">Navigation</div>
-  <div class="opt-item" onclick="toggleOptions(); switchMainMode('hist')">
+  <div class="opt-item" id="opt-hist">
     <span class="opt-icon">📈</span><span class="opt-label">Historique</span>
   </div>
 
@@ -97,22 +102,22 @@
   <!-- Préférences -->
   <div class="opt-section">Préférences</div>
   <div class="opt-item opt-bgm-row">
-    <span id="opt-bgm-icon" class="opt-icon" onclick="toggleBgm()" style="cursor:pointer;" title="Musique">🎵</span>
-    <input type="range" id="opt-bgm-slider" min="0" max="100" value="12" oninput="setBgmVolume(this.value)" aria-label="Volume musique">
+    <span id="opt-bgm-icon" class="opt-icon" style="cursor:pointer;" title="Musique">🎵</span>
+    <input type="range" id="opt-bgm-slider" min="0" max="100" value="12" aria-label="Volume musique">
     <span id="opt-bgm-value" class="opt-value">12%</span>
   </div>
   <div class="opt-item opt-bgm-row">
     <span class="opt-icon" title="Son d'eau">🌊</span>
-    <input type="range" id="opt-water-slider" min="0" max="100" value="22" oninput="setWaterVolume(this.value)" aria-label="Volume son d'eau">
+    <input type="range" id="opt-water-slider" min="0" max="100" value="22" aria-label="Volume son d'eau">
     <span id="opt-water-value" class="opt-value">22%</span>
   </div>
-  <div class="opt-item" onclick="toggleMuteAll()" id="opt-mute-all">
+  <div class="opt-item" id="opt-mute-all">
     <span class="opt-icon">🔇</span><span class="opt-label">Couper tous les sons</span>
   </div>
-  <div class="opt-item" onclick="toggleTheme()" id="opt-theme">
+  <div class="opt-item" id="opt-theme">
     <span class="opt-icon">☀️</span><span class="opt-label">Mode Jour</span>
   </div>
-  <div class="opt-item" onclick="toggleLegacyUi()" id="opt-legacy-ui">
+  <div class="opt-item" id="opt-legacy-ui">
     <span class="opt-icon">👁</span><span class="opt-label">Design ancien</span>
   </div>
 
@@ -120,17 +125,17 @@
 
   <!-- Compte -->
   <div class="opt-section">Compte</div>
-  <div class="opt-item" onclick="showAbout()">
+  <div class="opt-item" id="opt-about">
     <span class="opt-icon">ℹ️</span><span class="opt-label">À propos</span>
   </div>
-  <div class="opt-item" onclick="handleLogout()">
+  <div class="opt-item" id="opt-logout">
     <span class="opt-icon">🚪</span><span class="opt-label">Se déconnecter</span>
   </div>
 
   <div class="opt-sep"></div>
 
   <!-- Zone danger -->
-  <div class="opt-item danger" onclick="confirmResetHistory()">
+  <div class="opt-item danger" id="opt-reset-history">
     <span class="opt-icon">🗑</span><span class="opt-label">Réinitialiser l'historique</span>
   </div>
 </div>
@@ -316,9 +321,9 @@
         <div id="badges-grid"></div>
       </div>
       <div class="hist-period-tabs">
-        <button class="hist-period-tab active" data-period="week" onclick="setHistPeriod('week')">7 jours</button>
-        <button class="hist-period-tab" data-period="month" onclick="setHistPeriod('month')">30 jours</button>
-        <button class="hist-period-tab" data-period="all" onclick="setHistPeriod('all')">Tout</button>
+        <button class="hist-period-tab active" data-period="week">7 jours</button>
+        <button class="hist-period-tab" data-period="month">30 jours</button>
+        <button class="hist-period-tab" data-period="all">Tout</button>
       </div>
       <div class="card" style="padding:14px">
         <div id="hist-empty">Aucune session enregistrée pour cette période.</div>
@@ -464,7 +469,7 @@
       </svg>
     </div>
     <div id="transform-controls">
-      <button class="transform-btn" id="grid-btn" onclick="cycleGrid()" aria-label="Grille de composition" title="Grille de composition">⊞</button>
+      <button class="transform-btn" id="grid-btn" aria-label="Grille de composition" title="Grille de composition">⊞</button>
       <button class="transform-btn" id="bw-btn" onclick="toggleBW()" aria-label="Noir et blanc" title="Noir et blanc">◑</button>
       <button class="transform-btn" onclick="flipH()" aria-label="Miroir horizontal" title="Miroir horizontal">⇆</button>
       <button class="transform-btn" onclick="rotateLeft()" aria-label="Rotation gauche" title="Rotation gauche">↺</button>
@@ -660,17 +665,17 @@
   </div>
 </div>
 
-<div id="about-modal" onclick="if(event.target===this)closeAbout()">
+<div id="about-modal">
   <div class="about-box">
     <h3>À propos</h3>
     <div class="about-row"><span class="label">Version</span><span class="value" id="about-version">—</span></div>
     <div class="about-row"><span class="label">Plan</span><span class="value" id="about-plan">—</span></div>
     <div class="about-row" id="about-expiry-row" style="display:none"><span class="label">Expire le</span><span class="value" id="about-expiry">—</span></div>
-    <div class="about-row"><span class="label">Discord</span><a onclick="window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2')" style="color:#5865F2;cursor:pointer;font-size:13px;">Rejoindre</a></div>
-    <div class="about-row"><span class="label">Site</span><a onclick="window.electronAPI.openExternal('https://gesturo.art')" style="color:#2983eb;cursor:pointer;font-size:13px;">gesturo.art</a></div>
-    <div class="about-row"><span class="label">Musique</span><span class="value" style="font-size:13px;">🎵 Soft Hope — <a onclick="window.electronAPI.openExternal('https://www.instagram.com/akr.prod/')" style="color:#2983eb;cursor:pointer;">AKR</a></span></div>
-    <button class="about-upgrade" id="about-upgrade-btn" onclick="window.electronAPI.openExternal('https://gesturo.art');closeAbout()">Passer Pro ⭐</button>
-    <button class="about-close" onclick="closeAbout()">Fermer</button>
+    <div class="about-row"><span class="label">Discord</span><a id="about-discord-link" style="color:#5865F2;cursor:pointer;font-size:13px;">Rejoindre</a></div>
+    <div class="about-row"><span class="label">Site</span><a id="about-site-link" style="color:#2983eb;cursor:pointer;font-size:13px;">gesturo.art</a></div>
+    <div class="about-row"><span class="label">Musique</span><span class="value" style="font-size:13px;">🎵 Soft Hope — <a id="about-music-link" style="color:#2983eb;cursor:pointer;">AKR</a></span></div>
+    <button class="about-upgrade" id="about-upgrade-btn">Passer Pro ⭐</button>
+    <button class="about-close" id="btn-close-about">Fermer</button>
   </div>
 </div>
 
@@ -689,7 +694,7 @@
 <!-- ═ PROFILE MODAL ═ -->
 <div id="profile-modal" class="profile-overlay" style="display:none;">
   <div class="profile-card">
-    <button class="profile-close" onclick="closeProfile()">&times;</button>
+    <button class="profile-close" id="btn-close-profile">&times;</button>
     <div class="profile-avatar" id="profile-avatar">?</div>
     <div class="profile-field">
       <label>Pseudo</label>
@@ -719,10 +724,10 @@
       <div id="offline-packs-list" style="display:flex;flex-direction:column;gap:6px;"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
         <span id="offline-total-size" style="font-size:12px;color:#4a6280;"></span>
-        <button id="offline-clear-all" onclick="clearAllOfflinePacks()" style="font-size:11px;color:#e24b4a;background:none;border:1px solid rgba(226,75,74,0.3);border-radius:6px;padding:4px 10px;cursor:pointer;">Tout supprimer</button>
+        <button id="offline-clear-all" style="font-size:11px;color:#e24b4a;background:none;border:1px solid rgba(226,75,74,0.3);border-radius:6px;padding:4px 10px;cursor:pointer;">Tout supprimer</button>
       </div>
     </div>
-    <button class="profile-logout-btn" onclick="handleLogout()">Se deconnecter</button>
+    <button class="profile-logout-btn" id="btn-profile-logout">Se deconnecter</button>
   </div>
 </div>
 

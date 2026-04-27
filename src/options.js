@@ -1527,8 +1527,38 @@ function applyWaterUi() {
   if (value) value.textContent = v + '%'
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => { applyMuteUi(); applyWaterUi() })
-} else {
+function _initOptionsListeners() {
   applyMuteUi(); applyWaterUi()
+
+  document.getElementById('profile-btn').addEventListener('click', openProfile)
+  document.getElementById('options-btn').addEventListener('click', toggleOptions)
+  document.getElementById('opt-hist').addEventListener('click', () => { toggleOptions(); switchMainMode('hist') })
+  document.getElementById('opt-bgm-icon').addEventListener('click', toggleBgm)
+  document.getElementById('opt-bgm-slider').addEventListener('input', function() { setBgmVolume(this.value) })
+  document.getElementById('opt-water-slider').addEventListener('input', function() { setWaterVolume(this.value) })
+  document.getElementById('opt-mute-all').addEventListener('click', toggleMuteAll)
+  document.getElementById('opt-theme').addEventListener('click', toggleTheme)
+  document.getElementById('opt-legacy-ui').addEventListener('click', toggleLegacyUi)
+  document.getElementById('opt-about').addEventListener('click', showAbout)
+  document.getElementById('opt-logout').addEventListener('click', handleLogout)
+  document.getElementById('opt-reset-history').addEventListener('click', confirmResetHistory)
+  document.getElementById('grid-btn').addEventListener('click', cycleGrid)
+  document.querySelectorAll('.hist-period-tab').forEach(function(t) {
+    t.addEventListener('click', function() { setHistPeriod(this.dataset.period) })
+  })
+  document.getElementById('about-modal').addEventListener('click', function(e) { if (e.target === this) closeAbout() })
+  document.getElementById('about-discord-link').addEventListener('click', function() { window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2') })
+  document.getElementById('about-site-link').addEventListener('click', function() { window.electronAPI.openExternal('https://gesturo.art') })
+  document.getElementById('about-music-link').addEventListener('click', function() { window.electronAPI.openExternal('https://www.instagram.com/akr.prod/') })
+  document.getElementById('about-upgrade-btn').addEventListener('click', function() { window.electronAPI.openExternal('https://gesturo.art'); closeAbout() })
+  document.getElementById('btn-close-about').addEventListener('click', closeAbout)
+  document.getElementById('btn-close-profile').addEventListener('click', closeProfile)
+  document.getElementById('offline-clear-all').addEventListener('click', clearAllOfflinePacks)
+  document.getElementById('btn-profile-logout').addEventListener('click', handleLogout)
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initOptionsListeners)
+} else {
+  _initOptionsListeners()
 }
