@@ -526,39 +526,7 @@ function maybeShowOnboarding() {
 
 function showOnboarding() {
   if (document.getElementById('onboarding-overlay')) return
-  const slides = [
-    {
-      logo: true,
-      title: 'Bienvenue sur Gestur<span class="gesturo-o">o</span>',
-      subtitle: 'Ton compagnon d\u2019entrainement au dessin de poses',
-    },
-    {
-      icon: '\ud83c\udfa8',
-      title: 'Dessine des poses',
-      subtitle: 'Choisis tes categories, lance une session et progresse chaque jour',
-    },
-    {
-      icon: '\ud83c\udfac',
-      title: 'Etudie la composition',
-      subtitle: 'Le mode Cinema te permet d\u2019analyser les cadrages et les plans des meilleurs films',
-    },
-    {
-      icon: '\ud83c\udfde\ufe0f',
-      title: 'Decompose le mouvement',
-      subtitle: 'Le mode Animation t\u2019apprend a decomposer et comprendre le mouvement image par image',
-    },
-    {
-      icon: '\ud83c\udf0d',
-      title: 'Rejoins la communaute',
-      subtitle: 'Partage tes dessins, participe aux challenges et decouvre les creations des autres',
-    },
-    {
-      icon: '\ud83d\ude80',
-      title: 'C\u2019est parti !',
-      subtitle: 'Tu es pret a commencer ton premier entrainement',
-      cta: 'Commencer',
-    },
-  ]
+  const SLIDE_COUNT = 3
   let current = 0
 
   const overlay = document.createElement('div')
@@ -569,52 +537,59 @@ function showOnboarding() {
       <button class="onboarding-skip" id="onboarding-skip">Passer</button>
       <div class="onboarding-viewport">
         <div class="onboarding-track" id="onboarding-track">
-          ${slides.map(s => `
-            <div class="onboarding-slide">
-              ${s.logo
-                ? '<div class="onboarding-logo">Gestur<span class="gesturo-o">o</span><span class="onboarding-logo-dot">.</span></div>'
-                : '<div class="onboarding-icon">' + s.icon + '</div>'}
-              <h2 class="onboarding-title">${s.title}</h2>
-              <p class="onboarding-subtitle">${s.subtitle}</p>
-              ${s.cta ? '<button class="onboarding-start-btn" id="onboarding-start">' + s.cta + '</button>' : ''}
+          <div class="onboarding-slide" data-slide="0">
+            <div class="onboarding-logo ob-logo-anim">Gestur<span class="gesturo-o">o</span><span class="onboarding-logo-dot">.</span></div>
+            <h2 class="onboarding-title">Bienvenue sur Gestur<span class="gesturo-o">o</span></h2>
+            <p class="onboarding-subtitle">Ton compagnon d\u2019entra\u00eenement au dessin</p>
+          </div>
+          <div class="onboarding-slide" data-slide="1">
+            <div class="ob-modes">
+              <div class="ob-mode ob-mode-0"><div class="ob-mode-icon">\ud83d\udd8c</div><div class="ob-mode-name">Poses</div><div class="ob-mode-desc">Dessine des poses chronom\u00e9tr\u00e9es</div></div>
+              <div class="ob-mode ob-mode-1"><div class="ob-mode-icon">\ud83c\udf9e</div><div class="ob-mode-name">Animation</div><div class="ob-mode-desc">D\u00e9compose le mouvement</div></div>
+              <div class="ob-mode ob-mode-2"><div class="ob-mode-icon">\ud83c\udfac</div><div class="ob-mode-name">Cin\u00e9ma</div><div class="ob-mode-desc">\u00c9tudie la composition des films</div></div>
             </div>
-          `).join('')}
+          </div>
+          <div class="onboarding-slide" data-slide="2">
+            <div class="ob-cta-icon">\u270f\ufe0f</div>
+            <h2 class="onboarding-title">Pr\u00eat \u00e0 dessiner ?</h2>
+            <button class="onboarding-start-btn ob-cta-pulse" id="onboarding-start">Commencer</button>
+          </div>
         </div>
       </div>
-      <div class="onboarding-nav">
-        <button class="onboarding-arrow" id="onboarding-prev" aria-label="Precedent">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
+      <div class="onboarding-nav ob-nav-dots-only">
         <div class="onboarding-dots" id="onboarding-dots">
-          ${slides.map((_, i) => `<button class="onboarding-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="Slide ${i+1}"></button>`).join('')}
+          <button class="onboarding-dot active" data-idx="0" aria-label="Slide 1"></button>
+          <button class="onboarding-dot" data-idx="1" aria-label="Slide 2"></button>
+          <button class="onboarding-dot" data-idx="2" aria-label="Slide 3"></button>
         </div>
-        <button class="onboarding-arrow" id="onboarding-next" aria-label="Suivant">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
       </div>
     </div>
   `
   document.body.appendChild(overlay)
 
   const track = document.getElementById('onboarding-track')
-  const prevBtn = document.getElementById('onboarding-prev')
-  const nextBtn = document.getElementById('onboarding-next')
   const dots = overlay.querySelectorAll('.onboarding-dot')
+  const allSlides = overlay.querySelectorAll('.onboarding-slide')
 
-  function goTo(idx) {
-    current = Math.max(0, Math.min(slides.length - 1, idx))
-    track.style.transform = 'translateX(-' + (current * 100) + '%)'
-    dots.forEach((d, i) => d.classList.toggle('active', i === current))
-    prevBtn.disabled = current === 0
-    nextBtn.disabled = current === slides.length - 1
+  function activateSlideAnims(idx) {
+    allSlides.forEach((s, i) => {
+      s.classList.toggle('ob-visible', i === idx)
+    })
   }
 
-  prevBtn.addEventListener('click', () => goTo(current - 1))
-  nextBtn.addEventListener('click', () => goTo(current + 1))
+  function goTo(idx) {
+    const prev = current
+    current = Math.max(0, Math.min(SLIDE_COUNT - 1, idx))
+    if (current === prev) return
+    hapticLight()
+    track.style.transform = 'translateX(-' + (current * 100) + '%)'
+    dots.forEach((d, i) => d.classList.toggle('active', i === current))
+    activateSlideAnims(current)
+  }
+
   dots.forEach(d => d.addEventListener('click', () => goTo(parseInt(d.dataset.idx))))
   document.getElementById('onboarding-skip').addEventListener('click', closeOnboarding)
-  const startBtn = document.getElementById('onboarding-start')
-  if (startBtn) startBtn.addEventListener('click', closeOnboarding)
+  document.getElementById('onboarding-start').addEventListener('click', closeOnboarding)
 
   // Keyboard nav
   const keyHandler = (e) => {
@@ -655,7 +630,8 @@ function showOnboarding() {
   window.addEventListener('mouseup', mouseUpHandler)
   overlay._mouseUpHandler = mouseUpHandler
 
-  goTo(0)
+  // Activer les anims de la slide 0
+  activateSlideAnims(0)
 }
 
 function closeOnboarding() {
