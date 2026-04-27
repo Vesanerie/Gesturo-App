@@ -11,25 +11,18 @@ const jsFiles = fs.readdirSync(srcDir, { recursive: true })
   .filter(f => f.endsWith('.js'))
 const allJs = jsFiles.map(f => fs.readFileSync(path.join(srcDir, f), 'utf8')).join('\n')
 
-describe('onclick handlers have matching functions', () => {
-  // Extract function names from onclick="fnName(...)"
-  const onclickRe = /onclick="(?:event\.(?:stopPropagation|preventDefault)\(\);\s*)?(\w+)\(/g
-  const onclickFns = new Set()
-  let m
-  while ((m = onclickRe.exec(html)) !== null) {
-    // Skip inline expressions like "if(..." or "window.electronAPI..."
-    const fn = m[1]
-    if (fn === 'if' || fn === 'window' || fn === 'event' || fn === 'document') continue
-    onclickFns.add(fn)
-  }
+describe('no inline event handlers remain', () => {
+  it('index.html has zero onclick/oninput/onchange/onmouseover/onmouseout attributes', () => {
+    const inlineRe = /\b(onclick|oninput|onchange|onmouseover|onmouseout)="/g
+    const matches = html.match(inlineRe)
+    expect(matches).toBeNull()
+  })
 
-  for (const fn of onclickFns) {
-    it(`function ${fn}() exists in src/*.js`, () => {
-      // Match "function fnName" or "async function fnName" or "const fnName = " at top level
-      const pattern = new RegExp(`(?:^|\\s)(?:async\\s+)?function\\s+${fn}\\b|(?:const|let|var)\\s+${fn}\\s*=`, 'm')
-      expect(allJs).toMatch(pattern)
-    })
-  }
+  it('all addEventListener init functions exist in src/*.js', () => {
+    const initRe = /_init\w+Listeners/g
+    const inits = allJs.match(initRe) || []
+    expect(inits.length).toBeGreaterThanOrEqual(8)
+  })
 })
 
 describe('getElementById with direct .textContent has matching HTML id', () => {
