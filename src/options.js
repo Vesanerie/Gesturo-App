@@ -238,36 +238,18 @@ function closeOptionsSheet() {
   if (!dd) return
   let sheetStartY = 0, sheetTracking = false
 
-  let sheetDragging = false
-
   dd.addEventListener('touchstart', (e) => {
     if (window.innerWidth > 1399) return
-    if (e.target.closest('input[type="range"], button, a')) return
+    if (e.target.closest('input[type="range"], button, a, .opt-item')) return
     sheetStartY = e.touches[0].clientY
     sheetTracking = true
-    sheetDragging = false
-  }, { passive: true })
-
-  dd.addEventListener('touchmove', (e) => {
-    if (!sheetTracking) return
-    const dy = e.touches[0].clientY - sheetStartY
-    // Ne commencer le drag qu'après 15px pour ne pas bloquer les taps
-    if (dy > 15) {
-      sheetDragging = true
-      dd.style.transform = 'translateY(' + dy + 'px)'
-      dd.style.transition = 'none'
-    }
   }, { passive: true })
 
   dd.addEventListener('touchend', (e) => {
     if (!sheetTracking) return
     sheetTracking = false
-    if (!sheetDragging) return
-    sheetDragging = false
     const dy = e.changedTouches[0].clientY - sheetStartY
-    dd.style.transition = ''
-    dd.style.transform = ''
-    if (dy > 50) {
+    if (dy > 60) {
       hapticLight()
       closeOptionsSheet()
     }
