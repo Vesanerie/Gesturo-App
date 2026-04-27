@@ -466,10 +466,10 @@ async function loadR2(isPro) {
       if (info.locked) sequences[seq].locked = true
     }
     // Determine la seule sequence animation accessible aux users FREE :
-    // la premiere current/free/* alphabetiquement. Deterministe → meme choix
+    // la premiere sequence non-lockée alphabetiquement. Deterministe → meme choix
     // entre runs. Pour PRO on laisse null (pas de restriction).
     if (!isPro) {
-      const freeSeqs = Object.keys(sequences).filter(s => s.startsWith('current/free')).sort()
+      const freeSeqs = Object.keys(sequences).filter(s => !sequences[s].locked).sort()
       _freeAllowedSeq = freeSeqs[0] || null
     } else {
       _freeAllowedSeq = null

@@ -372,11 +372,9 @@ function renderSequences(parentPath = null) {
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentPath) {
     const label = parentPath.split('/').pop()
-    // Le back doit remonter d'un niveau, mais si on tombe dans le préfixe
-    // (current/pro), on revient au root (null) directement.
+    // Le back doit remonter d'un niveau, ou revenir au root si plus rien.
     const rawParent = parentPath.split('/').slice(0, -1).join('/')
-    const skipPrefix = isR2Mode ? 2 : 0
-    const backTarget = rawParent.split('/').length <= skipPrefix ? 'null' : "'" + rawParent + "'"
+    const backTarget = rawParent ? "'" + rawParent + "'" : 'null'
     header.innerHTML = `<button class="cat-back-btn" onclick="renderSequences(${backTarget})"><span class="cat-back-arrow">‹</span> ${label}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
   } else {
     header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
@@ -386,16 +384,13 @@ function renderSequences(parentPath = null) {
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;'
   wrap.appendChild(grid)
   const folders = new Map(); const leafSequences = []
-  // Skip = nombre de segments de préfixe à ignorer pour arriver aux dossiers
-  // thématiques. En R2 : current/pro/combat/... → skip 2 (current/pro).
-  // En local : pas de préfixe current/pro.
-  const skip = isR2Mode ? 2 : 0
+  // Séquences R2 arrivent déjà sans préfixe (ex: "walk", "combat/sword-lunge").
+  // En local : même chose, pas de préfixe.
   for (const [seq, data] of Object.entries(sequences)) {
-    // PRO users : masquer complètement les séquences du dossier free/
-    if (currentUserIsPro && isR2Mode && seq.startsWith('current/free')) continue
+    // PRO users : masquer la séquence free (la seule non-lockée parmi les non-pro)
+    if (currentUserIsPro && isR2Mode && !data.locked && _freeAllowedSeq === seq) continue
     const seqParts = seq.split('/')
-    // Segments après le préfixe (current/pro ou current/free)
-    const meaningful = seqParts.slice(skip)
+    const meaningful = seqParts
     if (parentPath) {
       const parentParts = parentPath.split('/')
       if (!seqParts.slice(0, parentParts.length).join('/').startsWith(parentPath)) continue
@@ -408,8 +403,8 @@ function renderSequences(parentPath = null) {
         // Séquence directement à la racine thématique → leaf
         leafSequences.push(seq)
       } else {
-        // Dossier thématique → folder au niveau skip + 1
-        const folderPath = seqParts.slice(0, skip + 1).join('/')
+        // Dossier thématique → folder au 1er segment
+        const folderPath = seqParts[0]
         if (!folders.has(folderPath)) folders.set(folderPath, data.paths[0])
       }
     }

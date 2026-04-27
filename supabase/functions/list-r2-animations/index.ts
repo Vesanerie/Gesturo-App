@@ -17,14 +17,17 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     for (const prefix of prefixes) {
       const objects = await listAll(prefix);
+      // prefix like "Animations/current/free/" → depth 3, skip to get category name only
+      const prefixDepth = prefix.split('/').filter(Boolean).length;
       for (const { Key } of objects) {
         const parts = Key.split('/');
-        if (parts.length < 5) continue;
+        if (parts.length < prefixDepth + 2) continue;
         const fileName = parts[parts.length - 1];
         if (fileName.startsWith('.')) continue;
         if (!IMAGE_EXTS.includes(extOf(fileName))) continue;
-        const navParts = parts.slice(1, parts.length - 1);
-        const sequenceName = navParts.join('/');
+        // Skip Animations/current/free|pro/ to get just the category path
+        const catParts = parts.slice(prefixDepth, parts.length - 1);
+        const sequenceName = catParts.join('/');
         results.push({ path: `${publicUrl}/${Key}`, sequence: sequenceName, isR2: true });
       }
     }
@@ -35,16 +38,18 @@ Deno.serve(async (req) => {
     // n'expose que la 1ère frame de chaque seq, pas tous les paths → un user
     // FREE ne peut pas reconstituer la séquence en brute-forçant les URLs.
     if (!isPro) {
-      const proObjects = await listAll('Animations/current/pro/');
+      const proPrefix = 'Animations/current/pro/';
+      const proObjects = await listAll(proPrefix);
+      const proPrefixDepth = proPrefix.split('/').filter(Boolean).length;
       const seenSeqs = new Set<string>();
       for (const { Key } of proObjects) {
         const parts = Key.split('/');
-        if (parts.length < 5) continue;
+        if (parts.length < proPrefixDepth + 2) continue;
         const fileName = parts[parts.length - 1];
         if (fileName.startsWith('.')) continue;
         if (!IMAGE_EXTS.includes(extOf(fileName))) continue;
-        const navParts = parts.slice(1, parts.length - 1);
-        const sequenceName = navParts.join('/');
+        const catParts = parts.slice(proPrefixDepth, parts.length - 1);
+        const sequenceName = catParts.join('/');
         if (seenSeqs.has(sequenceName)) continue;
         seenSeqs.add(sequenceName);
         results.push({
