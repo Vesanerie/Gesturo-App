@@ -166,10 +166,38 @@ electron-updater check GitHub releases `Vesanerie/Gesturo-App`.
 Bannière UI verte + "Installer et relancer". Fonctionne depuis v0.3.1.
 CI génère `latest-mac.yml` / `latest.yml`. Mobile = App Store / Play Store.
 
+## Titlebar desktop
+
+- `titleBarStyle: 'hiddenInset'` dans main.js (traffic lights intégrés)
+- `#titlebar` dans index.html : barre draggable (`-webkit-app-region: drag`)
+  - `padding-left: 100px` pour éviter les traffic lights macOS
+  - Logo + texte "Gesturo" avec dégradé pêche→lavande
+  - Boutons (PRO, profil, discord, options) à droite avec `no-drag`
+- **<768px** : logo centré, boutons actions cachés (tab bar en bas)
+- **768-1399px** : titlebar logo caché, sidebar a son propre logo+dégradé
+- **≥1400px** : idem, sidebar permanente avec dégradé (config.css ligne 950)
+
+## localStorage scopé par email
+
+- `_scopedKey(base)` dans `src/favorites.js` → `base:email@...`
+- `_communityEmail` doit être set AVANT toute lecture/écriture d'historique
+- `renderWeekBar()` appelé 2 fois : une fois au boot (clé brute), une fois
+  après auth (clé scopée) pour corriger
+- `openProfile()` et `confirmResetHistory()` doivent utiliser `loadHist()`
+  et `loadBadges()`, JAMAIS `localStorage.getItem()` directement
+
 ## TODO
+
+### P0 — Release iOS
+- **Stripe prod** — basculer les clés test → live dans Supabase secrets
+- ~~Politique de confidentialité~~ — fait (gesturo.fr/privacy.html)
+- ~~Screenshots App Store~~ — fait (assets/screenshots/)
 
 ### P1
 - ~~Réactiver `webSecurity`~~ — déjà fait (`webSecurity: true` dans main.js)
+- **Offline packs CORS** — fetch() bloqué depuis Capacitor WebView.
+  Solutions : config CORS R2, ou img+canvas, ou cacher la feature pour v1.
+  NE PAS utiliser CapacitorHttp (casse le chargement images).
 
 ### À faire plus tard
 - **Modération auto images** — code prêt (`moderateImage()`, Claude Haiku
@@ -181,7 +209,7 @@ CI génère `latest-mac.yml` / `latest.yml`. Mobile = App Store / Play Store.
 - **Stripe dashboard admin** — lire stripe-webhook, ajouter adminGetStripeData
 - **Bannière annonce sur gesturo.fr** — reprendre la modale dans le site
 - **1er run Android device** — iOS OK, Android pas encore testé
-- **Tests** — il n'y en a pas
+- **Tests** — vitest à mettre en place (prompt prêt)
 
 ## R2 CLI
 
