@@ -66,16 +66,21 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
     card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-2px)' })
     card.addEventListener('mouseleave', () => { card.style.transform = '' })
   }
-  // Offline download button (mobile Pro only)
+  // Offline: long-press to download (mobile Pro only)
   if (window.__offlinePacks && !locked && !hasSubs && currentUserIsPro) {
-    const dlBtn = document.createElement('button')
-    dlBtn.className = 'cat-dl-btn'
     const isOffline = window.__offlinePacks.isDownloaded(key)
-    dlBtn.innerHTML = isOffline ? '✓' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>'
-    dlBtn.title = isOffline ? 'Téléchargé — appuyer pour supprimer' : 'Télécharger hors-ligne'
-    if (isOffline) dlBtn.classList.add('downloaded')
-    dlBtn.onclick = (e) => { e.stopPropagation(); handleCatDownload(key, dlBtn) }
-    card.appendChild(dlBtn)
+    if (isOffline) {
+      const dlBadge = document.createElement('div')
+      dlBadge.className = 'cat-dl-badge'
+      dlBadge.textContent = '✓ Hors-ligne'
+      card.appendChild(dlBadge)
+    }
+    let lpTimer = null
+    card.addEventListener('touchstart', (e) => {
+      lpTimer = setTimeout(() => { lpTimer = null; showDownloadPopup(key, card, isOffline) }, 500)
+    }, { passive: true })
+    card.addEventListener('touchend', () => { if (lpTimer) clearTimeout(lpTimer) })
+    card.addEventListener('touchmove', () => { if (lpTimer) clearTimeout(lpTimer) })
   }
   return card
 }
@@ -178,6 +183,87 @@ function toggleCat(cat, card) {
   }
   updateAllBtn()
   renderSelectionPile()
+}
+
+function showDownloadPopup(catKey, card, isOffline) {
+  // Remove existing popup
+  const old = document.getElementById('dl-popup')
+  if (old) old.remove()
+  const popup = document.createElement('div')
+  popup.id = 'dl-popup'
+  popup.className = 'dl-popup'
+  const label = getCatLabel(catKey)
+  if (isOffline) {
+    popup.innerHTML =
+      '<div class="dl-popup-title">✓ ' + label + ' (hors-ligne)</div>' +
+      '<button class="dl-popup-btn dl-popup-delete" id="dl-popup-delete">Supprimer le pack</button>' +
+      '<button class="dl-popup-btn dl-popup-cancel" id="dl-popup-cancel">Annuler</button>'
+  } else {
+    const catData = categories[catKey]
+    const entries = Array.isArray(catData) ? catData : (catData?.entries || [])
+    const subs = Array.isArray(catData) ? {} : (catData?.subcategories || {})
+    let count = entries.length
+    for (const sub of Object.values(subs)) count += sub.length
+    const estSize = Math.round(count * 150 / 1024) // ~150KB per image → MB
+    popup.innerHTML =
+      '<div class="dl-popup-title">Télécharger « ' + label + ' »</div>' +
+      '<div class="dl-popup-info">' + count + ' images · ~' + (estSize > 1024 ? (estSize / 1024).toFixed(1) + ' Mo' : estSize + ' Ko') + '</div>' +
+      '<button class="dl-popup-btn dl-popup-download" id="dl-popup-download">Télécharger</button>' +
+      '<div id="dl-popup-progress" class="dl-popup-progress" style="display:none;"><div id="dl-popup-bar" class="dl-popup-bar"></div><span id="dl-popup-pct">0%</span></div>' +
+      '<button class="dl-popup-btn dl-popup-cancel" id="dl-popup-cancel">Annuler</button>'
+  }
+  document.body.appendChild(popup)
+  // Backdrop click to close
+  const backdrop = document.createElement('div')
+  backdrop.id = 'dl-popup-backdrop'
+  backdrop.className = 'dl-popup-backdrop'
+  backdrop.onclick = () => { popup.remove(); backdrop.remove() }
+  document.body.appendChild(backdrop)
+  // Wire buttons
+  const cancel = document.getElementById('dl-popup-cancel')
+  if (cancel) cancel.onclick = () => { popup.remove(); backdrop.remove() }
+  if (isOffline) {
+    document.getElementById('dl-popup-delete').onclick = async () => {
+      await window.__offlinePacks.delete(catKey)
+      popup.remove(); backdrop.remove()
+      renderCategories()
+    }
+  } else {
+    document.getElementById('dl-popup-download').onclick = () => {
+      startPopupDownload(catKey, popup, backdrop)
+    }
+  }
+}
+
+function startPopupDownload(catKey, popup, backdrop) {
+  const catData = categories[catKey]
+  if (!catData) return
+  const entries = Array.isArray(catData) ? catData : (catData.entries || [])
+  const subs = Array.isArray(catData) ? {} : (catData.subcategories || {})
+  const urls = []
+  entries.forEach(e => { if (e.path) urls.push(e.path) })
+  for (const sub of Object.values(subs)) sub.forEach(e => { if (e.path) urls.push(e.path) })
+  if (urls.length === 0) return
+  const dlBtn = document.getElementById('dl-popup-download')
+  const progress = document.getElementById('dl-popup-progress')
+  const bar = document.getElementById('dl-popup-bar')
+  const pct = document.getElementById('dl-popup-pct')
+  dlBtn.style.display = 'none'
+  progress.style.display = 'flex'
+  const dl = window.__offlinePacks.download(catKey, urls)
+  dl.onProgress(({ progress: p, total }) => {
+    const percent = Math.round(p / total * 100)
+    bar.style.width = percent + '%'
+    pct.textContent = percent + '%'
+  })
+  dl.onComplete(() => {
+    popup.remove(); backdrop.remove()
+    renderCategories()
+  })
+  dl.onError(() => {
+    pct.textContent = 'Erreur'
+    setTimeout(() => { popup.remove(); backdrop.remove() }, 1500)
+  })
 }
 
 function handleCatDownload(catKey, btn) {
