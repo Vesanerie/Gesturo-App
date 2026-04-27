@@ -231,6 +231,40 @@ function closeOptionsSheet() {
     setTimeout(() => { if (!dd.classList.contains('open')) dd.style.display = 'none' }, 300)
   }
 }
+
+// Swipe down to close options bottom sheet
+;(function () {
+  const dd = document.getElementById('options-dropdown')
+  if (!dd) return
+  let sheetStartY = 0, sheetTracking = false
+
+  dd.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 1399) return
+    sheetStartY = e.touches[0].clientY
+    sheetTracking = true
+  }, { passive: true })
+
+  dd.addEventListener('touchmove', (e) => {
+    if (!sheetTracking) return
+    const dy = e.touches[0].clientY - sheetStartY
+    if (dy > 0) {
+      dd.style.transform = 'translateY(' + dy + 'px)'
+      dd.style.transition = 'none'
+    }
+  }, { passive: true })
+
+  dd.addEventListener('touchend', (e) => {
+    if (!sheetTracking) return
+    sheetTracking = false
+    const dy = e.changedTouches[0].clientY - sheetStartY
+    dd.style.transition = ''
+    dd.style.transform = ''
+    if (dy > 80) {
+      hapticLight()
+      closeOptionsSheet()
+    }
+  }, { passive: true })
+})()
 function toggleOptions() {
   const dd = document.getElementById('options-dropdown')
   const isMobile = window.innerWidth < 1400
