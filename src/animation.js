@@ -44,10 +44,7 @@ async function startAnimSession() {
   if (animScreen) animScreen.classList.remove('controls-hidden')
   const paths = sequences[selectedSeq].paths
   const btn = document.getElementById('btn-start'); btn.disabled = true
-  if (window.__offlinePacks && !window.__offlinePacks.ready && window.__offlinePacks.whenReady) {
-    await window.__offlinePacks.whenReady
-  }
-  const resolve = (p) => isR2Mode ? ((window.__offlinePacks && window.__offlinePacks.resolveLocal(p)) || p) : 'file://' + p
+  const resolve = (p) => isR2Mode ? p : 'file://' + p
   animFrames = paths.map(p => ({ path: p, dataUrl: resolve(p) }))
   animIndex = 0; animStudyMode = false; animLoopCount = 0
   if (!preloadCache[selectedSeq]) {
@@ -327,7 +324,7 @@ function finishSession() {
   const totalMins = Math.round(logs.reduce((a, l) => a + l.duration, 0) / 60)
   document.getElementById('stat-poses').textContent = logs.length
   document.getElementById('stat-time').textContent = totalMins || 1
-  logSession({ type: 'pose', poses: logs.length, minutes: totalMins || 1, subMode: currentSubMode, cats: Array.from(selectedCats).filter(c => c !== 'Sans catégorie').join(', ') })
+  logSession({ type: 'pose', poses: logs.length, minutes: totalMins || 1, subMode: currentSubMode, timer: timerDuration, cats: Array.from(selectedCats).filter(c => c !== 'Sans catégorie').join(', ') })
   buildRecapGrid(logs.map((log, i) => ({
     src: log.thumbnail?.data || null, label: i + 1, favLabel: 'Pose ' + (i + 1),
     duration: log.duration, rotation: log.rotation || 0

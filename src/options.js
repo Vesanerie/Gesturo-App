@@ -957,7 +957,7 @@ async function checkBadges() {
   if (totalPoses >= 100) unlockBadge('poses_100')
   if (totalPoses >= 500) unlockBadge('poses_500')
   if (totalPoses >= 1000) unlockBadge('poses_1000')
-  const speed30 = hist.filter(s => s.type === 'pose' && s.subMode !== 'progressive').length
+  const speed30 = hist.filter(s => s.type === 'pose' && s.subMode !== 'progressive' && (s.duration === 30 || s.timer === 30)).length
   if (speed30 >= 20) unlockBadge('speed_master')
   const cinemaSessions = hist.filter(s => s.type === 'cinema').length
   if (cinemaSessions >= 5) unlockBadge('cinephile')

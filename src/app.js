@@ -252,7 +252,7 @@ window.addEventListener('DOMContentLoaded', () => {
       loadR2(isPro)
       syncFavsFromServer()
       syncHistFromServer()
-      syncBadgesFromServer()
+      syncBadgesFromServer().then(() => checkBadges())
       loadAnnouncement()
       checkMaintenanceMode()
       pingUserActivity()
