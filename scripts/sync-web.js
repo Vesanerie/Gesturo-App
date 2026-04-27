@@ -23,6 +23,7 @@ const ASSETS = [
 const MOBILE_ONLY = [
   'auth-mobile.js',
   'mobile-shim.js',
+  'offline-manager.js',
 ];
 
 // Generate www/supabase-config.js so the mobile build has the public
@@ -118,6 +119,7 @@ if (fs.existsSync(indexPath)) {
     '<script src="supabase-config.js"></script>',
     '<script src="auth-mobile.js"></script>',
     '<script src="mobile-shim.js"></script>',
+    '<script src="offline-manager.js"></script>',
     '<script>document.addEventListener("DOMContentLoaded",()=>{window.__gesturoAuth&&window.__gesturoAuth.init()});</script>',
   ];
   const block = tags.filter((t) => !html.includes(t)).join('\n  ');

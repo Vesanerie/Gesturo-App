@@ -102,7 +102,16 @@ const IMG_PRELOAD_BATCH = 20
 let _bgPreloadIdx = 0
 let _bgPreloadTimer = null
 
-async function getImageSrc(entry) { if (entry.isR2) return entry.path; return 'file://' + entry.path }
+async function getImageSrc(entry) {
+  if (entry.isR2) {
+    if (window.__offlinePacks) {
+      const local = window.__offlinePacks.resolveLocal(entry.path)
+      if (local) return local
+    }
+    return entry.path
+  }
+  return 'file://' + entry.path
+}
 
 function preloadOneImage(entry) {
   return new Promise((resolve) => {
@@ -110,10 +119,11 @@ function preloadOneImage(entry) {
     const key = entry.path
     if (imgCache.has(key)) { resolve(); return }
     if (entry.isR2) {
+      const src = (window.__offlinePacks && window.__offlinePacks.resolveLocal(entry.path)) || entry.path
       const im = new Image()
-      im.onload = () => { imgCache.set(key, entry.path); if (imgCache.size > IMG_CACHE_MAX) { imgCache.delete(imgCache.keys().next().value) } resolve() }
+      im.onload = () => { imgCache.set(key, src); if (imgCache.size > IMG_CACHE_MAX) { imgCache.delete(imgCache.keys().next().value) } resolve() }
       im.onerror = () => resolve()
-      im.src = entry.path
+      im.src = src
     } else {
       window.electronAPI.readFileAsBase64(entry.path)
         .then(dataUrl => { imgCache.set(key, dataUrl); if (imgCache.size > IMG_CACHE_MAX) { imgCache.delete(imgCache.keys().next().value) } resolve() })
@@ -235,7 +245,7 @@ function logPoseEntry(entry, duration) {
   const img = document.getElementById('photo-img'), canvas = document.getElementById('pdf-canvas')
   let thumb = null
   if (entry.type === 'pdf' && canvas.style.display !== 'none') thumb = { data: canvas.toDataURL('image/jpeg', 1) }
-  else thumb = { data: entry.isR2 ? entry.path : 'file://' + entry.path }
+  else thumb = { data: entry.isR2 ? ((window.__offlinePacks && window.__offlinePacks.resolveLocal(entry.path)) || entry.path) : 'file://' + entry.path }
   sessionLog[currentIndex] = { entry, duration, thumbnail: thumb, rotation: currentRotation, flipH: currentFlipH }
 }
 

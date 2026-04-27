@@ -47,6 +47,17 @@
 .free-random-block .frb-cta:active { transform: scale(0.97); }
 
 /* ── Catégorie lockée (réservée Pro, visible en mode teaser) ── */
+/* Offline download button on category cards */
+.cat-dl-btn {
+  position: absolute; top: 8px; left: 8px; width: 28px; height: 28px;
+  border-radius: 50%; border: none; background: rgba(5,10,18,0.75);
+  color: #6aaccc; font-size: 13px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; z-index: 3;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.cat-dl-btn.downloaded { background: rgba(95,207,127,0.2); color: #5fcf7f; }
+.cat-dl-btn.downloading { background: rgba(240,192,64,0.2); color: var(--warm, #f0c040); font-size: 10px; font-weight: 600; }
+
 .cat-locked {
   opacity: 0.5;
   cursor: not-allowed !important;

@@ -350,10 +350,48 @@ function openProfile() {
   // Streak from DOM (already computed)
   const streakEl = document.getElementById('week-streak')
   document.getElementById('profile-streak').textContent = streakEl ? streakEl.textContent : '0'
+  renderOfflineStorage()
 }
 
 function closeProfile() {
   document.getElementById('profile-modal').style.display = 'none'
+}
+
+function renderOfflineStorage() {
+  const section = document.getElementById('offline-storage-section')
+  if (!section || !window.__offlinePacks) { if (section) section.style.display = 'none'; return }
+  section.style.display = ''
+  const list = document.getElementById('offline-packs-list')
+  const packs = window.__offlinePacks.getAll()
+  const keys = Object.keys(packs)
+  list.innerHTML = ''
+  if (keys.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:#3a5570;padding:6px 0;">Aucun pack téléchargé</div>'
+    document.getElementById('offline-clear-all').style.display = 'none'
+  } else {
+    document.getElementById('offline-clear-all').style.display = ''
+    keys.forEach(k => {
+      const p = packs[k]
+      const row = document.createElement('div')
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:rgba(20,30,45,0.6);border-radius:8px;padding:8px 10px;'
+      row.innerHTML = '<div style="font-size:12px;color:#fff;">' + getCatLabel(k) + '<span style="color:#4a6280;margin-left:6px;">' + p.fileCount + ' images · ' + window.__offlinePacks.formatSize(p.sizeBytes) + '</span></div>'
+      const del = document.createElement('button')
+      del.textContent = '✕'
+      del.style.cssText = 'background:none;border:none;color:#e24b4a;font-size:14px;cursor:pointer;padding:2px 6px;'
+      del.onclick = async () => { await window.__offlinePacks.delete(k); renderOfflineStorage() }
+      row.appendChild(del)
+      list.appendChild(row)
+    })
+  }
+  document.getElementById('offline-total-size').textContent = 'Total : ' + window.__offlinePacks.formatSize(window.__offlinePacks.totalSize())
+}
+
+async function clearAllOfflinePacks() {
+  if (!window.__offlinePacks) return
+  if (!confirm('Supprimer tous les packs hors-ligne ?')) return
+  const packs = window.__offlinePacks.getAll()
+  for (const k of Object.keys(packs)) await window.__offlinePacks.delete(k)
+  renderOfflineStorage()
 }
 
 async function saveProfileUsername() {

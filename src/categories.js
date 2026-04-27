@@ -66,6 +66,17 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
     card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-2px)' })
     card.addEventListener('mouseleave', () => { card.style.transform = '' })
   }
+  // Offline download button (mobile Pro only)
+  if (window.__offlinePacks && !locked && !hasSubs && currentUserIsPro) {
+    const dlBtn = document.createElement('button')
+    dlBtn.className = 'cat-dl-btn'
+    const isOffline = window.__offlinePacks.isDownloaded(key)
+    dlBtn.textContent = isOffline ? '✓' : '⬇'
+    dlBtn.title = isOffline ? 'Téléchargé — appuyer pour supprimer' : 'Télécharger hors-ligne'
+    if (isOffline) dlBtn.classList.add('downloaded')
+    dlBtn.onclick = (e) => { e.stopPropagation(); handleCatDownload(key, dlBtn) }
+    card.appendChild(dlBtn)
+  }
   return card
 }
 
@@ -167,6 +178,48 @@ function toggleCat(cat, card) {
   }
   updateAllBtn()
   renderSelectionPile()
+}
+
+function handleCatDownload(catKey, btn) {
+  if (!window.__offlinePacks) return
+  if (window.__offlinePacks.isDownloaded(catKey)) {
+    if (!confirm('Supprimer le pack hors-ligne "' + getCatLabel(catKey) + '" ?')) return
+    window.__offlinePacks.delete(catKey).then(() => {
+      btn.textContent = '⬇'
+      btn.classList.remove('downloaded')
+      btn.title = 'Télécharger hors-ligne'
+    })
+    return
+  }
+  // Gather all R2 URLs for this category
+  const catData = categories[catKey]
+  if (!catData) return
+  const entries = Array.isArray(catData) ? catData : (catData.entries || [])
+  const subs = Array.isArray(catData) ? {} : (catData.subcategories || {})
+  const urls = []
+  entries.forEach(e => { if (e.path) urls.push(e.path) })
+  for (const sub of Object.values(subs)) {
+    sub.forEach(e => { if (e.path) urls.push(e.path) })
+  }
+  if (urls.length === 0) return
+  const size = urls.length * 150 // ~150KB avg estimate
+  btn.textContent = '0%'
+  btn.classList.add('downloading')
+  const dl = window.__offlinePacks.download(catKey, urls)
+  dl.onProgress(({ progress, total }) => {
+    btn.textContent = Math.round(progress / total * 100) + '%'
+  })
+  dl.onComplete(() => {
+    btn.textContent = '✓'
+    btn.classList.remove('downloading')
+    btn.classList.add('downloaded')
+    btn.title = 'Téléchargé — appuyer pour supprimer'
+  })
+  dl.onError((msg) => {
+    btn.textContent = '⬇'
+    btn.classList.remove('downloading')
+    console.warn('[offline] download error:', msg)
+  })
 }
 
 function toggleSubCat(parentCat, sub, card) {
