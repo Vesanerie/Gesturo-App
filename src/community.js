@@ -183,7 +183,7 @@ function renderChallengeFilter() {
 
 function filterByChallenge() {
   _selectedChallengeFilter = document.getElementById('challenge-select').value
-  renderCommunity()
+  renderCommunity(true)
 }
 
 let _challengeSession = false
@@ -354,7 +354,7 @@ async function confirmCommunityUpload() {
     status.textContent = 'Publié !'
     status.style.color = '#a8d090'
     _communityStats = null; checkBadges()
-    setTimeout(() => { _uploading = false; closeCommunityUpload(); renderCommunity() }, 1500)
+    setTimeout(() => { _uploading = false; closeCommunityUpload(); renderCommunity(true) }, 1500)
   } catch(e) {
     _uploading = false
     status.textContent = 'Erreur : ' + (e.message || 'échec')
@@ -785,7 +785,8 @@ function buildPostCard(post, i) {
 }
 
 let _communityToken = 0
-async function renderCommunity() {
+let _lastCommunityHash = ''
+async function renderCommunity(forceRebuild = false) {
   const token = ++_communityToken
   const feed = document.getElementById('community-feed')
   const empty = document.getElementById('community-empty')
@@ -868,6 +869,14 @@ async function renderCommunity() {
       return b._sort - a._sort
     })
 
+    // Skip DOM rebuild si le feed n'a pas changé (refresh auto 60s)
+    const hash = filtered.map(p => p.id).join(',')
+    if (!forceRebuild && hash === _lastCommunityHash && feed.children.length > 0) {
+      empty.style.display = 'none'
+      return
+    }
+    _lastCommunityHash = hash
+
     // Load reactions
     await loadReactions(filtered.map(p => p.id))
     if (token !== _communityToken) return
@@ -918,7 +927,7 @@ function switchCommunityTab(tab) {
   // Re-clic sur le tab déjà actif → refresh la vue (comme Instagram / Twitter).
   // Sinon (1er clic sur un autre tab) : switch normal.
   if (_communityTab === tab) {
-    if (tab === 'feed') renderCommunity()
+    if (tab === 'feed') renderCommunity(true)
     else if (tab === 'mine') renderMyPosts()
     else if (tab === 'leaderboard') renderLeaderboard()
     return
@@ -931,7 +940,7 @@ function switchCommunityTab(tab) {
   document.getElementById('community-mine').style.display = tab === 'mine' ? '' : 'none'
   document.getElementById('community-leaderboard').style.display = tab === 'leaderboard' ? '' : 'none'
   document.getElementById('community-empty').style.display = 'none'
-  if (tab === 'feed') renderCommunity()
+  if (tab === 'feed') renderCommunity(true)
   else if (tab === 'mine') renderMyPosts()
   else if (tab === 'leaderboard') renderLeaderboard()
 }

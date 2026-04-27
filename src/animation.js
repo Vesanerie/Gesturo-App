@@ -71,8 +71,8 @@ async function startAnimSession() {
   if (currentAnimMode === 'study') enterStudyMode(); else startLoop()
 }
 
-function showFrame(idx) {
-  if (!animFrames[idx]) { setTimeout(() => showFrame(idx), 50); return }
+function showFrame(idx, _retries = 0) {
+  if (!animFrames[idx]) { if (_retries < 20) setTimeout(() => showFrame(idx, _retries + 1), 50); return }
   animIndex = idx
   document.getElementById('anim-img').src = animFrames[idx].dataUrl
   document.getElementById('anim-frame-info').textContent = 'Image ' + (idx + 1) + ' / ' + animFrames.length

@@ -22,8 +22,16 @@ function renderWeekBar() {
 
 // ══ HISTORIQUE ══
 const HIST_KEY = 'gd4_history'; let histPeriod = 'week'
-function loadHist() { try { return JSON.parse(_readScoped(HIST_KEY) || '[]') } catch { return [] } }
-function saveHist(h) { _writeScoped(HIST_KEY, JSON.stringify(h)) }
+let _histCache = null, _histCacheTick = 0
+function loadHist() {
+  // Cache le parse pendant le même tick JS (évite 4-5 JSON.parse consécutifs dans checkBadges)
+  const now = performance.now()
+  if (_histCache && now - _histCacheTick < 50) return _histCache
+  try { _histCache = JSON.parse(_readScoped(HIST_KEY) || '[]') } catch { _histCache = [] }
+  _histCacheTick = now
+  return _histCache
+}
+function saveHist(h) { _writeScoped(HIST_KEY, JSON.stringify(h)); _histCache = h; _histCacheTick = performance.now() }
 
 function logSession(data) {
   const hist = loadHist(); hist.push({ ...data, ts: Date.now() })

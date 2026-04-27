@@ -582,7 +582,7 @@ function switchMainMode(mode) {
   }
   if (mode === 'favs') renderFavsConfig()
   if (mode === 'hist') renderHist()
-  if (mode === 'community') { renderCommunity(); startCommunityRefresh() }
+  if (mode === 'community') { renderCommunity(true); startCommunityRefresh() }
   if (mode !== 'community') {
     if (communityInterval) { clearInterval(communityInterval); communityInterval = null }
     if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null }

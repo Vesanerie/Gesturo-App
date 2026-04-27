@@ -257,9 +257,13 @@ window.addEventListener('DOMContentLoaded', () => {
       checkMaintenanceMode()
       pingUserActivity()
       loadFeatureFlagsFromServer()
-      // Poll announcements toutes les 5 min + quand l'app revient au focus
+      // Poll announcements toutes les 5 min + quand l'app revient au focus (debounced)
       setInterval(loadAnnouncement, 5 * 60 * 1000)
-      window.addEventListener('focus', loadAnnouncement)
+      let _announceFocusTimer = null
+      window.addEventListener('focus', () => {
+        clearTimeout(_announceFocusTimer)
+        _announceFocusTimer = setTimeout(loadAnnouncement, 500)
+      })
     })
     window.electronAPI.onAutoLoad(f => { isR2Mode = false; loadFolder(f) })
   }
