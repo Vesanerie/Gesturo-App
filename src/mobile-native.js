@@ -260,9 +260,12 @@
     peekOverlay.appendChild(card)
     document.body.appendChild(peekOverlay)
 
-    // Fermer au touch/click
-    peekOverlay.addEventListener('click', closePeek)
-    peekOverlay.addEventListener('touchend', closePeek)
+    // Ignorer le touchend du long press qui a ouvert le peek,
+    // puis fermer au prochain tap n'importe où.
+    setTimeout(() => {
+      peekOverlay.addEventListener('click', closePeek)
+      peekOverlay.addEventListener('touchstart', closePeek)
+    }, 100)
   }
 
   function closePeek() {
