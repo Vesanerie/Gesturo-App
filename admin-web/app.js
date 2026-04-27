@@ -4149,8 +4149,10 @@ function getFilteredRoadmapItems() {
   const catFilter = $('roadmap-filter-cat').value;
   const priFilter = $('roadmap-filter-priority').value;
   const search = ($('roadmap-search').value || '').toLowerCase().trim();
+  const hideDone = $('roadmap-hide-done')?.checked;
   if (catFilter !== 'all') items = items.filter(i => i.category === catFilter);
   if (priFilter !== 'all') items = items.filter(i => i.priority === priFilter);
+  if (hideDone) items = items.filter(i => i.status !== 'done');
   if (search) items = items.filter(i =>
     (i.title || '').toLowerCase().includes(search) ||
     (i.description || '').toLowerCase().includes(search)
@@ -4175,44 +4177,66 @@ function renderRoadmap() {
     const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
     filtered.sort((a, b) => (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2) || (a.deadline || '').localeCompare(b.deadline || ''));
 
-    col.innerHTML = filtered.map(item => {
-      const cat = ROADMAP_CATEGORIES[item.category] || { label: item.category, color: '#888', icon: '📌' };
-      const pri = ROADMAP_PRIORITIES[item.priority] || ROADMAP_PRIORITIES.medium;
-      const deadlineStr = item.deadline ? formatRoadmapDate(item.deadline) : '';
-      const isOverdue = item.deadline && item.status !== 'done' && item.deadline < new Date().toISOString().slice(0, 10);
-      const subs = item.subtasks || [];
-      const subsDone = subs.filter(s => s.done).length;
-      const subsTotal = subs.length;
-      const subsPct = subsTotal ? Math.round((subsDone / subsTotal) * 100) : 0;
-
-      return `<div class="roadmap-card" draggable="true" data-id="${item.id}"
-        ondragstart="rmDragStart(event)" ondragend="rmDragEnd(event)">
-        <div class="roadmap-card-stripe" style="background:${pri.stripe};"></div>
-        <div class="roadmap-card-body">
-          <div class="roadmap-card-top">
-            <span class="roadmap-tag" style="background:${cat.color}15;color:${cat.color};border:1px solid ${cat.color}30;">${cat.icon} ${cat.label}</span>
-            ${deadlineStr ? `<span class="roadmap-card-date${isOverdue ? ' overdue' : ''}" title="${item.deadline}">${isOverdue ? '⚠ ' : '📅 '}${deadlineStr}</span>` : ''}
-          </div>
-          <div class="roadmap-card-title">${escapeHtml(item.title)}</div>
-          ${item.description ? `<div class="roadmap-card-desc">${escapeHtml(item.description)}</div>` : ''}
-          ${(item.images && item.images.length) ? `<div class="roadmap-card-images">${item.images.slice(0, 4).map((img, idx) =>
-            `<div class="roadmap-card-thumb${item.images.length > 4 && idx === 3 ? ' rm-thumb-more' : ''}" style="background-image:url('${R2_PUBLIC}/${img}')">${item.images.length > 4 && idx === 3 ? `<span>+${item.images.length - 3}</span>` : ''}</div>`
-          ).join('')}</div>` : ''}
-          ${subsTotal ? `<div class="roadmap-card-subs">
-            <div class="roadmap-sub-bar"><div class="roadmap-sub-fill" style="width:${subsPct}%;background:${subsPct === 100 ? '#22c55e' : 'var(--accent)'}"></div></div>
-            <span class="roadmap-sub-text">${subsDone}/${subsTotal}</span>
-          </div>` : ''}
-          <div class="roadmap-card-footer">
-            <span class="roadmap-card-created">${formatRoadmapRelative(item.created)}</span>
-            <div class="roadmap-card-actions">
-              ${item.status !== 'todo' ? `<button class="roadmap-move-btn" onclick="event.stopPropagation();moveRoadmapItem('${item.id}','left')" title="Reculer">←</button>` : ''}
-              ${item.status !== 'done' ? `<button class="roadmap-move-btn" onclick="event.stopPropagation();moveRoadmapItem('${item.id}','right')" title="Avancer">→</button>` : ''}
-            </div>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
+    col.innerHTML = filtered.map(item => renderRoadmapCard(item)).join('');
   });
+
+  // Also render calendar if visible
+  if (!$('roadmap-calendar').classList.contains('hidden')) renderCalendar();
+}
+
+function renderRoadmapCard(item) {
+  const cat = ROADMAP_CATEGORIES[item.category] || { label: item.category, color: '#888', icon: '📌' };
+  const pri = ROADMAP_PRIORITIES[item.priority] || ROADMAP_PRIORITIES.medium;
+  const deadlineStr = item.deadline ? formatRoadmapDate(item.deadline) : '';
+  const today = new Date().toISOString().slice(0, 10);
+  const isOverdue = item.deadline && item.status !== 'done' && item.deadline < today;
+  const daysLeft = item.deadline && item.status !== 'done' ? Math.ceil((new Date(item.deadline + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
+  const subs = item.subtasks || [];
+  const subsDone = subs.filter(s => s.done).length;
+  const subsTotal = subs.length;
+  const subsPct = subsTotal ? Math.round((subsDone / subsTotal) * 100) : 0;
+  // Stale indicator: task not moved in 14+ days
+  const stale = item.created && item.status !== 'done' && (Date.now() - new Date(item.created).getTime()) > 14 * 86400000;
+  // Linkify description
+  const descHtml = item.description ? linkifyText(escapeHtml(item.description)) : '';
+
+  let deadlineBadge = '';
+  if (deadlineStr) {
+    if (isOverdue) deadlineBadge = `<span class="roadmap-card-date overdue" title="${item.deadline}">⚠ ${deadlineStr}</span>`;
+    else if (daysLeft !== null && daysLeft <= 7 && daysLeft >= 0) deadlineBadge = `<span class="roadmap-card-date soon" title="${item.deadline}">J-${daysLeft}</span>`;
+    else deadlineBadge = `<span class="roadmap-card-date" title="${item.deadline}">📅 ${deadlineStr}</span>`;
+  }
+
+  return `<div class="roadmap-card${stale ? ' rm-stale' : ''}" draggable="true" data-id="${item.id}"
+    ondragstart="rmDragStart(event)" ondragend="rmDragEnd(event)">
+    <div class="roadmap-card-stripe" style="background:${pri.stripe};"></div>
+    <div class="roadmap-card-body">
+      <div class="roadmap-card-top">
+        <span class="roadmap-tag" style="background:${cat.color}15;color:${cat.color};border:1px solid ${cat.color}30;">${cat.icon} ${cat.label}</span>
+        ${deadlineBadge}
+      </div>
+      <div class="roadmap-card-title">${escapeHtml(item.title)}</div>
+      ${descHtml ? `<div class="roadmap-card-desc">${descHtml}</div>` : ''}
+      ${(item.images && item.images.length) ? `<div class="roadmap-card-images">${item.images.slice(0, 4).map((img, idx) =>
+        `<div class="roadmap-card-thumb${item.images.length > 4 && idx === 3 ? ' rm-thumb-more' : ''}" style="background-image:url('${R2_PUBLIC}/${img}')">${item.images.length > 4 && idx === 3 ? `<span>+${item.images.length - 3}</span>` : ''}</div>`
+      ).join('')}</div>` : ''}
+      ${subsTotal ? `<div class="roadmap-card-subs">
+        <div class="roadmap-sub-bar"><div class="roadmap-sub-fill" style="width:${subsPct}%;background:${subsPct === 100 ? '#22c55e' : 'var(--accent)'}"></div></div>
+        <span class="roadmap-sub-text">${subsDone}/${subsTotal}</span>
+      </div>` : ''}
+      <div class="roadmap-card-footer">
+        <span class="roadmap-card-created">${stale ? '🐌 ' : ''}${formatRoadmapRelative(item.created)}</span>
+        <div class="roadmap-card-actions">
+          ${item.status !== 'todo' ? `<button class="roadmap-move-btn" onclick="event.stopPropagation();moveRoadmapItem('${item.id}','left')" title="Reculer">←</button>` : ''}
+          ${item.status !== 'done' ? `<button class="roadmap-move-btn" onclick="event.stopPropagation();moveRoadmapItem('${item.id}','right')" title="Avancer">→</button>` : ''}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function linkifyText(text) {
+  return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:var(--accent);pointer-events:auto;">$1</a>');
 }
 
 function formatRoadmapDate(d) {
@@ -4299,9 +4323,11 @@ function moveRoadmapItem(id, direction) {
   const idx = flow.indexOf(item.status);
   const newIdx = direction === 'right' ? idx + 1 : idx - 1;
   if (newIdx < 0 || newIdx >= flow.length) return;
+  const oldStatus = item.status;
   item.status = flow[newIdx];
   renderRoadmap();
   saveRoadmap();
+  if (item.status === 'done' && oldStatus !== 'done') fireConfetti();
 }
 
 // ── Modal ──
@@ -4317,6 +4343,7 @@ function openRoadmapAdd(defaultStatus) {
   $('rm-status').value = defaultStatus || 'todo';
   $('rm-deadline').value = '';
   $('rm-delete').style.display = 'none';
+  $('rm-duplicate').style.display = 'none';
   $('rm-image-status').textContent = '';
   renderSubtasksList();
   renderImagesList();
@@ -4338,6 +4365,7 @@ function openRoadmapEdit(id) {
   $('rm-status').value = item.status || 'todo';
   $('rm-deadline').value = item.deadline || '';
   $('rm-delete').style.display = '';
+  $('rm-duplicate').style.display = '';
   $('rm-image-status').textContent = '';
   renderSubtasksList();
   renderImagesList();
@@ -4401,18 +4429,21 @@ function saveRoadmapItem() {
     subtasks: roadmapEditSubtasks,
     images: roadmapEditImages,
   };
+  let wasNotDone = false;
   if (roadmapEditId) {
     const item = roadmapItems.find(i => i.id === roadmapEditId);
-    if (item) Object.assign(item, data);
+    if (item) { wasNotDone = item.status !== 'done'; Object.assign(item, data); }
   } else {
     data.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     data.created = new Date().toISOString();
     roadmapItems.push(data);
   }
+  const justDone = data.status === 'done' && wasNotDone;
   closeRoadmapModal();
   renderRoadmap();
   saveRoadmap();
   showToast(roadmapEditId ? 'Tache modifiee' : 'Tache ajoutee', 'ok');
+  if (justDone) fireConfetti();
 }
 
 function deleteRoadmapItem() {
@@ -4500,12 +4531,88 @@ async function uploadRoadmapImages() {
   }
 }
 
+// ── Duplicate ──
+function duplicateRoadmapItem() {
+  if (!roadmapEditId) return;
+  const src = roadmapItems.find(i => i.id === roadmapEditId);
+  if (!src) return;
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  copy.title = copy.title + ' (copie)';
+  copy.status = 'todo';
+  copy.created = new Date().toISOString();
+  roadmapItems.push(copy);
+  closeRoadmapModal();
+  renderRoadmap();
+  saveRoadmap();
+  showToast('Tache dupliquee', 'ok');
+}
+
+// ── Templates ──
+const ROADMAP_TEMPLATES = {
+  instagram: { title: 'Post Instagram', category: 'social', priority: 'medium', subtasks: [
+    { text: 'Creer le visuel', done: false }, { text: 'Ecrire la caption', done: false },
+    { text: 'Choisir les hashtags', done: false }, { text: 'Publier', done: false }
+  ]},
+  tiktok: { title: 'Video TikTok', category: 'social', priority: 'medium', subtasks: [
+    { text: 'Script / concept', done: false }, { text: 'Tourner la video', done: false },
+    { text: 'Montage', done: false }, { text: 'Publier', done: false }
+  ]},
+  newsletter: { title: 'Newsletter', category: 'communication', priority: 'medium', subtasks: [
+    { text: 'Sujet + angle', done: false }, { text: 'Redaction', done: false },
+    { text: 'Relecture', done: false }, { text: 'Envoi', done: false }
+  ]},
+  blog: { title: 'Article blog SEO', category: 'contenu', priority: 'medium', subtasks: [
+    { text: 'Recherche mots-cles', done: false }, { text: 'Redaction', done: false },
+    { text: 'Images / visuels', done: false }, { text: 'Publier sur gesturo.fr', done: false },
+    { text: 'Partager sur les reseaux', done: false }
+  ]},
+  partenariat: { title: 'Partenariat', category: 'partenariats', priority: 'high', subtasks: [
+    { text: 'Identifier le partenaire', done: false }, { text: 'Premier contact', done: false },
+    { text: 'Negocier les termes', done: false }, { text: 'Creer le contenu commun', done: false },
+    { text: 'Publier / lancer', done: false }
+  ]},
+  lancement: { title: 'Lancement feature', category: 'marketing', priority: 'high', subtasks: [
+    { text: 'Definir le messaging', done: false }, { text: 'Visuels / screenshots', done: false },
+    { text: 'Post reseaux sociaux', done: false }, { text: 'Newsletter annonce', done: false },
+    { text: 'Mise a jour App Store / Play Store', done: false }
+  ]},
+  evenement: { title: 'Evenement', category: 'communication', priority: 'high', subtasks: [
+    { text: 'Definir date et format', done: false }, { text: 'Communication avant', done: false },
+    { text: 'Preparer le contenu', done: false }, { text: 'Jour J', done: false },
+    { text: 'Recap / retour apres', done: false }
+  ]},
+};
+
+function applyRoadmapTemplate(key) {
+  const tpl = ROADMAP_TEMPLATES[key];
+  if (!tpl) return;
+  roadmapEditId = null;
+  roadmapEditSubtasks = JSON.parse(JSON.stringify(tpl.subtasks || []));
+  roadmapEditImages = [];
+  $('roadmap-modal-title').textContent = 'Nouvelle tache';
+  $('rm-title').value = tpl.title;
+  $('rm-desc').value = '';
+  $('rm-category').value = tpl.category;
+  $('rm-priority').value = tpl.priority;
+  $('rm-status').value = 'todo';
+  $('rm-deadline').value = '';
+  $('rm-delete').style.display = 'none';
+  $('rm-duplicate').style.display = 'none';
+  $('rm-image-status').textContent = '';
+  renderSubtasksList();
+  renderImagesList();
+  $('roadmap-modal').classList.remove('hidden');
+  $('rm-title').focus();
+  $('rm-title').select();
+}
+
 // ── Quick add ──
 function roadmapQuickAdd(status) {
   openRoadmapAdd(status);
 }
 
-// ── Export ──
+// ── Export / Import ──
 function exportRoadmap() {
   const blob = new Blob([JSON.stringify(roadmapItems, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -4515,19 +4622,179 @@ function exportRoadmap() {
   showToast('Roadmap exportee', 'ok');
 }
 
+function importRoadmap() {
+  const input = $('roadmap-import-input');
+  input.value = '';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!Array.isArray(data)) throw new Error('Format invalide');
+      const count = data.length;
+      data.forEach(item => {
+        if (!item.id) item.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        if (!roadmapItems.find(i => i.id === item.id)) roadmapItems.push(item);
+      });
+      renderRoadmap();
+      saveRoadmap();
+      showToast(`${count} taches importees`, 'ok');
+    } catch (e) {
+      showToast('Erreur import: ' + e.message, 'err');
+    }
+  };
+  input.click();
+}
+
+// ── Calendar view ──
+let rmCalDate = new Date();
+
+function toggleRoadmapView(view) {
+  document.querySelectorAll('.rm-view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  const board = document.querySelector('.roadmap-board');
+  const cal = $('roadmap-calendar');
+  if (view === 'calendar') {
+    board.classList.add('hidden');
+    cal.classList.remove('hidden');
+    renderCalendar();
+  } else {
+    board.classList.remove('hidden');
+    cal.classList.add('hidden');
+  }
+}
+
+function renderCalendar() {
+  const year = rmCalDate.getFullYear();
+  const month = rmCalDate.getMonth();
+  const monthNames = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+  $('rm-cal-title').textContent = `${monthNames[month]} ${year}`;
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  let startDow = firstDay.getDay(); // 0=Sun
+  startDow = startDow === 0 ? 6 : startDow - 1; // Convert to Mon=0
+
+  const today = new Date().toISOString().slice(0, 10);
+  const items = getFilteredRoadmapItems();
+
+  let html = '';
+  // Empty cells before first day
+  for (let i = 0; i < startDow; i++) html += '<div class="rm-cal-cell empty"></div>';
+
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isToday = dateStr === today;
+    const dayItems = items.filter(i => i.deadline === dateStr);
+    const dots = dayItems.slice(0, 3).map(i => {
+      const cat = ROADMAP_CATEGORIES[i.category] || { color: '#888' };
+      const done = i.status === 'done';
+      return `<span class="rm-cal-dot${done ? ' done' : ''}" style="background:${cat.color}" title="${escapeHtml(i.title)}"></span>`;
+    }).join('');
+    const more = dayItems.length > 3 ? `<span class="rm-cal-more">+${dayItems.length - 3}</span>` : '';
+    html += `<div class="rm-cal-cell${isToday ? ' today' : ''}${dayItems.length ? ' has-items' : ''}" data-date="${dateStr}" onclick="showCalendarDay('${dateStr}')">
+      <span class="rm-cal-num">${d}</span>
+      <div class="rm-cal-dots">${dots}${more}</div>
+    </div>`;
+  }
+
+  $('rm-cal-days').innerHTML = html;
+}
+
+function showCalendarDay(dateStr) {
+  const items = roadmapItems.filter(i => i.deadline === dateStr);
+  if (items.length === 1) { openRoadmapEdit(items[0].id); return; }
+  if (items.length === 0) {
+    // Open new task with this date pre-filled
+    openRoadmapAdd('todo');
+    $('rm-deadline').value = dateStr;
+    return;
+  }
+  // Multiple: show first one
+  openRoadmapEdit(items[0].id);
+}
+
+// ── Confetti ──
+function fireConfetti() {
+  const canvas = $('rm-confetti');
+  if (!canvas) return;
+  canvas.style.display = 'block';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#f0c040', '#2983eb', '#22c55e', '#ec4899', '#a855f7', '#f97316', '#ef4444'];
+  const particles = [];
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * 100,
+      w: 4 + Math.random() * 6,
+      h: 6 + Math.random() * 10,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vy: 2 + Math.random() * 4,
+      vx: (Math.random() - 0.5) * 3,
+      rot: Math.random() * 360,
+      vr: (Math.random() - 0.5) * 10,
+      opacity: 1,
+    });
+  }
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      if (p.opacity <= 0) return;
+      alive = true;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.1;
+      p.rot += p.vr;
+      if (frame > 40) p.opacity -= 0.02;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.globalAlpha = Math.max(0, p.opacity);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    frame++;
+    if (alive && frame < 120) requestAnimationFrame(draw);
+    else { canvas.style.display = 'none'; }
+  }
+  requestAnimationFrame(draw);
+}
+
 // ── Event listeners ──
 document.addEventListener('DOMContentLoaded', () => {
   $('roadmap-add-btn')?.addEventListener('click', () => openRoadmapAdd());
   $('rm-cancel')?.addEventListener('click', closeRoadmapModal);
   $('rm-save')?.addEventListener('click', saveRoadmapItem);
   $('rm-delete')?.addEventListener('click', deleteRoadmapItem);
+  $('rm-duplicate')?.addEventListener('click', duplicateRoadmapItem);
   $('roadmap-filter-cat')?.addEventListener('change', renderRoadmap);
   $('roadmap-filter-priority')?.addEventListener('change', renderRoadmap);
+  $('roadmap-hide-done')?.addEventListener('change', renderRoadmap);
   $('roadmap-export-btn')?.addEventListener('click', exportRoadmap);
+  $('roadmap-import-btn')?.addEventListener('click', importRoadmap);
   $('rm-subtask-add')?.addEventListener('click', addSubtask);
   $('rm-image-add')?.addEventListener('click', () => $('rm-image-input').click());
   $('rm-image-input')?.addEventListener('change', uploadRoadmapImages);
   $('rm-subtask-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSubtask(); } });
+
+  // Templates
+  $('roadmap-template')?.addEventListener('change', (e) => {
+    if (e.target.value) { applyRoadmapTemplate(e.target.value); e.target.value = ''; }
+  });
+
+  // View toggle
+  document.querySelectorAll('.rm-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => toggleRoadmapView(btn.dataset.view));
+  });
+
+  // Calendar nav
+  $('rm-cal-prev')?.addEventListener('click', () => { rmCalDate.setMonth(rmCalDate.getMonth() - 1); renderCalendar(); });
+  $('rm-cal-next')?.addEventListener('click', () => { rmCalDate.setMonth(rmCalDate.getMonth() + 1); renderCalendar(); });
 
   // Search with debounce
   let searchTimer;

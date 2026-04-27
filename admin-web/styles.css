@@ -1118,6 +1118,73 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
   border-radius: 10px; padding: 6px 14px; font-size: 14px; font-weight: 700;
 }
 
+/* View toggle */
+.roadmap-views { display: flex; gap: 4px; margin-bottom: 12px; }
+.rm-view-btn {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px; color: var(--muted); padding: 6px 14px; font-size: 12px;
+  cursor: pointer; transition: all 0.15s; font-weight: 600;
+}
+.rm-view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.rm-view-btn:hover:not(.active) { background: rgba(255,255,255,0.06); }
+
+/* Archive toggle */
+.rm-archive-toggle {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted);
+  cursor: pointer; white-space: nowrap;
+}
+.rm-archive-toggle input { accent-color: var(--accent); cursor: pointer; }
+
+/* Deadline badges */
+.roadmap-card-date.soon {
+  color: var(--warm); background: rgba(240,192,64,0.1); font-weight: 700;
+  animation: rm-pulse 2s ease-in-out infinite;
+}
+@keyframes rm-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+/* Stale card */
+.rm-stale { border-left: 2px solid rgba(240,192,64,0.3); }
+
+/* Calendar view */
+.roadmap-calendar { padding: 0 4px; }
+.rm-cal-header {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  margin-bottom: 16px;
+}
+.rm-cal-header h3 { font-size: 16px; font-weight: 700; min-width: 180px; text-align: center; }
+.rm-cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+  margin-bottom: 4px;
+}
+.rm-cal-day-name {
+  text-align: center; font-size: 10px; color: var(--dim); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 0;
+}
+.rm-cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.rm-cal-cell {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 8px; padding: 8px 6px; min-height: 70px;
+  cursor: pointer; transition: all 0.15s;
+}
+.rm-cal-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+.rm-cal-cell:not(.empty):hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+.rm-cal-cell.today { border-color: var(--accent); background: rgba(41,131,235,0.06); }
+.rm-cal-cell.has-items { background: rgba(255,255,255,0.035); }
+.rm-cal-num { font-size: 12px; font-weight: 600; color: var(--text); display: block; margin-bottom: 4px; }
+.rm-cal-cell.today .rm-cal-num { color: var(--accent); font-weight: 800; }
+.rm-cal-dots { display: flex; gap: 3px; flex-wrap: wrap; }
+.rm-cal-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.rm-cal-dot.done { opacity: 0.3; }
+.rm-cal-more { font-size: 9px; color: var(--dim); }
+
+/* Confetti */
+.rm-confetti {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  pointer-events: none; z-index: 99999; display: none;
+}
+
 @media (max-width: 900px) {
   .roadmap-board { grid-template-columns: 1fr; }
   .roadmap-container { padding: 14px; }
@@ -1125,4 +1192,6 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
   .rm-stats-cats { margin-left: 0; }
   .roadmap-search { width: 100%; }
   .roadmap-card-actions { opacity: 1; }
+  .rm-cal-cell { min-height: 50px; padding: 4px; }
+  .rm-cal-num { font-size: 11px; }
 }

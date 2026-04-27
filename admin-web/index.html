@@ -506,7 +506,7 @@
         <div id="blog-editor" class="challenge-form-card" style="display: none;">
           <h2 id="blog-editor-title">Nouvel article</h2>
 
-          <div style="margin-top: 12px; padding: 14px; background: rgba(240,192,64,0.06); border: 0.5px solid rgba(240,192,64,0.25); border-radius: 12px;">
+          <div style="margin-top: 12px; padding: 14px; background: rgba(232,160,136,0.06); border: 0.5px solid rgba(232,160,136,0.25); border-radius: 12px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="font-size: 14px; color: var(--warm); font-weight: 600;">Importer depuis Claude</span>
               <button class="btn-secondary" style="padding: 3px 10px; font-size: 11px; cursor: pointer;" onclick="navigator.clipboard.writeText(document.getElementById('blog-prompt-text').textContent);this.textContent='Copie !';setTimeout(()=>this.textContent='Copier le prompt',1500)">Copier le prompt</button>
@@ -593,7 +593,7 @@ Regles :
               <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="blogInsertTag('ul')">Liste</button>
               <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="blogInsertTag('blockquote')">Citation</button>
               <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="blogInsertTag('a')">Lien</button>
-              <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 12px; background: var(--warm-soft); border-color: rgba(240,192,64,0.3); color: var(--warm);" onclick="blogInsertImage()">🖼 Image</button>
+              <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 12px; background: var(--warm-soft); border-color: rgba(232,160,136,0.3); color: var(--warm);" onclick="blogInsertImage()">🖼 Image</button>
               <input id="blog-image-input" type="file" accept="image/*" hidden>
             </div>
             <textarea id="blog-content" rows="20" placeholder="Ecris ton article ici en HTML...&#10;&#10;<h2>Titre de section</h2>&#10;<p>Ton paragraphe ici. Utilise <strong>gras</strong> et <em>accent dore</em>.</p>" style="width: 100%; font-family: monospace; font-size: 13px; line-height: 1.6; resize: vertical;"></textarea>
@@ -616,7 +616,11 @@ Regles :
         <!-- Stats bar -->
         <div class="roadmap-stats" id="roadmap-stats"></div>
 
-        <!-- Toolbar -->
+        <!-- View toggle + Toolbar -->
+        <div class="roadmap-views">
+          <button class="rm-view-btn active" data-view="board" title="Kanban">▦ Board</button>
+          <button class="rm-view-btn" data-view="calendar" title="Calendrier">📅 Calendrier</button>
+        </div>
         <div class="roadmap-toolbar">
           <div class="roadmap-toolbar-left">
             <input id="roadmap-search" type="search" placeholder="Rechercher une tache..." autocomplete="off" class="roadmap-search">
@@ -638,11 +642,40 @@ Regles :
               <option value="medium">Moyenne</option>
               <option value="low">Basse</option>
             </select>
+            <label class="rm-archive-toggle"><input type="checkbox" id="roadmap-hide-done"> Masquer "Fait"</label>
           </div>
           <div class="roadmap-toolbar-right">
+            <select id="roadmap-template" title="Templates">
+              <option value="">📋 Templates...</option>
+              <option value="instagram">Post Instagram</option>
+              <option value="tiktok">Video TikTok</option>
+              <option value="newsletter">Newsletter</option>
+              <option value="blog">Article blog</option>
+              <option value="partenariat">Partenariat</option>
+              <option value="lancement">Lancement feature</option>
+              <option value="evenement">Evenement</option>
+            </select>
+            <button id="roadmap-import-btn" class="btn-secondary" title="Importer JSON">Importer</button>
+            <input id="roadmap-import-input" type="file" accept=".json" hidden>
             <button id="roadmap-export-btn" class="btn-secondary" title="Exporter en JSON">Exporter</button>
             <button id="roadmap-add-btn" class="add-btn">＋ Nouvelle tache</button>
           </div>
+        </div>
+
+        <!-- Calendar view (hidden by default) -->
+        <div id="roadmap-calendar" class="roadmap-calendar hidden">
+          <div class="rm-cal-header">
+            <button id="rm-cal-prev" class="btn-secondary">←</button>
+            <h3 id="rm-cal-title"></h3>
+            <button id="rm-cal-next" class="btn-secondary">→</button>
+          </div>
+          <div class="rm-cal-grid">
+            <div class="rm-cal-day-name">Lun</div><div class="rm-cal-day-name">Mar</div>
+            <div class="rm-cal-day-name">Mer</div><div class="rm-cal-day-name">Jeu</div>
+            <div class="rm-cal-day-name">Ven</div><div class="rm-cal-day-name">Sam</div>
+            <div class="rm-cal-day-name">Dim</div>
+          </div>
+          <div id="rm-cal-days" class="rm-cal-days"></div>
         </div>
 
         <!-- Board -->
@@ -752,11 +785,15 @@ Regles :
 
         <div class="modal-buttons">
           <button id="rm-delete" class="btn-danger" style="margin-right:auto;display:none;">Supprimer</button>
+          <button id="rm-duplicate" class="btn-secondary" style="display:none;">Dupliquer</button>
           <button id="rm-cancel" class="btn-ghost">Annuler</button>
           <button id="rm-save" class="add-btn">Enregistrer</button>
         </div>
       </div>
     </div>
+
+    <!-- Confetti canvas -->
+    <canvas id="rm-confetti" class="rm-confetti"></canvas>
 
   </section>
 
