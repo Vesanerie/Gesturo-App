@@ -247,16 +247,37 @@ function renderSelectionPile() {
   for (const item of items) {
     const card = document.createElement('div')
     card.className = 'pile-card'
-    card.innerHTML =
-      (item.previewUrl
-        ? '<img class="pile-card-thumb" src="' + item.previewUrl + '" loading="lazy" onerror="this.style.display=\'none\'">'
-        : '<div class="pile-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px;">' + item.icon + '</div>') +
-      '<div class="pile-card-info">' +
-        '<div class="pile-card-name">' + item.label + '</div>' +
-        '<div class="pile-card-count">' + item.count + ' images</div>' +
-      '</div>' +
-      '<button class="pile-card-remove" title="Retirer">×</button>'
-    card.querySelector('.pile-card-remove').onclick = (e) => {
+    const thumb = document.createElement(item.previewUrl ? 'img' : 'div')
+    thumb.className = 'pile-card-thumb'
+    if (item.previewUrl) {
+      thumb.src = item.previewUrl
+      thumb.loading = 'lazy'
+      thumb.onerror = function() { this.style.display = 'none' }
+    } else {
+      thumb.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:18px;'
+      thumb.textContent = item.icon
+    }
+    card.appendChild(thumb)
+
+    const info = document.createElement('div')
+    info.className = 'pile-card-info'
+    const name = document.createElement('div')
+    name.className = 'pile-card-name'
+    name.textContent = item.label
+    const count = document.createElement('div')
+    count.className = 'pile-card-count'
+    count.textContent = item.count + ' images'
+    info.appendChild(name)
+    info.appendChild(count)
+    card.appendChild(info)
+
+    const removeBtn = document.createElement('button')
+    removeBtn.className = 'pile-card-remove'
+    removeBtn.title = 'Retirer'
+    removeBtn.textContent = '×'
+    card.appendChild(removeBtn)
+
+    removeBtn.onclick = (e) => {
       e.stopPropagation()
       card.classList.add('removing')
       setTimeout(() => {
