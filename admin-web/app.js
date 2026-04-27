@@ -1322,7 +1322,7 @@ $('prompt-input').addEventListener('keydown', (e) => {
 // Clic droit dans le vide → menu "Nouveau dossier"
 document.addEventListener('contextmenu', (e) => {
   if ($('screen-admin').classList.contains('hidden')) return;
-  if (!e.target.closest('#panel-files')) return;
+  if ($('panel-files').classList.contains('hidden')) return;
   if (e.target.closest('.grid-item')) return;
   if (e.target.closest('button, input, select, textarea, a, .ctx-menu, .modal-backdrop, .lightbox:not(.hidden)')) return;
   e.preventDefault();
