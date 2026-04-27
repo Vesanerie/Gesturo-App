@@ -33,6 +33,7 @@
         <button class="admin-nav-btn" data-panel="analytics">📈 Monitoring <span id="errors-badge" class="mod-badge hidden">0</span></button>
         <button class="admin-nav-btn" data-panel="system">⚙️ Config</button>
         <button class="admin-nav-btn" data-panel="blog">📝 Blog</button>
+        <button class="admin-nav-btn" data-panel="roadmap">🗺 Roadmap</button>
       </div>
       <div id="global-stats" class="global-stats muted" title="Cliquer pour rafraîchir">📊 Calcul…</div>
       <div class="user">
@@ -608,6 +609,113 @@ Regles :
 
       </div>
     </div><!-- /panel-blog -->
+
+    <!-- ═ ROADMAP MARKETING PANEL ═ -->
+    <div id="panel-roadmap" class="admin-panel hidden">
+      <div class="roadmap-container">
+        <div class="roadmap-header">
+          <h2>🗺 Roadmap Marketing & Communication</h2>
+          <div class="roadmap-actions">
+            <select id="roadmap-filter-cat" title="Filtrer par categorie">
+              <option value="all">Toutes categories</option>
+              <option value="marketing">Marketing</option>
+              <option value="communication">Communication</option>
+              <option value="social">Social Media</option>
+              <option value="contenu">Contenu</option>
+              <option value="partenariats">Partenariats</option>
+              <option value="pr">PR / Presse</option>
+              <option value="aso">ASO / SEO</option>
+              <option value="paid">Paid / Ads</option>
+            </select>
+            <button id="roadmap-add-btn" class="add-btn">＋ Nouvelle tache</button>
+          </div>
+        </div>
+        <div class="roadmap-board">
+          <div class="roadmap-column" data-status="todo">
+            <div class="roadmap-col-header">
+              <span class="roadmap-col-dot dot-todo"></span>
+              <span>A faire</span>
+              <span class="roadmap-col-count" id="roadmap-count-todo">0</span>
+            </div>
+            <div class="roadmap-col-items" id="roadmap-items-todo"></div>
+          </div>
+          <div class="roadmap-column" data-status="inprogress">
+            <div class="roadmap-col-header">
+              <span class="roadmap-col-dot dot-inprogress"></span>
+              <span>En cours</span>
+              <span class="roadmap-col-count" id="roadmap-count-inprogress">0</span>
+            </div>
+            <div class="roadmap-col-items" id="roadmap-items-inprogress"></div>
+          </div>
+          <div class="roadmap-column" data-status="done">
+            <div class="roadmap-col-header">
+              <span class="roadmap-col-dot dot-done"></span>
+              <span>Fait</span>
+              <span class="roadmap-col-count" id="roadmap-count-done">0</span>
+            </div>
+            <div class="roadmap-col-items" id="roadmap-items-done"></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /panel-roadmap -->
+
+    <!-- Roadmap task modal -->
+    <div id="roadmap-modal" class="modal-backdrop hidden">
+      <div class="modal roadmap-task-modal">
+        <h2 id="roadmap-modal-title">Nouvelle tache</h2>
+        <div class="form-group">
+          <label for="rm-title">Titre</label>
+          <input id="rm-title" type="text" placeholder="Ex : Campagne TikTok artistes" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="rm-desc">Description</label>
+          <textarea id="rm-desc" rows="3" placeholder="Details, liens, notes..." style="width:100%;font-size:13px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label for="rm-category">Categorie</label>
+            <select id="rm-category">
+              <option value="marketing">Marketing</option>
+              <option value="communication">Communication</option>
+              <option value="social">Social Media</option>
+              <option value="contenu">Contenu</option>
+              <option value="partenariats">Partenariats</option>
+              <option value="pr">PR / Presse</option>
+              <option value="aso">ASO / SEO</option>
+              <option value="paid">Paid / Ads</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="rm-priority">Priorite</label>
+            <select id="rm-priority">
+              <option value="low">Basse</option>
+              <option value="medium" selected>Moyenne</option>
+              <option value="high">Haute</option>
+              <option value="urgent">Urgente</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label for="rm-status">Statut</label>
+            <select id="rm-status">
+              <option value="todo">A faire</option>
+              <option value="inprogress">En cours</option>
+              <option value="done">Fait</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="rm-deadline">Deadline</label>
+            <input id="rm-deadline" type="date">
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button id="rm-delete" class="btn-danger" style="margin-right:auto;display:none;">Supprimer</button>
+          <button id="rm-cancel" class="btn-ghost">Annuler</button>
+          <button id="rm-save" class="add-btn">Enregistrer</button>
+        </div>
+      </div>
+    </div>
 
   </section>
 
