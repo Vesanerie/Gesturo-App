@@ -88,6 +88,11 @@ admin-web/
 
 ## Conventions / gotchas
 
+- **JAMAIS copier manuellement dans `www/`** — toujours utiliser
+  `node scripts/sync-web.js && npx cap sync ios`. Le script injecte les
+  `<script>` mobile (auth-mobile, mobile-shim, offline-manager,
+  supabase-config) dans www/index.html. Un `cp` direct écrase ces
+  injections et casse silencieusement tout le mobile.
 - **Onclick inline** : 74 `onclick=` dans index.html → fonctions globales.
   Ne pas convertir en `type="module"`. Si tu renommes une fonction, grep
   dans index.html.
