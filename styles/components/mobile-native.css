@@ -174,3 +174,78 @@
     width: 5px;
   }
 }
+
+/* ── 10. Skeleton loading (placeholders animés) ── */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.skeleton-card {
+  aspect-ratio: 4/3;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #111828 25%, #182034 50%, #111828 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease infinite;
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── 11. Toast notifications ── */
+.toast {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(17, 24, 40, 0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  max-width: calc(100% - 40px);
+  text-align: center;
+}
+.toast.toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.toast-success { border-color: rgba(168, 208, 144, 0.4); }
+.toast.toast-error { border-color: rgba(226, 75, 74, 0.4); }
+.toast.toast-info { border-color: rgba(184, 160, 216, 0.3); }
+
+/* ── 12. Pull-to-refresh indicator ── */
+.ptr-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 0;
+  overflow: hidden;
+  transition: height 0.2s ease;
+  color: #4a5870;
+  font-size: 13px;
+}
+.ptr-indicator.pulling {
+  height: 48px;
+}
+.ptr-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #182034;
+  border-top-color: #b8a0d8;
+  border-radius: 50%;
+  animation: ptr-spin 0.6s linear infinite;
+  margin-right: 8px;
+}
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}

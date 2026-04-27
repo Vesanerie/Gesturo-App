@@ -15,7 +15,7 @@
 .transform-btn.grid-active { color: #fff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.1); }
 .transform-btn { background: rgba(17,24,40,0.7); border: 0.5px solid #182034; border-radius: 6px; color: #4a5870; width: 32px; height: 32px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
 .transform-btn:hover { background: rgba(184,160,216,0.2); color: #fff; }
-#photo-area img, #photo-area canvas { transition: transform 0.06s ease; }
+#photo-area img, #photo-area canvas { transition: transform 0.06s ease, opacity 0.25s ease; }
 #session-bar { flex-shrink: 0; background: #0a0e18; border-top: 0.5px solid #182034; padding: 10px 24px; display: flex; align-items: center; gap: 16px; }
 /* Cercle countdown SVG */
 #countdown-circle { width: 48px; height: 48px; flex-shrink: 0; }

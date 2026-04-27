@@ -129,4 +129,63 @@
       if (typeof openEndConfirm === 'function') openEndConfirm('cinema')
     }
   }, { passive: true })
+
+  // ── PULL-TO-REFRESH sur la communauté ──
+  const communityFeed = document.getElementById('community-feed')
+  const communityOptions = document.getElementById('community-options')
+  if (communityOptions) {
+    let ptrStartY = 0, ptrActive = false
+    const ptrEl = document.createElement('div')
+    ptrEl.className = 'ptr-indicator'
+    ptrEl.innerHTML = '<div class="ptr-spinner"></div> Actualiser'
+    communityOptions.prepend(ptrEl)
+
+    communityOptions.addEventListener('touchstart', (e) => {
+      if (window.innerWidth > 1399) return
+      if (communityOptions.scrollTop > 5) return
+      ptrStartY = e.touches[0].clientY
+      ptrActive = true
+    }, { passive: true })
+
+    communityOptions.addEventListener('touchmove', (e) => {
+      if (!ptrActive) return
+      const dy = e.touches[0].clientY - ptrStartY
+      if (dy > 10 && communityOptions.scrollTop <= 0) {
+        ptrEl.classList.add('pulling')
+      }
+    }, { passive: true })
+
+    communityOptions.addEventListener('touchend', () => {
+      if (!ptrActive) return
+      ptrActive = false
+      if (ptrEl.classList.contains('pulling')) {
+        hapticMedium()
+        if (typeof renderCommunity === 'function') renderCommunity(true)
+        setTimeout(() => ptrEl.classList.remove('pulling'), 600)
+      }
+    }, { passive: true })
+  }
 })()
+
+// ══ TOAST SYSTEM ══
+// Usage: showToast('Message', 'success'|'error'|'info')
+let _toastTimer = null
+function showToast(message, type) {
+  type = type || 'info'
+  let el = document.getElementById('gesturo-toast')
+  if (!el) {
+    el = document.createElement('div')
+    el.id = 'gesturo-toast'
+    el.className = 'toast'
+    document.body.appendChild(el)
+  }
+  clearTimeout(_toastTimer)
+  el.textContent = message
+  el.className = 'toast toast-' + type
+  requestAnimationFrame(() => {
+    el.classList.add('toast-visible')
+  })
+  _toastTimer = setTimeout(() => {
+    el.classList.remove('toast-visible')
+  }, 2500)
+}

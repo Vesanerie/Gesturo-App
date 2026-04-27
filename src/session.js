@@ -45,7 +45,7 @@ async function startSession() {
     if (e.subcategory && selectedCats.has(e.category + '/' + e.subcategory)) return true
     return false
   })
-  if (pool.length === 0) { showAlertModal('Sélectionne au moins une catégorie pour démarrer.'); return }
+  if (pool.length === 0) { if (typeof showToast === 'function') showToast('Sélectionne au moins une catégorie', 'error'); else showAlertModal('Sélectionne au moins une catégorie pour démarrer.'); return }
   let imgPool = pool.filter(e => e.type === 'image')
   const pdfPool = pool.filter(e => e.type === 'pdf-pending' || e.type === 'pdf')
   pool = [...imgPool, ...pdfPool]; pool.sort(() => Math.random() - 0.5)
@@ -175,6 +175,9 @@ async function loadAndShow(idx) {
   const img = document.getElementById('photo-img'), canvas = document.getElementById('pdf-canvas')
   const ph = document.getElementById('photo-placeholder')
   img.style.display = 'none'; canvas.style.display = 'none'; ph.style.display = 'block'; ph.textContent = 'Chargement...'
+  // Crossfade : préparer le fade-in
+  img.style.opacity = '0'
+  canvas.style.opacity = '0'
   try {
     if (entry.type === 'pdf') {
       const page = await entry.pdfDoc.getPage(entry.pageNum)
@@ -184,10 +187,18 @@ async function loadAndShow(idx) {
       const vp = page.getViewport({ scale })
       canvas.width = vp.width; canvas.height = vp.height
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
-      ph.style.display = 'none'; canvas.style.display = 'block'; onPoseReady(entry)
+      ph.style.display = 'none'; canvas.style.display = 'block'
+      requestAnimationFrame(() => { canvas.style.opacity = '1' })
+      onPoseReady(entry)
     } else {
       const dataUrl = await getImageSrc(entry)
-      img.onload = () => { if (loading) { ph.style.display = 'none'; img.style.display = 'block'; onPoseReady(entry) } }
+      img.onload = () => {
+        if (loading) {
+          ph.style.display = 'none'; img.style.display = 'block'
+          requestAnimationFrame(() => { img.style.opacity = '1' })
+          onPoseReady(entry)
+        }
+      }
       img.onerror = () => {
         if (!loading) return
         // Image introuvable (404) — skip auto vers la suivante
