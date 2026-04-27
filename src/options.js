@@ -240,6 +240,8 @@ function closeOptionsSheet() {
 
   dd.addEventListener('touchstart', (e) => {
     if (window.innerWidth > 1399) return
+    // Ne pas capturer sur les sliders et boutons
+    if (e.target.closest('input[type="range"], button, a')) return
     sheetStartY = e.touches[0].clientY
     sheetTracking = true
   }, { passive: true })
@@ -259,7 +261,7 @@ function closeOptionsSheet() {
     const dy = e.changedTouches[0].clientY - sheetStartY
     dd.style.transition = ''
     dd.style.transform = ''
-    if (dy > 80) {
+    if (dy > 50) {
       hapticLight()
       closeOptionsSheet()
     }
