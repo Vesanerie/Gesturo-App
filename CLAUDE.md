@@ -115,7 +115,7 @@ admin-web/
 
 - Secrets uniquement côté Supabase function secrets, jamais dans le client.
 - Admin gating : `profiles.is_admin` vérifié par `requireAdmin()` server-side.
-  ADMIN_ALLOWED_ROOTS = `Sessions/`, `Animations/`.
+  ADMIN_ALLOWED_ROOTS = `Sessions/`, `Animations/`, `Blog/`, `Roadmap/`.
 - 🟠 **`webSecurity: false` + CSP vide** dans `main.js` — à tester/réactiver.
 - 🟡 Admin desktop legacy (`~/.gesturo-admin`) plus utilisé, à supprimer.
 
@@ -128,7 +128,7 @@ admin-web/
 - `Animations/current/` : 613 fichiers en 16 séquences, 5 thèmes
 - `Community/` : quelques fichiers (ne pas renommer)
 
-## Admin web — 8 onglets (live sur gesturo-admin.pages.dev)
+## Admin web — 9 onglets (live sur gesturo-admin.pages.dev)
 
 1. **Fichiers** — R2 browser, archive, upload, drag-drop, move picker
 2. **Challenges** — CRUD + R2 image picker
@@ -142,6 +142,10 @@ admin-web/
    poll 5min + refocus côté app
 7. **Système** — mode maintenance, feature flags, hard reset (password)
 8. **Erreurs** — stack traces, meta user, badge rouge nav, tout vider
+9. **Roadmap** — kanban marketing 3 colonnes, drag & drop, vue calendrier,
+   upload images R2 (Roadmap/), sous-tâches, 7 templates (Insta/TikTok/
+   Newsletter/Blog/Partenariat/Lancement/Événement), confetti, badges
+   deadline J-N, stale 14j, import/export JSON, persistance app_settings
 
 ## Tables Supabase
 
@@ -168,9 +172,7 @@ CI génère `latest-mac.yml` / `latest.yml`. Mobile = App Store / Play Store.
   `npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-api03-...`
 - **Phase D — Rotations** — DB prête (tables rotations/rotation_files).
   Reste : Edge Functions (create/schedule/execute) + UI admin.
-- **Email user / Broadcast email** — code prêt (Resend API, batches de 50,
-  onglet Broadcast + bouton Email dans profil user). Manque la clé :
-  `npx supabase secrets set RESEND_API_KEY=re_... RESEND_FROM="Gesturo <hello@gesturo.art>"`
+- ~~Email user / Broadcast email~~ — opérationnel (Resend API configuré)
 - **Stripe dashboard admin** — lire stripe-webhook, ajouter adminGetStripeData
 - **Bannière annonce sur gesturo.fr** — reprendre la modale dans le site
 - **1er run Android device** — iOS OK, Android pas encore testé
