@@ -33,6 +33,130 @@ function isProCategory(cat) {
 }
 function isFreeOnlyCategory(cat) { return FREE_ONLY_CATEGORIES.includes(cat.toLowerCase()) }
 
+// ── Long-press preview state ──
+let _longPressTriggered = false
+let _longPressTimer = null
+let _longPressTouchStart = null
+
+function _getCatEntries(catKey) {
+  const catData = categories[catKey]
+  if (!catData) return []
+  if (Array.isArray(catData)) return catData
+  const entries = catData.entries ? [...catData.entries] : []
+  const subs = catData.subcategories || {}
+  for (const sub of Object.values(subs)) {
+    entries.push(...sub)
+  }
+  return entries
+}
+
+function showCatPreview(catKey) {
+  _longPressTriggered = true
+  hapticMedium()
+  const entries = _getCatEntries(catKey)
+  // Shuffle + pick 6
+  const shuffled = entries.slice()
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  const picks = shuffled.slice(0, 6)
+  const catData = categories[catKey]
+  const totalCount = entries.length
+  const icon = getCatIcon(catKey)
+  const label = getCatLabel(catKey)
+
+  const overlay = document.createElement('div')
+  overlay.id = 'cat-preview-overlay'
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,12,22,0.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:9000;padding:24px;'
+
+  // Block all events from passing through
+  const stopAll = (e) => { e.stopPropagation(); e.preventDefault() }
+  overlay.addEventListener('click', stopAll, true)
+  overlay.addEventListener('touchstart', stopAll, { capture: true })
+  overlay.addEventListener('touchend', (e) => { stopAll(e); closeCatPreview() }, { capture: true })
+
+  const card = document.createElement('div')
+  card.style.cssText = 'background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:20px;max-width:360px;width:calc(100% - 48px);animation:cat-preview-in 0.2s ease-out;'
+
+  // Header
+  const header = document.createElement('div')
+  header.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:14px;'
+  header.innerHTML = '<span style="font-size:22px;">' + icon + '</span><div><div style="font-size:15px;font-weight:600;color:#fff;">' + label + '</div><div style="font-size:12px;color:#4a5870;margin-top:2px;">' + totalCount + ' poses</div></div>'
+  card.appendChild(header)
+
+  // Grid 3×2
+  if (picks.length > 0) {
+    const grid = document.createElement('div')
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;'
+    picks.forEach(entry => {
+      const img = document.createElement('img')
+      img.src = thumbUrl(entry.path, 300)
+      img.loading = 'eager'
+      img.style.cssText = 'width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;background:#0a1520;'
+      grid.appendChild(img)
+    })
+    card.appendChild(grid)
+  }
+
+  overlay.appendChild(card)
+  document.body.appendChild(overlay)
+}
+
+function closeCatPreview() {
+  const overlay = document.getElementById('cat-preview-overlay')
+  if (!overlay) return
+  const card = overlay.querySelector('div')
+  if (card) {
+    card.style.animation = 'cat-preview-out 0.15s ease-in forwards'
+    overlay.style.transition = 'opacity 0.15s ease-in'
+    overlay.style.opacity = '0'
+    setTimeout(() => overlay.remove(), 150)
+  } else {
+    overlay.remove()
+  }
+}
+
+function _attachLongPress(card, catKey) {
+  card.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 767) return
+    const t = e.touches[0]
+    _longPressTouchStart = { x: t.clientX, y: t.clientY, event: e }
+    _longPressTimer = setTimeout(() => {
+      _longPressTimer = null
+      showCatPreview(catKey)
+    }, 500)
+  }, { passive: true })
+
+  card.addEventListener('touchmove', (e) => {
+    if (!_longPressTimer || !_longPressTouchStart) return
+    const t = e.touches[0]
+    const dx = t.clientX - _longPressTouchStart.x
+    const dy = t.clientY - _longPressTouchStart.y
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      clearTimeout(_longPressTimer)
+      _longPressTimer = null
+      _longPressTouchStart = null
+    }
+  }, { passive: true })
+
+  card.addEventListener('touchend', () => {
+    if (_longPressTimer) {
+      clearTimeout(_longPressTimer)
+      _longPressTimer = null
+    }
+    _longPressTouchStart = null
+  }, { passive: true })
+
+  card.addEventListener('touchcancel', () => {
+    if (_longPressTimer) {
+      clearTimeout(_longPressTimer)
+      _longPressTimer = null
+    }
+    _longPressTouchStart = null
+  }, { passive: true })
+}
+
 function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity = false, locked = false) {
   const card = document.createElement('div')
   card.dataset.cat = key
@@ -69,6 +193,8 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
     card.addEventListener('touchstart', () => { card.classList.add('tap-active') }, { passive: true })
     card.addEventListener('touchend', () => { card.classList.remove('tap-active') }, { passive: true })
     card.addEventListener('touchcancel', () => { card.classList.remove('tap-active') }, { passive: true })
+    // Long-press preview (mobile only)
+    _attachLongPress(card, key)
   }
   return card
 }
@@ -106,7 +232,7 @@ function renderCategories(parentCat = null) {
       const entries = subs[sub]
       const isSelected = selectedCats.has(parentCat + '/' + sub)
       const card = buildCatCard(sub, parentCat + '/' + sub, entries.length, entries[0]?.path || null, isSelected, false, isNudity(parentCat))
-      card.onclick = () => toggleSubCat(parentCat, sub, card)
+      card.onclick = () => { if (_longPressTriggered) { _longPressTriggered = false; return }; toggleSubCat(parentCat, sub, card) }
       grid.appendChild(card)
     })
   } else {
@@ -125,12 +251,12 @@ function renderCategories(parentCat = null) {
       if (locked) {
         card.onclick = () => showUpgradeModal()
       } else if (hasSubs) {
-        card.onclick = () => renderCategories(cat)
+        card.onclick = () => { if (_longPressTriggered) { _longPressTriggered = false; return }; renderCategories(cat) }
         const arrow = document.createElement('div')
         arrow.style.cssText = 'position:absolute;top:8px;left:8px;background:rgba(10,14,24,0.7);border-radius:4px;padding:2px 6px;font-size:10px;color:#8898b0;'
         arrow.textContent = Object.keys(subs).length + ' collections →'
         card.appendChild(arrow)
-      } else { card.onclick = () => toggleCat(cat, card) }
+      } else { card.onclick = () => { if (_longPressTriggered) { _longPressTriggered = false; return }; toggleCat(cat, card) } }
       grid.appendChild(card)
     })
   }
