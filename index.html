@@ -240,15 +240,15 @@
       <div class="card">
         <h3>Mode</h3>
         <div class="sub-mode-cards" style="grid-template-columns:1fr 1fr 1fr">
-          <div class="sub-mode-card selected" data-amode="mix" onclick="selectAnimMode('mix')">
+          <div class="sub-mode-card selected" data-amode="mix">
             <div class="t">Mix</div>
             <div class="d">Boucle N× puis étude auto</div>
           </div>
-          <div class="sub-mode-card" data-amode="loop" onclick="selectAnimMode('loop')">
+          <div class="sub-mode-card" data-amode="loop">
             <div class="t">Boucle</div>
             <div class="d">Lecture en boucle libre</div>
           </div>
-          <div class="sub-mode-card" data-amode="study" onclick="selectAnimMode('study')">
+          <div class="sub-mode-card" data-amode="study">
             <div class="t">Étude</div>
             <div class="d">Image par image dès le départ</div>
           </div>
@@ -259,9 +259,9 @@
         <div class="row" style="margin-bottom:0">
           <label>Répétitions</label>
           <div style="display:flex;align-items:center;gap:10px;">
-            <button onclick="changeLoops(-1)" style="background:#2e2e2e;border:0.5px solid #444;border-radius:6px;color:#ccc;width:28px;height:28px;cursor:pointer;font-size:16px;">−</button>
+            <button id="btn-loops-minus" style="background:#2e2e2e;border:0.5px solid #444;border-radius:6px;color:#ccc;width:28px;height:28px;cursor:pointer;font-size:16px;">−</button>
             <span id="loop-count-val" style="font-size:15px;font-weight:500;color:#fff;min-width:20px;text-align:center;">3</span>
-            <button onclick="changeLoops(1)" style="background:#2e2e2e;border:0.5px solid #444;border-radius:6px;color:#ccc;width:28px;height:28px;cursor:pointer;font-size:16px;">+</button>
+            <button id="btn-loops-plus" style="background:#2e2e2e;border:0.5px solid #444;border-radius:6px;color:#ccc;width:28px;height:28px;cursor:pointer;font-size:16px;">+</button>
             <span style="font-size:13px;color:#555;">fois</span>
           </div>
         </div>
@@ -508,7 +508,7 @@
   <div id="anim-photo-area">
     <img id="anim-img" src="" alt="frame">
     <div id="anim-overlay">
-      <div class="anim-big-btn" id="anim-play-btn" role="button" aria-label="Lecture" onclick="toggleAnimLoop()">▶</div>
+      <div class="anim-big-btn" id="anim-play-btn" role="button" aria-label="Lecture">▶</div>
     </div>
     <div id="anim-mode-badge" class="loop">Boucle</div>
     <div id="anim-frame-info">Image 1 / 1</div>
@@ -524,18 +524,18 @@
         <div id="study-timer">0:30</div>
         <div id="study-prog-wrap"><div id="study-prog-bar"></div></div>
       </div>
-      <button class="s-btn s-btn-blue" id="btn-loop-again" onclick="playOnce()" style="display:none">↺ Revoir</button>
-      <button class="s-btn s-btn-blue" id="btn-study" onclick="enterStudyMode()" style="display:none">Étudier →</button>
-      <button class="s-btn" id="btn-anim-pause" onclick="toggleAnimLoop()" style="display:none">Pause</button>
-      <button class="s-btn" id="btn-anim-prev" onclick="animPrevFrame()" style="display:none" disabled>←</button>
-      <button class="s-btn" id="btn-anim-next" onclick="animNextFrame()" style="display:none" disabled>→</button>
-      <button class="s-btn s-btn-danger" onclick="openEndConfirm('anim')">Terminer</button>
+      <button class="s-btn s-btn-blue" id="btn-loop-again" style="display:none">↺ Revoir</button>
+      <button class="s-btn s-btn-blue" id="btn-study" style="display:none">Étudier →</button>
+      <button class="s-btn" id="btn-anim-pause" style="display:none">Pause</button>
+      <button class="s-btn" id="btn-anim-prev" style="display:none" disabled>←</button>
+      <button class="s-btn" id="btn-anim-next" style="display:none" disabled>→</button>
+      <button class="s-btn s-btn-danger" id="btn-end-anim">Terminer</button>
     </div>
   </div>
 </div>
 
 <!-- Modale confirm Terminer — commune aux 3 modes -->
-<div id="end-confirm-modal" onclick="if(event.target===this)closeEndConfirm()">
+<div id="end-confirm-modal">
   <span>Terminer la session ?</span>
   <button class="s-btn s-btn-danger-solid" id="end-confirm-yes">Oui, terminer</button>
   <button class="s-btn" id="end-confirm-cancel">Annuler</button>
@@ -553,7 +553,7 @@
     </div>
     <div class="end-btns">
       <button class="end-btn end-btn-primary" id="btn-new-session">Retour au menu</button>
-      <button class="end-btn" onclick="replaySession()">Recommencer</button>
+      <button class="end-btn" id="btn-replay">Recommencer</button>
       <button class="end-btn end-btn-share" id="btn-share-drawing" onclick="openShareDrawing()">Partager mon dessin</button>
     </div>
     <!-- Upload overlay -->

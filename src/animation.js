@@ -383,3 +383,26 @@ function closeLightbox() {
   document.removeEventListener('keydown', onLbKey)
 }
 function onLbKey(e) { if (e.key === 'Escape') closeLightbox() }
+
+function _initAnimationListeners() {
+  document.querySelectorAll('.sub-mode-card[data-amode]').forEach(function(c) {
+    c.addEventListener('click', function() { selectAnimMode(this.dataset.amode) })
+  })
+  document.getElementById('btn-loops-minus').addEventListener('click', function() { changeLoops(-1) })
+  document.getElementById('btn-loops-plus').addEventListener('click', function() { changeLoops(1) })
+  document.getElementById('anim-play-btn').addEventListener('click', toggleAnimLoop)
+  document.getElementById('btn-loop-again').addEventListener('click', playOnce)
+  document.getElementById('btn-study').addEventListener('click', enterStudyMode)
+  document.getElementById('btn-anim-pause').addEventListener('click', toggleAnimLoop)
+  document.getElementById('btn-anim-prev').addEventListener('click', animPrevFrame)
+  document.getElementById('btn-anim-next').addEventListener('click', animNextFrame)
+  document.getElementById('btn-end-anim').addEventListener('click', function() { openEndConfirm('anim') })
+  document.getElementById('end-confirm-modal').addEventListener('click', function(e) { if (e.target === this) closeEndConfirm() })
+  document.getElementById('btn-replay').addEventListener('click', replaySession)
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initAnimationListeners)
+} else {
+  _initAnimationListeners()
+}
