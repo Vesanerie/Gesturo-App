@@ -908,7 +908,7 @@ let _communityTab = 'feed'
 
 function startCommunityRefresh() {
   if (communityInterval) clearInterval(communityInterval)
-  communityInterval = setInterval(() => { if (mainMode === 'community') { if (_communityTab === 'feed') renderCommunity() } }, 60 * 1000)
+  communityInterval = setInterval(() => { if (mainMode === 'community' && _communityTab === 'feed' && !_uploading) renderCommunity() }, 60 * 1000)
   // Live countdown update every second
   if (_countdownInterval) clearInterval(_countdownInterval)
   _countdownInterval = setInterval(updateChallengeCountdown, 1000)

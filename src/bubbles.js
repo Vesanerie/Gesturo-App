@@ -33,7 +33,11 @@
     if (Math.random() < 0.04) bubbles.push(createBubble())
     if (bubbles.length < 18) bubbles.push(createBubble())
   }
-  function loop() { update(); draw(); requestAnimationFrame(loop) }
+  function loop() {
+    const configActive = document.getElementById('screen-config')?.classList.contains('active')
+    if (configActive || !welcomeDone) { update(); draw() }
+    requestAnimationFrame(loop)
+  }
   resize(); window.addEventListener('resize', resize)
   for (let i = 0; i < 160; i++) bubbles.push(createBubble(true))
   setTimeout(() => { welcomeDone = true }, 4000); loop()

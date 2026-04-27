@@ -284,7 +284,13 @@ function renderSelectionPile() {
       card.classList.add('removing')
       setTimeout(() => {
         selectedCats.delete(item.key)
-        renderCategories()
+        // Mettre à jour la card correspondante dans la grille sans full rebuild
+        const catCard = document.querySelector('[data-cat="' + item.key + '"]')
+        if (catCard) {
+          const nudity = isNudity(item.key.split('/')[0])
+          applyCatVisual(catCard, false, nudity)
+        }
+        updateAllBtn()
         renderSelectionPile()
       }, 150)
     }
@@ -366,7 +372,12 @@ function updateAllBtn() {
 }
 
 function renderSequences(parentPath = null) {
-  const wrap = document.getElementById('sequences-wrap'); wrap.innerHTML = ''
+  const wrap = document.getElementById('sequences-wrap')
+  // Nettoyer les intervals de preview animation avant de détruire les cards
+  wrap.querySelectorAll('div').forEach(card => {
+    if (card._previewInterval) { clearInterval(card._previewInterval); card._previewInterval = null }
+  })
+  wrap.innerHTML = ''
   if (Object.keys(sequences).length === 0) {
     wrap.innerHTML = '<div style="font-size:13px;color:#4a5870;text-align:center;padding:20px 0;">Aucune séquence disponible.</div>'; return
   }
@@ -511,9 +522,13 @@ function buildSeqCard(label, previewUrl, isSelected, isLocked, isFolder, frameCo
 async function selectSeqPreload(seq) {
   if (preloadCache[seq]) return
   const paths = sequences[seq].paths
-  await Promise.all(paths.map(p => new Promise(resolve => {
-    const img = new Image(); img.onload = img.onerror = resolve; img.src = isR2Mode ? p : 'file://' + p
-  })))
+  // Charger par batches de 10 pour ne pas saturer les connexions réseau
+  const BATCH = 10
+  for (let i = 0; i < paths.length; i += BATCH) {
+    await Promise.all(paths.slice(i, i + BATCH).map(p => new Promise(resolve => {
+      const img = new Image(); img.onload = img.onerror = resolve; img.src = isR2Mode ? p : 'file://' + p
+    })))
+  }
   preloadCache[seq] = true
 }
 
