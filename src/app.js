@@ -326,6 +326,17 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
   document.getElementById(id).classList.add('active')
   const visible = id === 'screen-config'
+  // Cacher la pile de sélection quand on quitte l'écran Config
+  const pile = document.getElementById('selection-pile')
+  const miniBar = document.getElementById('pile-mini-bar')
+  const screenConfig = document.getElementById('screen-config')
+  if (!visible) {
+    if (pile) pile.classList.add('pile-hidden')
+    if (miniBar) miniBar.classList.add('pile-hidden')
+    if (screenConfig) screenConfig.classList.remove('has-pile')
+  } else if (mainMode === 'pose') {
+    renderSelectionPile()
+  }
   document.getElementById('options-btn').style.display = visible ? 'flex' : 'none'
   document.getElementById('discord-btn').style.display = visible ? 'flex' : 'none'
   document.getElementById('profile-btn').style.display = visible ? 'flex' : 'none'

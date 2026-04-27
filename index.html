@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Gesturo">
   <meta name="theme-color" content="#0a1520">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; media-src 'self' data: blob:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; media-src 'self' data: blob:;">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -423,6 +423,24 @@
       </div>
         </div>
   </div>
+  <!-- ═ PILE DE SÉLECTION ═ -->
+  <div id="selection-pile" class="pile-hidden">
+    <div id="pile-header">
+      <span id="pile-title">Sélection</span>
+      <button id="pile-clear" onclick="clearSelectionPile()">Tout vider</button>
+    </div>
+    <div id="pile-cards"></div>
+    <div id="pile-footer">
+      <span id="pile-total"></span>
+    </div>
+  </div>
+
+  <!-- ═ MINI BARRE MOBILE (résumé sticky bottom) ═ -->
+  <div id="pile-mini-bar" class="pile-hidden" onclick="togglePileSheet()">
+    <span id="pile-mini-text"></span>
+    <span id="pile-mini-arrow">▲</span>
+  </div>
+
   <div id="start-bar">
     <button class="btn-start" id="btn-start" onclick="startSession()" disabled>Démarrer</button>
     <button class="btn-start" id="btn-cinema-start" onclick="startCinemaSession()" style="display:none;background:#1a4a7a;border:0.5px solid #2983eb;">🎬 Démarrer la session cinéma</button>

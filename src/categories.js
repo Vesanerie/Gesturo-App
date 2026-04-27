@@ -1,4 +1,12 @@
 
+// ══ THUMBNAIL PROXY ══
+// wsrv.nl redimensionne + convertit en webp à la volée, CDN caché.
+// Utilisé pour les previews animation (petites images au lieu de full-size).
+function thumbUrl(url, w = 200) {
+  if (!url || !url.startsWith('http')) return url
+  return 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&w=' + w + '&output=webp&q=60'
+}
+
 // ══ CATÉGORIES ══
 const CAT_ICONS = { 'animals': '🐾', 'jambes-pieds': '🦵', 'mains': '🤲', 'nudite': '🔞', 'poses-dynamiques': '⚡', 'visage': '👤' }
 function getCatIcon(cat) { return CAT_ICONS[cat.toLowerCase()] || '📁' }
@@ -120,6 +128,7 @@ function renderCategories(parentCat = null) {
       grid.appendChild(card)
     })
   }
+  renderSelectionPile()
 }
 
 function showUpgradeModal() {
@@ -145,91 +154,163 @@ function applyCatVisual(card, selected, nudity) {
   }
 }
 
-// Modale à 2 choix positifs (Ajouter / Remplacer) + fermeture. Utilisée
-// quand l'user clique sur un 2e pack alors qu'une sélection existe déjà.
-function showCatChoiceModal(catLabel, onAdd, onReplace) {
-  let overlay = document.getElementById('generic-modal-overlay')
-  if (overlay) overlay.remove()
-  overlay = document.createElement('div')
-  overlay.id = 'generic-modal-overlay'
-  overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(5,12,22,0.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;z-index:9000;padding:24px;'
-  overlay.innerHTML =
-    '<div style="background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:28px;max-width:380px;width:100%;text-align:center;">' +
-    '<p style="font-size:15px;color:#fff;margin:0 0 8px;line-height:1.5;font-weight:600;">Ajouter « ' + catLabel + ' » ?</p>' +
-    '<p style="font-size:13px;color:#8aaccc;margin:0 0 22px;line-height:1.5;">Tu as déjà une sélection. Veux-tu cumuler les packs ou repartir de zéro ?</p>' +
-    '<div style="display:flex;flex-direction:column;gap:8px;">' +
-    '<button id="gm-add" style="width:100%;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:#2983eb;border:none;color:#fff;font-weight:600;cursor:pointer;">➕ Ajouter à la sélection</button>' +
-    '<button id="gm-replace" style="width:100%;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);cursor:pointer;">🔄 Remplacer la sélection</button>' +
-    '<button id="gm-cancel-choice" style="width:100%;min-height:40px;padding:10px;font-size:13px;border-radius:10px;background:transparent;border:none;color:#4a6280;cursor:pointer;">Annuler</button>' +
-    '</div></div>'
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
-  document.body.appendChild(overlay)
-  document.getElementById('gm-add').onclick = () => { overlay.remove(); onAdd() }
-  document.getElementById('gm-replace').onclick = () => { overlay.remove(); onReplace() }
-  document.getElementById('gm-cancel-choice').onclick = () => overlay.remove()
-}
-
 function toggleCat(cat, card) {
   const nudity = isNudity(cat)
-  // Cas 1 : catégorie déjà sélectionnée → retirer (peut ramener à 0)
   if (selectedCats.has(cat)) {
     selectedCats.delete(cat)
     applyCatVisual(card, false, nudity)
-    updateAllBtn()
-    return
-  }
-  // Cas 2 : rien de sélectionné → ajouter directement
-  if (selectedCats.size === 0) {
+  } else {
     selectedCats.add(cat)
     applyCatVisual(card, true, nudity)
-    updateAllBtn()
-    return
   }
-  // Cas 3 : d'autres packs déjà sélectionnés → demander Ajouter / Remplacer
-  showCatChoiceModal(getCatLabel(cat),
-    () => {
-      // Ajouter à la sélection existante
-      selectedCats.add(cat)
-      applyCatVisual(card, true, nudity)
-      updateAllBtn()
-    },
-    () => {
-      // Remplacer : on clear et on ne garde que celle-ci.
-      // renderCategories() rebuild la grille → visuels réinitialisés proprement.
-      selectedCats.clear()
-      selectedCats.add(cat)
-      renderCategories()
-    }
-  )
+  updateAllBtn()
+  renderSelectionPile()
 }
 
 function toggleSubCat(parentCat, sub, card) {
   const key = parentCat + '/' + sub
   const nudity = isNudity(parentCat)
-  // Cas 1 : déjà sélectionnée → retirer
   if (selectedCats.has(key)) {
     selectedCats.delete(key)
     applyCatVisual(card, false, nudity)
-    return
-  }
-  // Cas 2 : rien de sélectionné → ajouter directement
-  if (selectedCats.size === 0) {
+  } else {
     selectedCats.add(key)
     applyCatVisual(card, true, nudity)
+  }
+  renderSelectionPile()
+}
+
+// ── Pile de sélection ──
+// Affiche en temps réel les packs sélectionnés dans un panel latéral (desktop/tablet)
+// ou une mini barre résumé (mobile). Appelée à chaque modification de selectedCats.
+function renderSelectionPile() {
+  const pile = document.getElementById('selection-pile')
+  const miniBar = document.getElementById('pile-mini-bar')
+  const cardsWrap = document.getElementById('pile-cards')
+  const totalEl = document.getElementById('pile-total')
+  const miniText = document.getElementById('pile-mini-text')
+  if (!pile) return
+
+  const items = []
+  for (const key of selectedCats) {
+    const parts = key.split('/')
+    const isSubCat = parts.length > 1
+    const rootCat = parts[0]
+    const subName = isSubCat ? parts[1] : null
+    let count = 0, previewUrl = null, label = ''
+
+    if (isSubCat) {
+      const catData = categories[rootCat]
+      const subs = catData?.subcategories || {}
+      const entries = subs[subName] || []
+      count = entries.length
+      previewUrl = entries[0]?.path || null
+      label = getCatLabel(subName)
+    } else {
+      const catData = categories[rootCat]
+      const entries = Array.isArray(catData) ? catData : (catData?.entries || [])
+      const subs = Array.isArray(catData) ? {} : (catData?.subcategories || {})
+      count = entries.length
+      if (Object.keys(subs).length > 0 && count === 0) {
+        for (const s of Object.values(subs)) count += s.length
+        const firstSub = Object.values(subs)[0]
+        previewUrl = firstSub?.[0]?.path || null
+      } else {
+        previewUrl = entries[0]?.path || null
+      }
+      label = getCatLabel(rootCat)
+    }
+    items.push({ key, label, count, previewUrl, icon: getCatIcon(isSubCat ? subName : rootCat) })
+  }
+
+  const screenConfig = document.getElementById('screen-config')
+
+  // Masquer si rien de sélectionné
+  if (items.length === 0) {
+    pile.classList.add('pile-hidden')
+    if (miniBar) miniBar.classList.add('pile-hidden')
+    if (screenConfig) screenConfig.classList.remove('has-pile')
+    const overlay = document.getElementById('pile-sheet-overlay')
+    if (overlay) overlay.classList.remove('visible')
+    pile.classList.remove('sheet-open')
+    if (miniBar) miniBar.classList.remove('sheet-open')
     return
   }
-  // Cas 3 : d'autres packs sélectionnés → demander
-  showCatChoiceModal(sub,
-    () => {
-      selectedCats.add(key)
-      applyCatVisual(card, true, nudity)
-    },
-    () => {
-      selectedCats.clear()
-      selectedCats.add(key)
-      renderCategories(parentCat)
+
+  // Afficher
+  pile.classList.remove('pile-hidden')
+  if (screenConfig) screenConfig.classList.add('has-pile')
+
+  const totalCount = items.reduce((s, i) => s + i.count, 0)
+  cardsWrap.innerHTML = ''
+
+  for (const item of items) {
+    const card = document.createElement('div')
+    card.className = 'pile-card'
+    card.innerHTML =
+      (item.previewUrl
+        ? '<img class="pile-card-thumb" src="' + item.previewUrl + '" loading="lazy" onerror="this.style.display=\'none\'">'
+        : '<div class="pile-card-thumb" style="display:flex;align-items:center;justify-content:center;font-size:18px;">' + item.icon + '</div>') +
+      '<div class="pile-card-info">' +
+        '<div class="pile-card-name">' + item.label + '</div>' +
+        '<div class="pile-card-count">' + item.count + ' images</div>' +
+      '</div>' +
+      '<button class="pile-card-remove" title="Retirer">×</button>'
+    card.querySelector('.pile-card-remove').onclick = (e) => {
+      e.stopPropagation()
+      card.classList.add('removing')
+      setTimeout(() => {
+        selectedCats.delete(item.key)
+        renderCategories()
+        renderSelectionPile()
+      }, 150)
     }
-  )
+    cardsWrap.appendChild(card)
+  }
+
+  totalEl.textContent = totalCount + ' image' + (totalCount > 1 ? 's' : '') + ' au total'
+
+  // Mini barre mobile
+  if (miniBar) {
+    const isMobile = window.innerWidth <= 767
+    if (isMobile) {
+      miniBar.classList.remove('pile-hidden')
+      miniText.textContent = items.length + ' pack' + (items.length > 1 ? 's' : '') + ' · ' + totalCount + ' images'
+    } else {
+      miniBar.classList.add('pile-hidden')
+    }
+  }
+}
+
+function clearSelectionPile() {
+  selectedCats.clear()
+  renderCategories()
+  renderSelectionPile()
+}
+
+function togglePileSheet() {
+  const pile = document.getElementById('selection-pile')
+  const miniBar = document.getElementById('pile-mini-bar')
+  if (!pile) return
+  const isOpen = pile.classList.contains('sheet-open')
+
+  let overlay = document.getElementById('pile-sheet-overlay')
+  if (!overlay) {
+    overlay = document.createElement('div')
+    overlay.id = 'pile-sheet-overlay'
+    overlay.onclick = () => togglePileSheet()
+    document.body.appendChild(overlay)
+  }
+
+  if (isOpen) {
+    pile.classList.remove('sheet-open')
+    if (miniBar) miniBar.classList.remove('sheet-open')
+    overlay.classList.remove('visible')
+  } else {
+    pile.classList.add('sheet-open')
+    if (miniBar) miniBar.classList.add('sheet-open')
+    overlay.classList.add('visible')
+  }
 }
 
 // Retourne true si une catégorie racine est verrouillée (Pro-only pour un
@@ -250,6 +331,7 @@ function toggleAllCats() {
   if (all) selectedCats.clear()
   else selectable.forEach(c => selectedCats.add(c))
   renderCategories()
+  renderSelectionPile()
 }
 
 function updateAllBtn() {
@@ -306,7 +388,7 @@ function renderSequences(parentPath = null) {
   // Helpers pour render — extraits pour permettre un ordre custom selon plan
   const renderFolder = (previewUrl, folderPath) => {
     const label = folderPath.split('/').pop()
-    const card = buildSeqCard(label, previewUrl, false, false, true)
+    const card = buildSeqCard(label, isR2Mode ? thumbUrl(previewUrl, 250) : previewUrl, false, false, true)
     card.onclick = () => renderSequences(folderPath)
     const count = Object.keys(sequences).filter(s => s.startsWith(folderPath + '/')).length
     const arrow = document.createElement('div')
@@ -321,7 +403,7 @@ function renderSequences(parentPath = null) {
     // même si le client a reçu leur preview (sécu redondante).
     const isLocked = !currentUserIsPro && isR2Mode && (seq !== _freeAllowedSeq || data.locked)
     const isSelected = selectedSeq === seq
-    const previewUrl = isR2Mode ? data.paths[0] : 'file://' + data.paths[0]
+    const previewUrl = isR2Mode ? thumbUrl(data.paths[0], 250) : 'file://' + data.paths[0]
     const label = seq.split('/').pop()
     const card = buildSeqCard(label, previewUrl, isSelected, isLocked, false, data.paths.length, seq)
     card.onclick = () => {
@@ -371,26 +453,28 @@ function buildSeqCard(label, previewUrl, isSelected, isLocked, isFolder, frameCo
     badge.textContent = '✓'; card.appendChild(badge)
   }
   if (!isFolder && seq && sequences[seq]) {
-    let hoverInterval = null; let previewFrames = []; let previewLoaded = false; let frameIdx = 0
-    const paths = sequences[seq].paths.slice(0, 10)
-    const loadPreviews = () => {
-      if (previewLoaded) return Promise.resolve()
-      return Promise.all(paths.map(p => new Promise(resolve => {
-        const i = new Image(); const src = isR2Mode ? p : 'file://' + p
+    // Preview animation : se lance uniquement sur la card sélectionnée (au clic).
+    // renderSequences() recrée les cards → seule la card avec isSelected=true joue.
+    if (isSelected) {
+      let frameIdx = 0; const previewFrames = []
+      // Échantillonner 10 frames réparties sur toute la séquence
+      const allPaths = sequences[seq].paths
+      const sampleCount = Math.min(10, allPaths.length)
+      const paths = []
+      for (let i = 0; i < sampleCount; i++) {
+        paths.push(allPaths[Math.floor(i * allPaths.length / sampleCount)])
+      }
+      Promise.all(paths.map(p => new Promise(resolve => {
+        const i = new Image(); const src = isR2Mode ? thumbUrl(p, 200) : 'file://' + p
         i.onload = () => { previewFrames.push(src); resolve() }; i.onerror = resolve; i.src = src
-      }))).then(() => { previewLoaded = true })
+      }))).then(() => {
+        if (previewFrames.length === 0) return
+        frameIdx = 0; img.src = previewFrames[0]; img.style.opacity = '1'; img.style.transition = 'none'
+        card._previewInterval = setInterval(() => { frameIdx = (frameIdx + 1) % previewFrames.length; img.src = previewFrames[frameIdx] }, 150)
+      })
     }
-    setTimeout(() => loadPreviews(), 200)
-    card.addEventListener('mouseenter', async () => {
-      card.style.transform = 'translateY(-2px)'; await loadPreviews()
-      if (previewFrames.length === 0) return
-      frameIdx = 0; img.src = previewFrames[0]; img.style.opacity = '1'; img.style.transition = 'none'
-      hoverInterval = setInterval(() => { frameIdx = (frameIdx + 1) % previewFrames.length; img.src = previewFrames[frameIdx] }, 150)
-    })
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = ''; clearInterval(hoverInterval); hoverInterval = null
-      img.style.transition = 'opacity 0.3s'; img.src = previewUrl || ''; img.style.opacity = isSelected ? '1' : '0.45'
-    })
+    card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-2px)' })
+    card.addEventListener('mouseleave', () => { card.style.transform = '' })
   } else {
     card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-2px)' })
     card.addEventListener('mouseleave', () => { card.style.transform = '' })
@@ -444,6 +528,17 @@ function switchMainMode(mode) {
     document.getElementById('btn-cinema-start').style.display = 'none'
     document.getElementById('btn-start').style.display = (mode === 'favs' || mode === 'hist' || mode === 'community') ? 'none' : 'block'
   }
+  // Pile de sélection visible uniquement en mode Poses
+  const pile = document.getElementById('selection-pile')
+  const miniBar = document.getElementById('pile-mini-bar')
+  const screenConfig = document.getElementById('screen-config')
+  if (mode === 'pose') {
+    renderSelectionPile()
+  } else {
+    if (pile) pile.classList.add('pile-hidden')
+    if (miniBar) miniBar.classList.add('pile-hidden')
+    if (screenConfig) screenConfig.classList.remove('has-pile')
+  }
   if (mode === 'favs') renderFavsConfig()
   if (mode === 'hist') renderHist()
   if (mode === 'community') { renderCommunity(); startCommunityRefresh() }
@@ -461,3 +556,4 @@ function switchMainMode(mode) {
 }
 
 const preloadCache = {}
+

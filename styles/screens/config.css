@@ -196,7 +196,7 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
 
 .btn-start { width: 100%; padding: 13px; background: #2983eb; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
 .btn-start:disabled { opacity: 0.3; cursor: not-allowed; }
-#start-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px 20px 24px; background: linear-gradient(transparent, #0f1923 40%); z-index: 100; display: flex; justify-content: center; }
+#start-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 16px 20px 24px; background: linear-gradient(transparent, #0f1923 40%); z-index: 250; display: flex; justify-content: center; }
 #start-bar .btn-start { width: 540px; max-width: calc(100% - 40px); }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -1030,4 +1030,235 @@ input[type=number], select { background: #162030; border: 0.5px solid #1e2d40; b
     font-weight: 600;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   PILE DE SÉLECTION — sidebar fixe à droite, symétrique à la nav gauche.
+   Le contenu principal se réduit via padding-right quand la pile est visible.
+   Mobile : mini barre résumé en bas, tap ouvre un bottom sheet.
+   ───────────────────────────────────────────────────────────────────── */
+
+:root {
+  --pile-width: 260px;
+}
+
+#selection-pile {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--pile-width);
+  background: #0c1620;
+  border-left: 0.5px solid #1e2d40;
+  padding: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Quand la pile est visible, le contenu principal se décale */
+#screen-config.has-pile {
+  padding-right: calc(var(--pile-width) + 32px) !important;
+}
+/* start-bar ne bouge pas quand la pile est visible — même largeur toujours */
+
+#pile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 18px 14px;
+  border-bottom: 0.5px solid #1e2d40;
+  flex-shrink: 0;
+}
+#pile-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6a8aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+#pile-clear {
+  background: none;
+  border: none;
+  color: #E24B4A;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.06s;
+}
+#pile-clear:hover { background: rgba(226,75,74,0.12); }
+
+#pile-cards {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#pile-cards::-webkit-scrollbar { width: 4px; }
+#pile-cards::-webkit-scrollbar-thumb { background: #1e2d40; border-radius: 4px; }
+
+.pile-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #131f2e;
+  border: 0.5px solid #1e2d40;
+  border-radius: 10px;
+  padding: 10px 12px;
+  animation: pile-slide-in 0.2s ease-out;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.pile-card.removing {
+  opacity: 0;
+  transform: translateX(40px);
+}
+.pile-card-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #0f1923;
+}
+.pile-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.pile-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pile-card-count {
+  font-size: 11px;
+  color: #4a6280;
+  margin-top: 2px;
+}
+.pile-card-remove {
+  background: none;
+  border: none;
+  color: #3a5570;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: color 0.06s, background 0.06s;
+  line-height: 1;
+}
+.pile-card-remove:hover {
+  color: #E24B4A;
+  background: rgba(226,75,74,0.12);
+}
+
+#pile-footer {
+  padding: 14px 18px 18px;
+  border-top: 0.5px solid #1e2d40;
+  text-align: center;
+  flex-shrink: 0;
+}
+#pile-total {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2983eb;
+}
+
+@keyframes pile-slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Mini barre mobile — cachée sur desktop/tablet */
+#pile-mini-bar { display: none; }
+
+/* Classe utilitaire pour cacher pile/minibar via JS (bat les !important media) */
+.pile-hidden { display: none !important; }
+
+/* ── MOBILE (≤767px) : bottom sheet ── */
+@media (max-width: 767px) {
+  :root { --pile-width: 100%; }
+
+  #selection-pile {
+    top: auto;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 55vh;
+    border-left: none;
+    border-radius: 18px 18px 0 0;
+    border-top: 0.5px solid #1e2d40;
+    z-index: 600;
+    transform: translateY(100%);
+    transition: transform 0.25s ease-out;
+  }
+  #selection-pile.sheet-open {
+    transform: translateY(0);
+  }
+
+  /* Pas de décalage du contenu sur mobile */
+  #screen-config.has-pile {
+    padding-right: 14px !important;
+  }
+  #screen-config.has-pile + #start-bar,
+  #screen-config.has-pile ~ #start-bar {
+    right: 0;
+  }
+
+  #pile-mini-bar {
+    display: flex;
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 60px + 70px);
+    left: 16px;
+    right: 16px;
+    background: rgba(12,22,32,0.92);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 0.5px solid #1e2d40;
+    border-radius: 12px;
+    padding: 12px 16px;
+    z-index: 501;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  #pile-mini-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+  #pile-mini-arrow {
+    font-size: 12px;
+    color: #2983eb;
+    transition: transform 0.2s;
+  }
+  #pile-mini-bar.sheet-open #pile-mini-arrow {
+    transform: rotate(180deg);
+  }
+}
+
+/* ── TABLET (768-1399px) ── */
+@media (min-width: 768px) and (max-width: 1399px) {
+  :root { --pile-width: 240px; }
+}
+
+/* ── DESKTOP (≥1400px) ── */
+@media (min-width: 1400px) {
+  :root { --pile-width: 260px; }
+}
+
+/* Overlay derrière le bottom sheet mobile */
+#pile-sheet-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 599;
+}
+#pile-sheet-overlay.visible { display: block; }
 

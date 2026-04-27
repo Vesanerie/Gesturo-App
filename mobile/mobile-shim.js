@@ -291,10 +291,10 @@
         return data || [];
       } catch (e) { return []; }
     },
-    deleteCommunityPost: async (id) => {
+    deleteCommunityPost: async (postId) => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();
-        const { data } = await sb.functions.invoke('user-data', { body: { action: 'deleteCommunityPost', payload: { id } } });
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'deleteCommunityPost', payload: { postId } } });
         return data || { success: false };
       } catch (e) { return { success: false }; }
     },
