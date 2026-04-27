@@ -56,3 +56,59 @@
 .about-close:hover { background:#1a2840; }
 .about-upgrade { width:100%; margin-top:8px; padding:10px; background:#b8a0d8; border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
 .about-upgrade:hover { background:#1a6fd4; }
+
+/* ── BOTTOM SHEET MOBILE ── */
+@media (max-width: 767px) {
+  #options-dropdown {
+    display: block !important;
+    position: fixed;
+    top: auto !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 18px 18px 0 0;
+    min-width: unset;
+    max-height: 80vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    z-index: 10001;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    pointer-events: none;
+  }
+  #options-dropdown.open {
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  /* Handle bar */
+  #options-dropdown::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 auto 10px;
+  }
+  /* Bigger touch targets */
+  #options-dropdown .opt-item {
+    min-height: 48px;
+    font-size: 15px;
+  }
+  #options-dropdown .opt-bgm-row {
+    min-height: 48px;
+  }
+  /* Backdrop */
+  #options-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  #options-sheet-backdrop.visible {
+    opacity: 1;
+  }
+}

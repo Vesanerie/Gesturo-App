@@ -222,7 +222,46 @@ function applyGrid() {
 function resetGrid() { gridMode = 0; applyGrid() }
 
 // ══ OPTIONS ══
-function toggleOptions() { document.getElementById('options-dropdown').classList.toggle('open') }
+function _isMobileSheet() { return window.innerWidth <= 767 }
+
+function _getOrCreateBackdrop() {
+  let bd = document.getElementById('options-sheet-backdrop')
+  if (!bd) {
+    bd = document.createElement('div')
+    bd.id = 'options-sheet-backdrop'
+    bd.addEventListener('click', () => _closeOptions())
+    document.body.appendChild(bd)
+  }
+  return bd
+}
+
+function _closeOptions() {
+  const dd = document.getElementById('options-dropdown')
+  dd.classList.remove('open')
+  if (_isMobileSheet()) {
+    const bd = document.getElementById('options-sheet-backdrop')
+    if (bd) {
+      bd.classList.remove('visible')
+      setTimeout(() => bd.remove(), 300)
+    }
+  }
+}
+
+function toggleOptions() {
+  const dd = document.getElementById('options-dropdown')
+  const willOpen = !dd.classList.contains('open')
+  if (willOpen) {
+    if (_isMobileSheet()) {
+      const bd = _getOrCreateBackdrop()
+      // Force reflow for transition
+      void bd.offsetWidth
+      bd.classList.add('visible')
+    }
+    dd.classList.add('open')
+  } else {
+    _closeOptions()
+  }
+}
 
 // ── Musique d'ambiance (background music) ──
 // Démarre au 1er clic user (les navigateurs bloquent l'autoplay avant
@@ -306,7 +345,7 @@ function toggleTheme() {
   const now = localStorage.getItem(THEME_KEY) === 'light' ? 'dark' : 'light'
   localStorage.setItem(THEME_KEY, now)
   applyTheme()
-  toggleOptions()
+  _closeOptions()
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', applyTheme)
@@ -331,7 +370,7 @@ function toggleLegacyUi() {
   const now = localStorage.getItem(LEGACY_UI_KEY) === '1' ? '0' : '1'
   localStorage.setItem(LEGACY_UI_KEY, now)
   applyLegacyUi()
-  toggleOptions()
+  _closeOptions()
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', applyLegacyUi)
@@ -340,17 +379,17 @@ if (document.readyState === 'loading') {
 }
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown')) document.getElementById('options-dropdown').classList.remove('open')
+  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown') && !e.target.closest('#options-sheet-backdrop')) _closeOptions()
 })
 function confirmResetHistory() {
-  document.getElementById('options-dropdown').classList.remove('open')
+  _closeOptions()
   showConfirmModal('Réinitialiser tout l\'historique ? Cette action est irréversible.', () => {
     saveHist([]); renderWeekBar()
     if (document.getElementById('hist-options').style.display !== 'none') renderHist()
   }, { confirmText: 'Réinitialiser', danger: true })
 }
 function handleLogout() {
-  document.getElementById('options-dropdown').classList.remove('open')
+  _closeOptions()
   closeProfile()
   showConfirmModal('Se déconnecter ?', async () => {
     // Pas de clear du localStorage : les datas sont scopées par email
@@ -799,7 +838,7 @@ document.addEventListener('keydown', (e) => {
 })
 
 function showAbout() {
-  document.getElementById('options-dropdown').classList.remove('open')
+  _closeOptions()
   const modal = document.getElementById('about-modal')
   // Afficher IMMÉDIATEMENT — les données se remplissent en arrière-plan.
   // Avant : 2× await réseau AVANT open → 2s de latence perçue.
@@ -1534,7 +1573,7 @@ function _initOptionsListeners() {
 
   document.getElementById('profile-btn').addEventListener('click', openProfile)
   document.getElementById('options-btn').addEventListener('click', toggleOptions)
-  document.getElementById('opt-hist').addEventListener('click', () => { toggleOptions(); switchMainMode('hist') })
+  document.getElementById('opt-hist').addEventListener('click', () => { _closeOptions(); switchMainMode('hist') })
   document.getElementById('opt-bgm-icon').addEventListener('click', toggleBgm)
   document.getElementById('opt-bgm-slider').addEventListener('input', function() { setBgmVolume(this.value) })
   document.getElementById('opt-water-slider').addEventListener('input', function() { setWaterVolume(this.value) })
