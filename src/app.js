@@ -58,6 +58,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (result.isAdmin) document.getElementById('admin-source-card').style.display = 'block'
         if (result.email) _communityEmail = result.email
         if (result.username) _communityUsername = result.username
+        renderWeekBar()
         maybeShowOnboarding()
         maybeAskForUsername()
       }
