@@ -224,42 +224,53 @@ function resetGrid() { gridMode = 0; applyGrid() }
 // ══ OPTIONS ══
 function _isMobileSheet() { return window.innerWidth <= 767 }
 
-function _getOrCreateBackdrop() {
-  let bd = document.getElementById('options-sheet-backdrop')
-  if (!bd) {
-    bd = document.createElement('div')
-    bd.id = 'options-sheet-backdrop'
-    bd.addEventListener('click', () => _closeOptions())
-    document.body.appendChild(bd)
-  }
-  return bd
+let _sheetWrap = null
+
+function _ensureSheetWrap() {
+  if (_sheetWrap) return _sheetWrap
+  _sheetWrap = document.createElement('div')
+  _sheetWrap.id = 'options-sheet-wrap'
+  // Tap on backdrop (wrap itself, not the dropdown) → close
+  _sheetWrap.addEventListener('click', (e) => {
+    if (e.target === _sheetWrap) _closeOptions()
+  })
+  document.body.appendChild(_sheetWrap)
+  return _sheetWrap
 }
 
 function _closeOptions() {
   const dd = document.getElementById('options-dropdown')
-  dd.classList.remove('open')
-  if (_isMobileSheet()) {
-    const bd = document.getElementById('options-sheet-backdrop')
-    if (bd) {
-      bd.classList.remove('visible')
-      setTimeout(() => bd.remove(), 300)
-    }
+  if (_isMobileSheet() && _sheetWrap) {
+    _sheetWrap.classList.remove('open')
+    // Remettre le dropdown dans le DOM original après l'animation
+    setTimeout(() => {
+      dd.classList.remove('open')
+      if (_sheetWrap.contains(dd)) {
+        document.getElementById('options-btn').insertAdjacentElement('afterend', dd)
+      }
+    }, 300)
+  } else {
+    dd.classList.remove('open')
   }
 }
 
 function toggleOptions() {
   const dd = document.getElementById('options-dropdown')
-  const willOpen = !dd.classList.contains('open')
-  if (willOpen) {
-    if (_isMobileSheet()) {
-      const bd = _getOrCreateBackdrop()
-      // Force reflow for transition
-      void bd.offsetWidth
-      bd.classList.add('visible')
+  if (_isMobileSheet()) {
+    const wrap = _ensureSheetWrap()
+    const isOpen = wrap.classList.contains('open')
+    if (isOpen) {
+      _closeOptions()
+    } else {
+      // Déplacer le dropdown dans le wrapper
+      wrap.appendChild(dd)
+      dd.classList.add('open')
+      // Force reflow pour que la transition joue
+      void dd.offsetWidth
+      wrap.classList.add('open')
     }
-    dd.classList.add('open')
   } else {
-    _closeOptions()
+    dd.classList.toggle('open')
   }
 }
 
@@ -379,7 +390,7 @@ if (document.readyState === 'loading') {
 }
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown') && !e.target.closest('#options-sheet-backdrop')) _closeOptions()
+  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown') && !e.target.closest('#options-sheet-wrap')) _closeOptions()
 })
 function confirmResetHistory() {
   _closeOptions()
