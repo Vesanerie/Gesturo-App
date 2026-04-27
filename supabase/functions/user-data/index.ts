@@ -507,14 +507,19 @@ if (action === 'getStreak') {
       const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);
       const { data } = await admin
         .from('community_posts')
-        .select('id, user_email, username, image_key, ref_image_url, challenge_id, created_at')
+        .select('id, user_email, username, image_key, ref_image_url, challenge_id, featured, created_at')
         .eq('approved', true)
         .order('created_at', { ascending: false })
         .range(reqOffset, reqOffset + reqLimit - 1);
       const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
+      // Batch-fetch featured status for post authors
+      const emails = [...new Set((data || []).map((p: any) => p.user_email))];
+      const { data: profiles } = await admin.from('profiles').select('email, featured').in('email', emails);
+      const featuredUsers = new Set((profiles || []).filter((p: any) => p.featured).map((p: any) => p.email));
       const posts = (data || []).map((p: any) => ({
         ...p,
         image_url: r2Public ? `${r2Public}/${p.image_key}` : '',
+        user_featured: featuredUsers.has(p.user_email),
       }));
       return json({ posts, limit: reqLimit, offset: reqOffset });
     }

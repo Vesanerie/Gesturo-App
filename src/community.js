@@ -689,6 +689,15 @@ function buildPostCard(post, i) {
     card.appendChild(badge)
   }
 
+  // Featured post badge
+  if (post.featured) {
+    card.classList.add('community-post-featured')
+    const pinBadge = document.createElement('div')
+    pinBadge.className = 'community-post-pin'
+    pinBadge.textContent = '📌'
+    card.appendChild(pinBadge)
+  }
+
   // Info bar
   const info = document.createElement('div')
   info.className = 'community-post-info'
@@ -699,6 +708,13 @@ function buildPostCard(post, i) {
   const user = document.createElement('span')
   user.className = 'community-post-user'
   user.textContent = post.source === 'community' ? (post.username || 'anonyme') : ('@' + (post.username || 'gesturo.art'))
+  if (post.user_featured) {
+    const star = document.createElement('span')
+    star.className = 'community-user-star'
+    star.textContent = ' ⭐'
+    star.title = 'Coup de cœur Gesturo'
+    user.appendChild(star)
+  }
   if (post.permalink) user.onclick = () => window.electronAPI.openExternal('https://www.instagram.com/' + (post.username || 'gesturo.art'))
 
   const date = document.createElement('span')
@@ -812,6 +828,8 @@ async function renderCommunity() {
         created_at: post.created_at,
         ref_image_url: post.ref_image_url,
         challenge_id: post.challenge_id || null,
+        featured: post.featured || false,
+        user_featured: post.user_featured || false,
         source: 'community',
         _sort: new Date(post.created_at).getTime(),
       })
@@ -843,8 +861,12 @@ async function renderCommunity() {
 
     if (filtered.length === 0) { empty.style.display = 'block'; empty.textContent = _selectedChallengeFilter ? 'Aucun dessin pour ce challenge.' : 'Aucune photo pour le moment.'; return }
 
-    // Sort by date descending
-    filtered.sort((a, b) => b._sort - a._sort)
+    // Sort: featured first, then by date descending
+    filtered.sort((a, b) => {
+      if (a.featured && !b.featured) return -1
+      if (!a.featured && b.featured) return 1
+      return b._sort - a._sort
+    })
 
     // Load reactions
     await loadReactions(filtered.map(p => p.id))
