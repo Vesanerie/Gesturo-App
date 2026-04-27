@@ -7,7 +7,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Disable disk cache — only offline packs (Capacitor Filesystem) survive app restart.
+        // Memory cache still active for in-session performance.
+        URLCache.shared = URLCache(memoryCapacity: 20 * 1024 * 1024, diskCapacity: 0)
         return true
     }
 
