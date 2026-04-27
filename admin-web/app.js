@@ -350,11 +350,11 @@ function attachDropTarget(node, destPrefix) {
       openConfirm({
         title: `Déplacer ${keys.length} fichiers`,
         text: `Tu vas déplacer ${keys.length} fichiers vers :\n${destPrefix}\n\nAperçu : ${preview}`,
-        onConfirm: async () => callAdmin('move', { keys, destPrefix }, `Déplacement vers ${destPrefix}…`),
+        onConfirm: async () => callAdmin('move', { keys, destPrefix, overwrite: true }, `Déplacement vers ${destPrefix}…`),
       });
       return;
     }
-    await callAdmin('move', { keys, destPrefix }, `Déplacement vers ${destPrefix}…`);
+    await callAdmin('move', { keys, destPrefix, overwrite: true }, `Déplacement vers ${destPrefix}…`);
   });
 }
 
@@ -1197,8 +1197,7 @@ async function executeMove() {
 
   // Move individual files
   if (keysToMove.length > 0) {
-    console.log('[move] keys:', keysToMove, 'dest:', destPrefix);
-    await callAdmin('move', { keys: keysToMove, destPrefix }, `Déplacement de ${keysToMove.length} fichier${keysToMove.length > 1 ? 's' : ''}…`);
+    await callAdmin('move', { keys: keysToMove, destPrefix, overwrite: true }, `Déplacement de ${keysToMove.length} fichier${keysToMove.length > 1 ? 's' : ''}…`);
   }
   // Move folders: list all files inside, then move them to destPrefix/folderName/
   for (const prefix of prefixesToMove) {
@@ -1234,7 +1233,7 @@ async function executeMove() {
         bySubfolder[dest].push(key);
       }
       for (const [dest, keys] of Object.entries(bySubfolder)) {
-        await callAdmin('move', { keys, destPrefix: dest }, `Déplacement vers ${dest} (${keys.length})…`);
+        await callAdmin('move', { keys, destPrefix: dest, overwrite: true }, `Déplacement vers ${dest} (${keys.length})…`);
       }
     } catch (e) { toast(`Erreur: ${e.message}`, 'err'); }
   }

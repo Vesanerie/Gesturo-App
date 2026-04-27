@@ -28,6 +28,7 @@ interface Body {
   key?: string;
   newName?: string;
   destPrefix?: string;
+  overwrite?: boolean;
   files?: UploadFile[];
 }
 
@@ -140,6 +141,7 @@ Deno.serve(async (req) => {
     if (action === 'move') {
       const keys = Array.isArray(body.keys) ? body.keys : [];
       const destPrefix = (body.destPrefix || '').replace(/^\/+/, '');
+      const overwrite = body.overwrite === true;
       if (keys.length === 0) return jsonError('keys is required', 400);
       if (!destPrefix.endsWith('/')) return jsonError('destPrefix must end with /', 400);
       if (!isAllowedAdminKey(destPrefix)) return jsonError(`forbidden destPrefix: ${destPrefix}`, 400);
@@ -150,7 +152,7 @@ Deno.serve(async (req) => {
         const fileName = k.split('/').pop() || '';
         const dest = destPrefix + fileName;
         if (dest === k) throw new Error('source equals dest');
-        await moveObject(k, dest);
+        await moveObject(k, dest, { overwrite });
         return { from: k, to: dest };
       });
       await logAction(adminEmail, 'move', destPrefix, result.ok.length, { failed: result.failed.length });
