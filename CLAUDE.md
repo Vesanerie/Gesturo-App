@@ -160,6 +160,23 @@ admin-web/
 `feature_flags`, `app_settings`, `client_errors`, `user_sessions`,
 `favorited_images`, `rotations`, `rotation_files`
 
+## Tests
+
+`npm test` (vitest) — 5 suites dans `tests/` :
+- **scoped-key** — localStorage scopé par email + migration one-shot
+- **sync-web** — intégrité build mobile (4 scripts injectés + assets clés)
+- **html-integrity** — chaque `onclick` a sa `function`, chaque
+  `getElementById().textContent` a son `id` dans le HTML
+- **mobile-shim** — parité preload/shim (toutes les clés electronAPI)
+- **offline-manager** — guard duplicate download, cancel avant delete,
+  sérialisation saveCatalogCache
+
+Module extrait : `src/lib/scoped-storage.js` (fonctions `_scopedKey`,
+`_readScoped`, `_writeScoped` exportables pour test).
+
+Lancer avant chaque push. Après modif `preload.js`, `index.html`,
+`src/*.js`, ou `mobile/offline-manager.js`.
+
 ## Auto-update
 
 electron-updater check GitHub releases `Vesanerie/Gesturo-App`.
@@ -209,7 +226,7 @@ CI génère `latest-mac.yml` / `latest.yml`. Mobile = App Store / Play Store.
 - **Stripe dashboard admin** — lire stripe-webhook, ajouter adminGetStripeData
 - **Bannière annonce sur gesturo.fr** — reprendre la modale dans le site
 - **1er run Android device** — iOS OK, Android pas encore testé
-- **Tests** — vitest à mettre en place (prompt prêt)
+- ~~Tests~~ — vitest en place, 5 suites, `npm test` (scoped-key, sync-web, html-integrity, mobile-shim, offline-manager)
 
 ## R2 CLI
 
