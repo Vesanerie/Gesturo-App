@@ -270,8 +270,13 @@ admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   `npx wrangler pages deploy` manuellement.
 - **R2 catalog layout** : `gesturo-photos/Sessions/current/<cat>/<sub>/file`
   pour les poses (pas de split free/pro, gating nudité only),
-  `gesturo-photos/Animations/current/{free|pro}/<gender>/<cat>/<sub>/file`
-  pour les animations. L'admin manipule aussi `Sessions/archive/<ts>/...`
+  `gesturo-photos/Animations/current/{free|pro}/<thème>/<séquence>/file`
+  pour les animations. 5 thèmes Pro : `locomotion/` (walk, wwalk, run,
+  wrun), `combat/` (sword-lunge, sword-strike, swing, weapon),
+  `accessoires/` (abdo, porter, jump), `corps/` (main), `sport/`
+  (skate1, skate2, skate3). Free : `locomotion/gratuit/`. L'UI saute
+  les niveaux `current/free|pro` pour afficher les thèmes directement.
+  L'admin manipule aussi `Sessions/archive/<ts>/...`
   et `Animations/archive/<ts>/...`. Le `current/` était déjà là par chance,
   ce qui rend la rotation de catalogue (Phase D, pas encore implémentée)
   naturelle.
@@ -451,29 +456,22 @@ sous-catégories visuellement. Workflow :
 5. `node scripts/r2-sort.js plan <prefix> plan.json` — dry run
 6. `node scripts/r2-sort.js execute <prefix> plan.json` — déplace sur R2
 
-**État du catalogue** (2026-04-27) : ~2553 fichiers, ~1.38 GB.
+**État du catalogue** (2026-04-27) : ~2543 fichiers, ~1.38 GB.
 Tous les fichiers ont été renommés avec le format `nom_001.jpg` :
-- `Sessions/current/` : 7 dossiers, 1919 fichiers (jambes, mains, visage,
-  animal, pose, nu, femme)
-  - `poses-dynamiques/` : en cours de tri en sous-catégories (libre, ballon,
-    baton, tabouret, sol, livre). Un autre Claude est en train de le faire.
-- `Animations/current/` : **16 séquences, 613 fichiers** — structure à plat
-  par type de mouvement (plus de hiérarchie Men/Women/Skate) :
-  - `free/gratuit/` (30) — walk cycle homme
-  - `pro/abdo/` (18) — bras écartés avec caisses
-  - `pro/jump/` (5) — saut depuis cube (splitté depuis sword-motion)
-  - `pro/main/` (15) — ouverture main
-  - `pro/porter/` (32) — ramasser/porter caisse
-  - `pro/run/` (10) — course homme
-  - `pro/skate1/` (110), `pro/skate2/` (111), `pro/skate3/` (111) — tricks skate
-  - `pro/swing/` (23) — swing bâton
-  - `pro/sword-lunge/` (22) — escrime/fente (splitté depuis sword-motion)
-  - `pro/sword-strike/` (8) — frappe d'épée (splitté depuis sword-motion)
-  - `pro/walk/` (29) — marche homme
-  - `pro/weapon/` (53) — chorégraphie arme
-  - `pro/wrun/` (9) — course femme
-  - `pro/wwalk/` (27) — marche femme
-- `Community/` : 16 fichiers (noms générés par l'app, ne pas renommer)
+- `Sessions/current/` : 7 dossiers, 1920 fichiers
+  - `animals/` (51), `jambes-pieds/` (422), `mains/` (318),
+    `nudite/` (238), `poses-dynamiques/` (684 — trié en sous-cats :
+    libre, ballon, baton, tabouret, sol, livre, etc.),
+    `pose-dynamique-femme/` (152), `visage/` (55)
+- `Animations/current/` : **16 séquences, 613 fichiers** — organisées
+  en 5 thèmes (l'UI saute le niveau free/pro) :
+  - `free/locomotion/gratuit/` (30) — walk cycle homme
+  - `pro/locomotion/` : walk (29), wwalk (27), run (10), wrun (9)
+  - `pro/combat/` : sword-lunge (18), sword-strike (12), swing (24), weapon (53)
+  - `pro/accessoires/` : abdo (18), porter (32), jump (5)
+  - `pro/corps/` : main (16)
+  - `pro/sport/` : skate1 (110), skate2 (111), skate3 (111)
+- `Community/` : quelques fichiers (noms générés par l'app, ne pas renommer)
 - Les fichiers `.keep` dans certains dossiers sont des marqueurs vides
 
 ## Workflow préféré
@@ -664,14 +662,10 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
     ajouter une action `adminGetStripeData` qui liste `stripe.subscriptions.list()`
     et `stripe.paymentIntents.list()` via STRIPE_SECRET_KEY déjà en secret
   — utile quand la base Pro grandit
-- **📌 Featured posts dans le feed** — le backend est fait (`adminToggleFeatured
-  Post` + colonne `featured`), mais il manque :
-  - Bouton "📌 Épingler" dans le panel Modération (sur chaque card)
-  - Logique côté app pour afficher le featured en tête du feed community
-- **⭐ Featured user badge** — backend fait (`adminToggleFeaturedUser` +
-  `profiles.featured`), manque :
-  - Bouton dans le user profile modal de l'admin
-  - Badge "Coup de cœur" visible dans le feed community à côté du username
+- ✅ ~~Featured posts dans le feed~~ — livré (f700a31). Posts featured en
+  tête du feed + bouton Épingler dans l'admin + badge Coup de coeur.
+- ✅ ~~Featured user badge~~ — livré (f700a31). Bouton admin + badge
+  visible dans le feed community.
 - **🌐 Bannière d'annonce sur gesturo.fr** — actuellement l'annonce ne
   s'affiche que dans l'app desktop/mobile. Si tu veux la même sur le
   landing page, il faudrait reprendre le HTML/CSS de la modale dans
@@ -685,38 +679,22 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 - ✅ ~~Retirer `@aws-sdk`~~ — scripts morts supprimés
 
 ### En cours
-- **Community tab** (branch `feat/community-tab`, 16+ commits ahead of main)
-  — onglet communauté complet : feed splitté par challenge, upload dessin
-  direct, réactions emoji avec tooltips usernames, "Mes dessins" +
-  suppression, capture caméra mobile/tablet, leaderboard "Top artistes",
-  challenges "Draw this in your style" (hero banner + countdown live +
-  participants + "Participer" lance session + auto-share), stats perso
-  header. **Auth email/password** avec signup/login/username. **Moodboard
-  natif** (boards system remplace le webview Electron, pin depuis Recap/
-  Favoris). **Badge detail modal + week activity chart**. **Daily challenge
-  auto-gen** via Edge Function. **Admin challenges** CRUD + R2 image
-  picker. Tables Supabase : `community_posts` (avec `challenge_id`),
-  `post_reactions`, `challenges`. Edge Functions : `user-data` étendue,
-  `daily-challenge` (auto-gen).
-- **Refonte tablet** (branch `tablet-version`) — breakpoints phone ≤767px,
-  tablet 768-1399px, desktop ≥1400px. Config sidebar + Session controls XL.
+- ✅ **Community tab** — mergée dans main. Onglet communauté complet :
+  feed, challenges, réactions, leaderboard, capture caméra, moodboard natif.
+- ✅ **Refonte tablet** — mergée dans main. Breakpoints phone ≤767px,
+  tablet 768-1399px, desktop ≥1400px.
+- ✅ **Pile de sélection** — commitée (7be4394). Sidebar fixe sur l'écran
+  Config montrant les catégories sélectionnées en mode Poses.
+- ✅ **Build DMG universel** — mergé (a7f5def). arm64 + x64 pour Mac Intel.
+- ✅ **Featured posts/users** — livré (f700a31). Posts featured en tête du
+  feed + badge "Coup de coeur" sur les users featured.
+- ✅ **Tables SQL admin** — créées en prod (feature_flags, app_settings,
+  client_errors, featured columns sur profiles/community_posts, last_active).
+- ✅ **Animations triées** — R2 réorganisé en 5 thèmes (locomotion, combat,
+  accessoires, corps, sport). L'UI saute le niveau free/pro.
 - **1er run iOS sur device RÉUSSI** (2026-04-27) — iPhone de valentin,
-  build + install + launch via CLI (`xcodebuild` + `devicectl`).
-  Google OAuth fonctionne (CSP corrigée pour `https://esm.sh`).
-  Suppression de posts community fixée (shim envoyait `id` au lieu de
-  `postId`). Android pas encore testé sur device réel.
-- **Pile de sélection** (non commitée sur main) — sidebar fixe à droite
-  sur l'écran Config qui montre les catégories sélectionnées en mode Poses.
-  Clic sur catégorie = ajout direct (plus de modale Ajouter/Remplacer).
-  Retrait depuis la pile (bouton ×) ou re-clic sur la catégorie.
-  Mini barre bottom sheet sur mobile. Fichiers modifiés :
-  `index.html` (HTML pile + mini bar), `src/app.js` (hide pile hors config,
-  restore pile au retour sur config), `src/categories.js` (toggleCat
-  simplifié, thumbUrl proxy wsrv.nl pour previews animation, 
-  renderSelectionPile, preview animation au clic seulement avec 10 frames
-  échantillonnées), `styles/screens/config.css` (pile CSS, class-based
-  `.pile-hidden` pour toggling mobile-safe).
-  **Validé par l'user, à committer.**
+  build + install + launch via CLI. Google OAuth OK, CSP corrigée.
+  Android pas encore testé sur device réel.
 
 ### À faire plus tard
 - **Activer la modération auto des images communauté** — le code est en
@@ -746,7 +724,7 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
     `ios/App/App.xcodeproj/project.pbxproj` (4 endroits :
     PBXBuildFile, PBXFileReference, PBXGroup App, PBXSourcesBuildPhase).
 
-- **SQL à lancer dans Supabase pour activer les nouveaux panels admin** :
+- ✅ **SQL lancé dans Supabase (2026-04-27)** — tables et colonnes créées :
   ```sql
   CREATE TABLE IF NOT EXISTS feature_flags (
     key text PRIMARY KEY,
@@ -773,9 +751,8 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS featured boolean DEFAULT false;
   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_active timestamptz;
   ```
-  Sans ces tables/colonnes, les panels Système/Erreurs et les features
-  featured / last_active ne fonctionneront pas (échec silencieux côté
-  Edge Function, UI affichera "Aucune donnée").
+  Tables et colonnes créées en prod — panels Système, Erreurs et features
+  featured / last_active sont opérationnels.
 
 ### Backlog
 - **Phase D — Rotations planifiées** (admin web). Prêt côté DB (tables
@@ -795,8 +772,7 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 - ✅ ~~Découpage de `src/app.js`~~ — découpé en 7 fichiers thématiques
   (app, categories, community, session, animation, favorites, options).
   Scope global préservé, pas de migration ES modules.
-- **CI iOS** — Capacitor iOS scaffold généré (`df94eea`), workflow CI
-  pas encore créé.
+- ✅ ~~CI iOS~~ — workflow `ios.yml` créé (`14dde01`), compile sans signer.
 - **Tests** — il n'y en a pas. Pas une priorité pour un solo dev.
 
 ## Auto-update in-app (v0.3.1)
@@ -816,6 +792,18 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 
 ## Commits récents importants
 
+- `4c187b9` fix(mobile): align PRO badge vertically with Discord and options buttons
+- `f3e86c7` fix(mobile): show PRO/FREE badge next to Discord button on phone
+- `a7f5def` Merge build-universal — DMG arm64 + x64 pour Mac Intel
+- `3b6677a` fix(animations): strip current/free|pro prefix from sequence names
+- `14dde01` ci: add iOS build workflow (debug build on push)
+- `3602d2a` feat(anim): skip pro/free folders — afficher les dossiers thématiques directement
+- `f700a31` feat(community): featured posts en tête du feed + badge Coup de coeur user
+- `baa2e91` feat(admin): 6 features — featured posts/users, Stripe dashboard, email, broadcast, rotations
+- `c1f4fbb` fix(security): XSS — replace innerHTML with safe DOM in renderSelectionPile
+- `97600da` docs: CLAUDE.md — pile de sélection documentée + iOS Package.resolved
+- `7be4394` feat(config): pile de sélection — sidebar catégories sélectionnées
+- `bfd0a50` docs: CLAUDE.md — animations R2 réorganisées, move picker admin
 - `f51e232` fix(admin): move overwrite — prevent crash when destination file exists
 - `f0f7e4f` fix(admin): move picker — folder names now visible
 - `8bce30e` feat(admin): move picker — déplacer fichiers/dossiers via folder browser
