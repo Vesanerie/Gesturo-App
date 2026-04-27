@@ -222,69 +222,7 @@ function applyGrid() {
 function resetGrid() { gridMode = 0; applyGrid() }
 
 // ══ OPTIONS ══
-function closeOptionsSheet() {
-  const dd = document.getElementById('options-dropdown')
-  dd.classList.remove('open')
-  const backdrop = document.getElementById('options-sheet-backdrop')
-  if (backdrop) backdrop.classList.remove('visible')
-  if (window.innerWidth < 1400) {
-    setTimeout(() => { if (!dd.classList.contains('open')) dd.style.display = 'none' }, 300)
-  }
-}
-
-// Swipe down to close options bottom sheet
-;(function () {
-  const dd = document.getElementById('options-dropdown')
-  if (!dd) return
-  let sheetStartY = 0, sheetTracking = false
-
-  dd.addEventListener('touchstart', (e) => {
-    if (window.innerWidth > 1399) return
-    if (e.target.closest('input[type="range"], button, a, .opt-item')) return
-    sheetStartY = e.touches[0].clientY
-    sheetTracking = true
-  }, { passive: true })
-
-  dd.addEventListener('touchend', (e) => {
-    if (!sheetTracking) return
-    sheetTracking = false
-    const dy = e.changedTouches[0].clientY - sheetStartY
-    if (dy > 60) {
-      hapticLight()
-      closeOptionsSheet()
-    }
-  }, { passive: true })
-})()
-function toggleOptions() {
-  const dd = document.getElementById('options-dropdown')
-  const isMobile = window.innerWidth < 1400
-  if (isMobile) {
-    // Bottom sheet mode
-    let backdrop = document.getElementById('options-sheet-backdrop')
-    if (!backdrop) {
-      backdrop = document.createElement('div')
-      backdrop.id = 'options-sheet-backdrop'
-      backdrop.addEventListener('click', () => toggleOptions())
-      document.body.appendChild(backdrop)
-    }
-    const isOpen = dd.classList.contains('open')
-    if (isOpen) {
-      dd.classList.remove('open')
-      backdrop.classList.remove('visible')
-      // Attendre la transition avant de cacher
-      setTimeout(() => { if (!dd.classList.contains('open')) dd.style.display = 'none' }, 300)
-    } else {
-      dd.style.display = 'block'
-      // Force reflow pour que la transition joue
-      dd.offsetHeight
-      dd.classList.add('open')
-      backdrop.classList.add('visible')
-    }
-    hapticLight()
-  } else {
-    dd.classList.toggle('open')
-  }
-}
+function toggleOptions() { document.getElementById('options-dropdown').classList.toggle('open') }
 
 // ── Musique d'ambiance (background music) ──
 // Démarre au 1er clic user (les navigateurs bloquent l'autoplay avant
@@ -402,17 +340,17 @@ if (document.readyState === 'loading') {
 }
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown')) closeOptionsSheet()
+  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown')) document.getElementById('options-dropdown').classList.remove('open')
 })
 function confirmResetHistory() {
-  closeOptionsSheet()
+  document.getElementById('options-dropdown').classList.remove('open')
   showConfirmModal('Réinitialiser tout l\'historique ? Cette action est irréversible.', () => {
     saveHist([]); renderWeekBar()
     if (document.getElementById('hist-options').style.display !== 'none') renderHist()
   }, { confirmText: 'Réinitialiser', danger: true })
 }
 function handleLogout() {
-  closeOptionsSheet()
+  document.getElementById('options-dropdown').classList.remove('open')
   closeProfile()
   showConfirmModal('Se déconnecter ?', async () => {
     // Pas de clear du localStorage : les datas sont scopées par email
@@ -861,7 +799,7 @@ document.addEventListener('keydown', (e) => {
 })
 
 function showAbout() {
-  closeOptionsSheet()
+  document.getElementById('options-dropdown').classList.remove('open')
   const modal = document.getElementById('about-modal')
   // Afficher IMMÉDIATEMENT — les données se remplissent en arrière-plan.
   // Avant : 2× await réseau AVANT open → 2s de latence perçue.
