@@ -86,7 +86,11 @@ Deno.serve(async (req) => {
         if (!prefix.endsWith('/')) return jsonError('prefix must end with /', 400);
         if (!isAllowedAdminKey(prefix)) return jsonError(`forbidden prefix: ${prefix}`, 400);
         const objects = await listAll(prefix);
-        keys = objects.map((o) => o.Key).filter((k) => !k.endsWith('/.keep'));
+        // Delete: include .keep placeholders so empty folders can be removed
+        // Archive: exclude .keep so they stay as folder markers
+        keys = action === 'delete'
+          ? objects.map((o) => o.Key)
+          : objects.map((o) => o.Key).filter((k) => !k.endsWith('/.keep'));
       }
       if (keys.length === 0) return jsonError('keys or prefix is required', 400);
       // Hard guard: every key must live under an allowed admin root.
