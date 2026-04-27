@@ -375,7 +375,8 @@ function showScreen(id) {
   document.getElementById('profile-btn').style.display = visible ? 'flex' : 'none'
   const badge = document.getElementById('plan-badge')
   if (badge) badge.style.display = (visible && badge.textContent.trim()) ? 'flex' : 'none'
-  document.getElementById('options-dropdown').classList.remove('open')
+  if (typeof closeOptionsSheet === 'function') closeOptionsSheet()
+  else document.getElementById('options-dropdown').classList.remove('open')
   // Orientation : libre sur les écrans où la photo est plein écran
   // (pose / animation / cinéma), lock portrait ailleurs. Sur desktop
   // Electron les helpers sont absents = no-op silencieux.

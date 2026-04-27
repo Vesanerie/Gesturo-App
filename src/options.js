@@ -222,7 +222,45 @@ function applyGrid() {
 function resetGrid() { gridMode = 0; applyGrid() }
 
 // ══ OPTIONS ══
-function toggleOptions() { document.getElementById('options-dropdown').classList.toggle('open') }
+function closeOptionsSheet() {
+  const dd = document.getElementById('options-dropdown')
+  dd.classList.remove('open')
+  const backdrop = document.getElementById('options-sheet-backdrop')
+  if (backdrop) backdrop.classList.remove('visible')
+  if (window.innerWidth < 1400) {
+    setTimeout(() => { if (!dd.classList.contains('open')) dd.style.display = 'none' }, 300)
+  }
+}
+function toggleOptions() {
+  const dd = document.getElementById('options-dropdown')
+  const isMobile = window.innerWidth < 1400
+  if (isMobile) {
+    // Bottom sheet mode
+    let backdrop = document.getElementById('options-sheet-backdrop')
+    if (!backdrop) {
+      backdrop = document.createElement('div')
+      backdrop.id = 'options-sheet-backdrop'
+      backdrop.addEventListener('click', () => toggleOptions())
+      document.body.appendChild(backdrop)
+    }
+    const isOpen = dd.classList.contains('open')
+    if (isOpen) {
+      dd.classList.remove('open')
+      backdrop.classList.remove('visible')
+      // Attendre la transition avant de cacher
+      setTimeout(() => { if (!dd.classList.contains('open')) dd.style.display = 'none' }, 300)
+    } else {
+      dd.style.display = 'block'
+      // Force reflow pour que la transition joue
+      dd.offsetHeight
+      dd.classList.add('open')
+      backdrop.classList.add('visible')
+    }
+    hapticLight()
+  } else {
+    dd.classList.toggle('open')
+  }
+}
 
 // ── Musique d'ambiance (background music) ──
 // Démarre au 1er clic user (les navigateurs bloquent l'autoplay avant
@@ -340,17 +378,17 @@ if (document.readyState === 'loading') {
 }
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown')) document.getElementById('options-dropdown').classList.remove('open')
+  if (!e.target.closest('#options-btn') && !e.target.closest('#options-dropdown')) closeOptionsSheet()
 })
 function confirmResetHistory() {
-  document.getElementById('options-dropdown').classList.remove('open')
+  closeOptionsSheet()
   showConfirmModal('Réinitialiser tout l\'historique ? Cette action est irréversible.', () => {
     saveHist([]); renderWeekBar()
     if (document.getElementById('hist-options').style.display !== 'none') renderHist()
   }, { confirmText: 'Réinitialiser', danger: true })
 }
 function handleLogout() {
-  document.getElementById('options-dropdown').classList.remove('open')
+  closeOptionsSheet()
   closeProfile()
   showConfirmModal('Se déconnecter ?', async () => {
     // Pas de clear du localStorage : les datas sont scopées par email
@@ -799,7 +837,7 @@ document.addEventListener('keydown', (e) => {
 })
 
 function showAbout() {
-  document.getElementById('options-dropdown').classList.remove('open')
+  closeOptionsSheet()
   const modal = document.getElementById('about-modal')
   // Afficher IMMÉDIATEMENT — les données se remplissent en arrière-plan.
   // Avant : 2× await réseau AVANT open → 2s de latence perçue.
