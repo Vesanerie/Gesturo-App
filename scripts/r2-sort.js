@@ -195,6 +195,12 @@ async function cmdExecute(prefix, planFile) {
   if (!prefix.endsWith('/')) prefix += '/';
   const plan = JSON.parse(fs.readFileSync(planFile, 'utf8'));
 
+  // Detect the file name pattern from actual files
+  const allFiles = await listAll(prefix);
+  const directFiles = allFiles.filter(o => !o.Key.slice(prefix.length).includes('/'));
+  const firstFile = directFiles[0]?.Key.split('/').pop() || '';
+  const basePattern = firstFile.replace(/_\d{3}\.jpg$/, '');
+  console.log('Detected pattern: ' + basePattern + '_NNN.jpg');
   console.log('Executing sort plan...\n');
 
   for (const cat of plan) {
@@ -203,8 +209,7 @@ async function cmdExecute(prefix, planFile) {
 
     for (let i = cat.start; i <= cat.end; i++) {
       const num = String(i).padStart(3, '0');
-      // Find the actual file name pattern
-      const oldKey = prefix + 'pose_' + num + '.jpg';
+      const oldKey = prefix + basePattern + '_' + num + '.jpg';
       const newNum = String(moved + 1).padStart(3, '0');
       const newKey = dest + cat.name + '_' + newNum + '.jpg';
 

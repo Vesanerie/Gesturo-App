@@ -10,11 +10,11 @@ et les commits incrémentaux.
 Les fichiers principaux sont gros. **Toujours** utiliser `grep` / plages
 spécifiques au lieu de lire le fichier complet :
 - `src/app.js` — **507 lignes** (découpé en 7 fichiers, voir Layout).
-- `admin-web/app.js` — **3571 lignes**. Idem.
+- `admin-web/app.js` — **3762 lignes**. Idem.
 - `supabase/functions/user-data/index.ts` — **1412 lignes**. Idem.
 - `main.js` — **128 lignes** (découpé en 5 modules dans `src/main/`).
 - `index.html` — 725 lignes. OK en entier si besoin.
-- `admin-web/index.html` — 719 lignes. OK en entier si besoin.
+- `admin-web/index.html` — 737 lignes. OK en entier si besoin.
 
 ### Concision
 - Réponses courtes. Pas de résumé de ce qui vient d'être fait.
@@ -152,10 +152,11 @@ supabase/functions/
                              'upload-urls' (presigned PUT batch), 'delete'/
                              'archive'/'unarchive' (acceptent {keys} OU
                              {prefix} pour expand récursif), 'move' vers
-                             destPrefix arbitraire. Déployé avec
-                             --no-verify-jwt car requireAdmin fait sa propre
-                             vérif (le gateway JWT verify pose problème
-                             avec les nouvelles clés sb_publishable_).
+                             destPrefix arbitraire (supporte `overwrite: true`
+                             depuis 2026-04-27). Déployé avec --no-verify-jwt
+                             car requireAdmin fait sa propre vérif (le gateway
+                             JWT verify pose problème avec les nouvelles clés
+                             sb_publishable_).
 
 admin-web/                   App web admin SÉPARÉE — jamais dans le DMG.
   index.html                 Login magic link + écran admin file manager.
@@ -446,14 +447,28 @@ sous-catégories visuellement. Workflow :
 5. `node scripts/r2-sort.js plan <prefix> plan.json` — dry run
 6. `node scripts/r2-sort.js execute <prefix> plan.json` — déplace sur R2
 
-**État du catalogue** (2026-04-26) : 2553 fichiers, 1.38 GB.
+**État du catalogue** (2026-04-27) : ~2553 fichiers, ~1.38 GB.
 Tous les fichiers ont été renommés avec le format `nom_001.jpg` :
 - `Sessions/current/` : 7 dossiers, 1919 fichiers (jambes, mains, visage,
   animal, pose, nu, femme)
   - `poses-dynamiques/` : en cours de tri en sous-catégories (libre, ballon,
     baton, tabouret, sol, livre). Un autre Claude est en train de le faire.
-- `Animations/current/` : 14 séquences, 613 fichiers (gratuit, main, abdo,
-  swing, porter, run, sword, walk, skate1-3, wrun, wwalk, weapon)
+- `Animations/current/` : **16 séquences, 613 fichiers** — structure à plat
+  par type de mouvement (plus de hiérarchie Men/Women/Skate) :
+  - `free/gratuit/` (30) — walk cycle homme
+  - `pro/abdo/` (18) — bras écartés avec caisses
+  - `pro/jump/` (5) — saut depuis cube (splitté depuis sword-motion)
+  - `pro/main/` (15) — ouverture main
+  - `pro/porter/` (32) — ramasser/porter caisse
+  - `pro/run/` (10) — course homme
+  - `pro/skate1/` (110), `pro/skate2/` (111), `pro/skate3/` (111) — tricks skate
+  - `pro/swing/` (23) — swing bâton
+  - `pro/sword-lunge/` (22) — escrime/fente (splitté depuis sword-motion)
+  - `pro/sword-strike/` (8) — frappe d'épée (splitté depuis sword-motion)
+  - `pro/walk/` (29) — marche homme
+  - `pro/weapon/` (53) — chorégraphie arme
+  - `pro/wrun/` (9) — course femme
+  - `pro/wwalk/` (27) — marche femme
 - `Community/` : 16 fichiers (noms générés par l'app, ne pas renommer)
 - Les fichiers `.keep` dans certains dossiers sont des marqueurs vides
 
@@ -477,7 +492,7 @@ Toutes les features sont **live** sur `gesturo-admin.pages.dev`.
 
 ### Navigation admin — 8 onglets
 
-1. **📂 Fichiers** — R2 browser (Sessions/ + Animations/, archive, upload, etc.) — existait déjà
+1. **📂 Fichiers** — R2 browser (Sessions/ + Animations/, archive, upload, drag-drop move, **move picker** avec folder browser) — existait déjà, move picker ajouté 2026-04-27
 2. **🏆 Challenges** — CRUD challenges + R2 image picker pour ref — existait déjà
 3. **🛡️ Modération** — gestion des posts communauté (nouveau, complet)
 4. **👥 Utilisateurs** — liste globale + actions (nouveau)
@@ -684,6 +699,15 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 - **1er run Android sur device** — refonte UI mobile terminée, Manifest OK,
   Edge Functions OK, shim mobile OK. Reste à valider gestes tactiles +
   safe-area-inset + deep link auth sur device réel.
+- **Pile de sélection** (non commitée sur main) — sidebar fixe à droite
+  sur l'écran Config qui montre les catégories sélectionnées en mode Poses.
+  Mini barre bottom sheet sur mobile. Fichiers modifiés non commités :
+  `index.html` (HTML pile + mini bar), `src/app.js` (hide pile hors config),
+  `src/categories.js` (toggleCat simplifié, plus de modale Ajouter/Remplacer,
+  thumbUrl proxy, renderSelectionPile, lazy preload animations via
+  IntersectionObserver), `styles/screens/config.css` (+234 lignes pile CSS).
+  **Statut incertain** — possiblement un test abandonné ou en cours.
+  Demander à l'user avant de committer ou de revert.
 
 ### À faire plus tard
 - **Activer la modération auto des images communauté** — le code est en
@@ -783,6 +807,11 @@ ALTER TABLE community_posts ADD COLUMN featured boolean DEFAULT false;
 
 ## Commits récents importants
 
+- `f51e232` fix(admin): move overwrite — prevent crash when destination file exists
+- `f0f7e4f` fix(admin): move picker — folder names now visible
+- `8bce30e` feat(admin): move picker — déplacer fichiers/dossiers via folder browser
+- `b1ec9a0` refactor: split main.js en 5 modules (auth, oauth, edge, moodboard, ipc)
+- `22e5906` fix(tools): r2-sort auto-clean temp files after execute + manual clean command
 - `9350636` feat(tools): R2 CLI — list, stats, rename, move, upload, backup, duplicates, watermark
 - `6e74c7f` docs: mise à jour CLAUDE.md — auto-deploy, accès R2 CLI, Hard Reset, line counts
 - `5218b51` test: trigger admin auto-deploy via GitHub Actions
