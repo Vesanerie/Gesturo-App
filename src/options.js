@@ -593,7 +593,7 @@ function showOnboarding() {
   // Mouse drag (desktop)
   let mouseStartX = 0, dragging = false
   track.addEventListener('mousedown', (e) => { dragging = true; mouseStartX = e.clientX })
-  window.addEventListener('mouseup', (e) => {
+  const mouseUpHandler = (e) => {
     if (!dragging) return
     dragging = false
     const dx = e.clientX - mouseStartX
@@ -601,7 +601,9 @@ function showOnboarding() {
       if (dx < 0) goTo(current + 1)
       else goTo(current - 1)
     }
-  })
+  }
+  window.addEventListener('mouseup', mouseUpHandler)
+  overlay._mouseUpHandler = mouseUpHandler
 
   goTo(0)
 }
@@ -610,6 +612,7 @@ function closeOnboarding() {
   const overlay = document.getElementById('onboarding-overlay')
   if (!overlay) return
   if (overlay._keyHandler) document.removeEventListener('keydown', overlay._keyHandler)
+  if (overlay._mouseUpHandler) window.removeEventListener('mouseup', overlay._mouseUpHandler)
   overlay.style.transition = 'opacity 0.25s ease'
   overlay.style.opacity = '0'
   setTimeout(() => { overlay.remove(); maybeShowThemeChooser() }, 250)

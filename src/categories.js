@@ -529,7 +529,7 @@ async function selectSeqPreload(seq) {
       const img = new Image(); img.onload = img.onerror = resolve; img.src = isR2Mode ? p : 'file://' + p
     })))
   }
-  preloadCache[seq] = true
+  preloadCache[seq] = true; _evictPreloadCache()
 }
 
 async function selectSeq(seq, el) {
@@ -541,7 +541,7 @@ async function selectSeq(seq, el) {
   await Promise.all(paths.map(p => new Promise(resolve => {
     const img = new Image(); img.onload = img.onerror = resolve; img.src = isR2Mode ? p : 'file://' + p
   })))
-  preloadCache[seq] = true; el.classList.add('ready'); if (check) check.textContent = '✓'
+  preloadCache[seq] = true; _evictPreloadCache(); el.classList.add('ready'); if (check) check.textContent = '✓'
 }
 
 // ══ MODES ══
@@ -597,6 +597,14 @@ function switchMainMode(mode) {
 }
 
 const preloadCache = {}
+const PRELOAD_CACHE_MAX = 20
+function _evictPreloadCache() {
+  const keys = Object.keys(preloadCache)
+  if (keys.length <= PRELOAD_CACHE_MAX) return
+  // Supprimer les plus anciennes entrées (FIFO)
+  const toRemove = keys.slice(0, keys.length - PRELOAD_CACHE_MAX)
+  toRemove.forEach(k => delete preloadCache[k])
+}
 
 function _initCategoriesListeners() {
   document.getElementById('tab-pose').addEventListener('click', function() { switchMainMode('pose') })

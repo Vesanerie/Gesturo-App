@@ -51,7 +51,7 @@ async function startAnimSession() {
     await Promise.all(paths.map(p => new Promise(res => {
       const img = new Image(); img.onload = img.onerror = res; img.src = resolve(p)
     })))
-    preloadCache[selectedSeq] = true
+    preloadCache[selectedSeq] = true; _evictPreloadCache()
   }
   btn.disabled = false
   document.getElementById('anim-seq-name').textContent = selectedSeq + '  ·  ' + animFrames.length + ' frames'
