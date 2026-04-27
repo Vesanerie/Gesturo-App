@@ -527,3 +527,23 @@ async function pickFolder() {
   if (!folder) return
   await loadFolder(folder)
 }
+
+function _initAppListeners() {
+  document.getElementById('discord-btn').addEventListener('click', function(e) { e.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2') })
+  document.getElementById('btn-source-r2').addEventListener('click', function() { adminSetSource('r2') })
+  document.getElementById('btn-source-local').addEventListener('click', function() { adminSetSource('local') })
+  document.getElementById('btn-pick-folder').addEventListener('click', pickFolder)
+  document.getElementById('flip-toggle').addEventListener('click', toggleFlipMode)
+  document.getElementById('bw-btn').addEventListener('click', toggleBW)
+  document.getElementById('btn-flip-h').addEventListener('click', flipH)
+  document.getElementById('btn-rotate-left').addEventListener('click', rotateLeft)
+  document.getElementById('btn-rotate-right').addEventListener('click', rotateRight)
+  document.getElementById('btn-new-session').addEventListener('click', function() { showScreen('screen-config'); if (mainMode === 'cinema') switchMainMode('cinema') })
+  document.getElementById('btn-moodboard-back').addEventListener('click', closeMoodboard)
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initAppListeners)
+} else {
+  _initAppListeners()
+}
