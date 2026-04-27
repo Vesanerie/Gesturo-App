@@ -160,8 +160,7 @@ CI génère `latest-mac.yml` / `latest.yml`. Mobile = App Store / Play Store.
 ## TODO
 
 ### P1
-- **Réactiver `webSecurity`** — tester avec `npm start` que les images R2
-  chargent. Risque de casser le cross-origin.
+- ~~Réactiver `webSecurity`~~ — déjà fait (`webSecurity: true` dans main.js)
 
 ### À faire plus tard
 - **Modération auto images** — code prêt (`moderateImage()`, Claude Haiku
@@ -169,7 +168,9 @@ CI génère `latest-mac.yml` / `latest.yml`. Mobile = App Store / Play Store.
   `npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-api03-...`
 - **Phase D — Rotations** — DB prête (tables rotations/rotation_files).
   Reste : Edge Functions (create/schedule/execute) + UI admin.
-- **Email user / Broadcast email** — nécessite SMTP (Resend/Postmark)
+- **Email user / Broadcast email** — code prêt (Resend API, batches de 50,
+  onglet Broadcast + bouton Email dans profil user). Manque la clé :
+  `npx supabase secrets set RESEND_API_KEY=re_... RESEND_FROM="Gesturo <hello@gesturo.art>"`
 - **Stripe dashboard admin** — lire stripe-webhook, ajouter adminGetStripeData
 - **Bannière annonce sur gesturo.fr** — reprendre la modale dans le site
 - **1er run Android device** — iOS OK, Android pas encore testé
