@@ -142,9 +142,6 @@ describe('mobile build files', () => {
     expect(fs.existsSync(path.join(mobileDir, 'auth-mobile.js'))).toBe(true)
   })
 
-  it('offline-manager.js exists', () => {
-    expect(fs.existsSync(path.join(mobileDir, 'offline-manager.js'))).toBe(true)
-  })
 })
 
 // ── CSP for mobile ──
@@ -217,7 +214,6 @@ describe('www build for iOS', () => {
     const wwwHtml = fs.readFileSync(path.join(wwwDir, 'index.html'), 'utf8')
     expect(wwwHtml).toContain('auth-mobile.js')
     expect(wwwHtml).toContain('mobile-shim.js')
-    expect(wwwHtml).toContain('offline-manager.js')
     expect(wwwHtml).toContain('supabase-config.js')
   })
 })

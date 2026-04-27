@@ -103,16 +103,7 @@ let _bgPreloadIdx = 0
 let _bgPreloadTimer = null
 
 async function getImageSrc(entry) {
-  if (entry.isR2) {
-    if (window.__offlinePacks) {
-      if (!window.__offlinePacks.ready && window.__offlinePacks.whenReady) {
-        await window.__offlinePacks.whenReady
-      }
-      const local = window.__offlinePacks.resolveLocal(entry.path)
-      if (local) return local
-    }
-    return entry.path
-  }
+  if (entry.isR2) return entry.path
   return 'file://' + entry.path
 }
 
@@ -122,10 +113,7 @@ function preloadOneImage(entry) {
     const key = entry.path
     if (imgCache.has(key)) { resolve(); return }
     if (entry.isR2) {
-      if (window.__offlinePacks && !window.__offlinePacks.ready && window.__offlinePacks.whenReady) {
-        await window.__offlinePacks.whenReady
-      }
-      const src = (window.__offlinePacks && window.__offlinePacks.resolveLocal(entry.path)) || entry.path
+      const src = entry.path
       const im = new Image()
       im.onload = () => { imgCache.set(key, src); if (imgCache.size > IMG_CACHE_MAX) { imgCache.delete(imgCache.keys().next().value) } resolve() }
       im.onerror = () => resolve()
@@ -251,7 +239,7 @@ function logPoseEntry(entry, duration) {
   const img = document.getElementById('photo-img'), canvas = document.getElementById('pdf-canvas')
   let thumb = null
   if (entry.type === 'pdf' && canvas.style.display !== 'none') thumb = { data: canvas.toDataURL('image/jpeg', 1) }
-  else thumb = { data: entry.isR2 ? ((window.__offlinePacks && window.__offlinePacks.resolveLocal(entry.path)) || entry.path) : 'file://' + entry.path }
+  else thumb = { data: entry.isR2 ? entry.path : 'file://' + entry.path }
   sessionLog[currentIndex] = { entry, duration, thumbnail: thumb, rotation: currentRotation, flipH: currentFlipH }
 }
 

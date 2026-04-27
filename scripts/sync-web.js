@@ -24,7 +24,6 @@ const ASSETS = [
 const MOBILE_ONLY = [
   'auth-mobile.js',
   'mobile-shim.js',
-  'offline-manager.js',
 ];
 
 // Generate www/supabase-config.js so the mobile build has the public

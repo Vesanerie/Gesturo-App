@@ -100,42 +100,16 @@
 
     // ── R2 (delegated to Supabase Edge Functions, see auth-mobile.js) ──
     listR2Photos: async ({ isPro } = {}) => {
-      try {
-        const sb = await window.__gesturoAuth.getSupabase();
-        const { data, error } = await sb.functions.invoke('list-r2-photos', { body: { isPro: !!isPro } });
-        if (error) throw error;
-        const photos = data || [];
-        // Cache for offline use
-        if (window.__offlinePacks && photos.length > 0) {
-          window.__offlinePacks.saveCatalogCache(photos, null).catch(() => {});
-        }
-        return photos;
-      } catch (e) {
-        // Offline fallback: load from cache
-        if (window.__offlinePacks) {
-          const cache = await window.__offlinePacks.loadCatalogCache();
-          if (cache?.photos) { console.log('[offline] using cached catalog'); return cache.photos; }
-        }
-        throw e;
-      }
+      const sb = await window.__gesturoAuth.getSupabase();
+      const { data, error } = await sb.functions.invoke('list-r2-photos', { body: { isPro: !!isPro } });
+      if (error) throw error;
+      return data || [];
     },
     listR2Animations: async ({ isPro } = {}) => {
-      try {
-        const sb = await window.__gesturoAuth.getSupabase();
-        const { data, error } = await sb.functions.invoke('list-r2-animations', { body: { isPro: !!isPro } });
-        if (error) throw error;
-        const anims = data || [];
-        if (window.__offlinePacks && anims.length > 0) {
-          window.__offlinePacks.saveCatalogCache(null, anims).catch(() => {});
-        }
-        return anims;
-      } catch (e) {
-        if (window.__offlinePacks) {
-          const cache = await window.__offlinePacks.loadCatalogCache();
-          if (cache?.anims) { console.log('[offline] using cached animations'); return cache.anims; }
-        }
-        throw e;
-      }
+      const sb = await window.__gesturoAuth.getSupabase();
+      const { data, error } = await sb.functions.invoke('list-r2-animations', { body: { isPro: !!isPro } });
+      if (error) throw error;
+      return data || [];
     },
     onUseR2Mode: on('useR2Mode'),
     adminSwitchSource: reject('adminSwitchSource'),
