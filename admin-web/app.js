@@ -4230,70 +4230,73 @@ function formatRoadmapRelative(iso) {
   return formatRoadmapDate(iso.slice(0, 10));
 }
 
-// ── Drag & Drop (event delegation, click-vs-drag safe) ──
-let roadmapDragStartX = 0, roadmapDragStartY = 0, roadmapDidDrag = false;
+// ── Drag & Drop ──
+let rmDragging = false;
 
 function initRoadmapCardEvents() {
   const board = document.querySelector('.roadmap-board');
   if (!board) return;
 
-  // mousedown/up to distinguish click from drag
-  board.addEventListener('mousedown', (e) => {
-    roadmapDragStartX = e.clientX;
-    roadmapDragStartY = e.clientY;
-    roadmapDidDrag = false;
-  });
-
   board.addEventListener('dragstart', (e) => {
     const card = e.target.closest('.roadmap-card');
     if (!card) return;
+    rmDragging = true;
     roadmapDragId = card.dataset.id;
     card.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', card.dataset.id);
-    roadmapDidDrag = true;
+    // ghost image
+    const ghost = card.cloneNode(true);
+    ghost.style.width = card.offsetWidth + 'px';
+    ghost.style.opacity = '0.8';
+    ghost.style.position = 'absolute';
+    ghost.style.top = '-9999px';
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 20, 20);
+    setTimeout(() => document.body.removeChild(ghost), 0);
   });
 
   board.addEventListener('dragend', (e) => {
-    const card = e.target.closest('.roadmap-card');
-    if (card) card.classList.remove('dragging');
+    document.querySelectorAll('.roadmap-card.dragging').forEach(c => c.classList.remove('dragging'));
     document.querySelectorAll('.roadmap-column').forEach(c => c.classList.remove('drag-over'));
     roadmapDragId = null;
+    setTimeout(() => { rmDragging = false; }, 50);
   });
 
-  // Click to edit — only if we didn't drag
   board.addEventListener('click', (e) => {
-    if (e.target.closest('.roadmap-move-btn') || e.target.closest('.roadmap-quick-add')) return;
+    if (rmDragging) return;
+    if (e.target.closest('.roadmap-move-btn') || e.target.closest('.roadmap-quick-add') || e.target.closest('.roadmap-card-thumb')) return;
     const card = e.target.closest('.roadmap-card');
     if (!card) return;
-    const dx = Math.abs(e.clientX - roadmapDragStartX);
-    const dy = Math.abs(e.clientY - roadmapDragStartY);
-    if (roadmapDidDrag && (dx > 5 || dy > 5)) return;
     openRoadmapEdit(card.dataset.id);
   });
-}
 
-function roadmapDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  const col = e.target.closest('.roadmap-column');
-  document.querySelectorAll('.roadmap-column').forEach(c => c.classList.remove('drag-over'));
-  if (col) col.classList.add('drag-over');
-}
-function roadmapDrop(e) {
-  e.preventDefault();
-  const col = e.target.closest('.roadmap-column');
-  if (!col || !roadmapDragId) return;
-  col.classList.remove('drag-over');
-  const newStatus = col.dataset.status;
-  const item = roadmapItems.find(i => i.id === roadmapDragId);
-  if (item && item.status !== newStatus) {
-    item.status = newStatus;
-    renderRoadmap();
-    saveRoadmap();
-    showToast('Tache deplacee', 'ok');
-  }
-  roadmapDragId = null;
+  // dragover & drop on each column
+  board.querySelectorAll('.roadmap-column').forEach(col => {
+    col.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.roadmap-column').forEach(c => c.classList.remove('drag-over'));
+      col.classList.add('drag-over');
+    });
+    col.addEventListener('dragleave', (e) => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+    });
+    col.addEventListener('drop', (e) => {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      if (!roadmapDragId) return;
+      const newStatus = col.dataset.status;
+      const item = roadmapItems.find(i => i.id === roadmapDragId);
+      if (item && item.status !== newStatus) {
+        item.status = newStatus;
+        renderRoadmap();
+        saveRoadmap();
+        showToast('Tache deplacee', 'ok');
+      }
+      roadmapDragId = null;
+    });
+  });
 }
 
 function moveRoadmapItem(id, direction) {
@@ -4547,11 +4550,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Drag & drop + click delegation
   initRoadmapCardEvents();
-  document.querySelectorAll('.roadmap-column').forEach(col => {
-    col.addEventListener('dragover', roadmapDragOver);
-    col.addEventListener('drop', roadmapDrop);
-    col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
-  });
 
   // Close modal on backdrop click
   $('roadmap-modal')?.addEventListener('click', (e) => {
