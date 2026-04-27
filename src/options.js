@@ -46,20 +46,20 @@ function renderHist() {
   // Show a placeholder while fetching server streak — avoids showing 0
   // on a fresh install where localStorage is empty
   const histStreakEl = document.getElementById('hist-streak')
-  histStreakEl.textContent = all.length === 0 ? '…' : localStreak
-  if (window.electronAPI?.getStreak) {
-    window.electronAPI.getStreak().then(r => {
-      const serverStreak = r.streak || 0
-      // Serveur = source de vérité (même algo UTC que le client maintenant)
-      histStreakEl.textContent = serverStreak
-      const streakEl = document.getElementById('week-streak')
-      if (streakEl) { streakEl.textContent = serverStreak + ' j'; streakEl.className = serverStreak === 0 ? 'zero' : '' }
-    }).catch(() => {
-      // Fallback: show local streak if server fetch fails
+  if (histStreakEl) {
+    histStreakEl.textContent = all.length === 0 ? '…' : localStreak
+    if (window.electronAPI?.getStreak) {
+      window.electronAPI.getStreak().then(r => {
+        const serverStreak = r.streak || 0
+        histStreakEl.textContent = serverStreak
+        const streakEl = document.getElementById('week-streak')
+        if (streakEl) { streakEl.textContent = serverStreak + ' j'; streakEl.className = serverStreak === 0 ? 'zero' : '' }
+      }).catch(() => {
+        histStreakEl.textContent = localStreak
+      })
+    } else {
       histStreakEl.textContent = localStreak
-    })
-  } else {
-    histStreakEl.textContent = localStreak
+    }
   }
   document.getElementById('hist-total-sessions').textContent = all.length
   document.getElementById('hist-total-mins').textContent = all.reduce((a, s) => a + (s.minutes || 0), 0)
@@ -366,7 +366,7 @@ function renderOfflineStorage() {
   const keys = Object.keys(packs)
   list.innerHTML = ''
   if (keys.length === 0) {
-    list.innerHTML = '<div style="font-size:12px;color:#3a5570;padding:6px 0;">Aucun pack téléchargé</div>'
+    list.innerHTML = '<div style="font-size:12px;color:#4a5870;padding:6px 0;">Aucun pack téléchargé</div>'
     document.getElementById('offline-clear-all').style.display = 'none'
   } else {
     document.getElementById('offline-clear-all').style.display = ''
@@ -374,7 +374,7 @@ function renderOfflineStorage() {
       const p = packs[k]
       const row = document.createElement('div')
       row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:rgba(20,30,45,0.6);border-radius:8px;padding:8px 10px;'
-      row.innerHTML = '<div style="font-size:12px;color:#fff;">' + getCatLabel(k) + '<span style="color:#4a6280;margin-left:6px;">' + p.fileCount + ' images · ' + window.__offlinePacks.formatSize(p.sizeBytes) + '</span></div>'
+      row.innerHTML = '<div style="font-size:12px;color:#fff;">' + getCatLabel(k) + '<span style="color:#4a5870;margin-left:6px;">' + p.fileCount + ' images · ' + window.__offlinePacks.formatSize(p.sizeBytes) + '</span></div>'
       const del = document.createElement('button')
       del.textContent = '✕'
       del.style.cssText = 'background:none;border:none;color:#e24b4a;font-size:14px;cursor:pointer;padding:2px 6px;'
@@ -390,7 +390,9 @@ async function clearAllOfflinePacks() {
   if (!window.__offlinePacks) return
   if (!confirm('Supprimer tous les packs hors-ligne ?')) return
   const packs = window.__offlinePacks.getAll()
-  for (const k of Object.keys(packs)) await window.__offlinePacks.delete(k)
+  for (const k of Object.keys(packs)) {
+    try { await window.__offlinePacks.delete(k) } catch (e) { console.warn('[offline] delete error:', k, e.message) }
+  }
   renderOfflineStorage()
 }
 
@@ -400,15 +402,15 @@ async function saveProfileUsername() {
   const btn = document.getElementById('profile-save-username')
   const newName = input.value.trim()
   if (!newName) { msg.textContent = 'Le pseudo ne peut pas etre vide'; msg.style.color = '#e24b4a'; return }
-  if (newName === _communityUsername) { msg.textContent = 'C\'est deja ton pseudo actuel'; msg.style.color = '#4a6280'; return }
-  msg.textContent = 'Enregistrement...'; msg.style.color = '#4a6280'
+  if (newName === _communityUsername) { msg.textContent = 'C\'est deja ton pseudo actuel'; msg.style.color = '#4a5870'; return }
+  msg.textContent = 'Enregistrement...'; msg.style.color = '#4a5870'
   btn.disabled = true
   try {
     const res = await window.electronAPI.updateUsername(newName)
     if (res.ok) {
       _communityUsername = res.username || newName
       document.getElementById('profile-avatar').textContent = _communityUsername[0].toUpperCase()
-      msg.textContent = 'Pseudo mis a jour !'; msg.style.color = '#2ecc71'
+      msg.textContent = 'Pseudo mis a jour !'; msg.style.color = '#a8d090'
     } else {
       msg.textContent = res.error || 'Erreur'; msg.style.color = '#e24b4a'
     }
@@ -432,11 +434,11 @@ function showConfirmModal(message, onConfirm, opts) {
   overlay = document.createElement('div')
   overlay.id = 'generic-modal-overlay'
   overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(5,12,22,0.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;z-index:9000;padding:24px;'
-  overlay.innerHTML = '<div style="background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center;">' +
+  overlay.innerHTML = '<div style="background:#111828;border:0.5px solid #182034;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center;">' +
     '<p style="font-size:15px;color:#fff;margin:0 0 22px;line-height:1.5;">' + message + '</p>' +
     '<div style="display:flex;gap:10px;justify-content:center;">' +
     '<button id="gm-cancel" style="flex:1;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);cursor:pointer;">' + cancelText + '</button>' +
-    '<button id="gm-confirm" style="flex:1;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:' + (danger ? '#E24B4A' : '#2983eb') + ';border:none;color:#fff;font-weight:600;cursor:pointer;">' + confirmText + '</button>' +
+    '<button id="gm-confirm" style="flex:1;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:' + (danger ? '#E24B4A' : '#b8a0d8') + ';border:none;color:#fff;font-weight:600;cursor:pointer;">' + confirmText + '</button>' +
     '</div></div>'
   overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove() } })
   document.body.appendChild(overlay)
@@ -451,9 +453,9 @@ function showAlertModal(message, opts) {
   overlay = document.createElement('div')
   overlay.id = 'generic-modal-overlay'
   overlay.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(5,12,22,0.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);align-items:center;justify-content:center;z-index:9000;padding:24px;'
-  overlay.innerHTML = '<div style="background:#131f2e;border:0.5px solid #1e2d40;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center;">' +
+  overlay.innerHTML = '<div style="background:#111828;border:0.5px solid #182034;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center;">' +
     '<p style="font-size:15px;color:#fff;margin:0 0 22px;line-height:1.5;">' + message + '</p>' +
-    '<button id="gm-ok" style="width:100%;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:#2983eb;border:none;color:#fff;font-weight:600;cursor:pointer;">' + btnText + '</button>' +
+    '<button id="gm-ok" style="width:100%;min-height:48px;padding:14px;font-size:14px;border-radius:10px;background:#b8a0d8;border:none;color:#fff;font-weight:600;cursor:pointer;">' + btnText + '</button>' +
     '</div>'
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove() })
   document.body.appendChild(overlay)
@@ -526,7 +528,7 @@ function showOnboarding() {
           ${slides.map(s => `
             <div class="onboarding-slide">
               ${s.logo
-                ? '<div class="onboarding-logo">Gestur<span class="gesturo-o">o</span><span class="onboarding-logo-dot">.</span></div>'
+                ? '<div class="onboarding-logo"><img src="assets/icon.png" class="onboarding-logo-icon" alt=""><br>Gestur<span class="gesturo-o">o</span><span class="onboarding-logo-dot">.</span></div>'
                 : '<div class="onboarding-icon">' + s.icon + '</div>'}
               <h2 class="onboarding-title">${s.title}</h2>
               <p class="onboarding-subtitle">${s.subtitle}</p>
@@ -634,19 +636,19 @@ function showThemeChooser() {
   overlay.id = 'theme-chooser-overlay'
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,12,22,0.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:1100;display:flex;align-items:center;justify-content:center;padding:24px;animation:announce-fade 0.3s ease;'
   overlay.innerHTML =
-    '<div style="background:#141e2a;border:0.5px solid #1e2d40;border-radius:20px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
+    '<div style="background:#141e2a;border:0.5px solid #182034;border-radius:20px;padding:40px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
     '<div style="font-size:48px;margin-bottom:16px;">🎨</div>' +
     '<h2 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 8px;">Choisis ton ambiance</h2>' +
-    '<p style="color:#8899aa;font-size:14px;margin:0 0 28px;line-height:1.5;">Tu pourras toujours changer dans les options.</p>' +
+    '<p style="color:#8898b0;font-size:14px;margin:0 0 28px;line-height:1.5;">Tu pourras toujours changer dans les options.</p>' +
     '<div style="display:flex;gap:14px;">' +
-      '<button id="tc-dark" style="flex:1;padding:20px 16px;border-radius:14px;border:2px solid #1e2d40;background:#0f1923;cursor:pointer;transition:border-color 0.1s,transform 0.1s;">' +
+      '<button id="tc-dark" style="flex:1;padding:20px 16px;border-radius:14px;border:2px solid #182034;background:#0a0e18;cursor:pointer;transition:border-color 0.1s,transform 0.1s;">' +
         '<div style="font-size:32px;margin-bottom:10px;">🌙</div>' +
         '<div style="color:#fff;font-size:15px;font-weight:600;">Nuit</div>' +
-        '<div style="color:#4a6280;font-size:12px;margin-top:4px;">Sombre et cozy</div>' +
+        '<div style="color:#4a5870;font-size:12px;margin-top:4px;">Sombre et cozy</div>' +
       '</button>' +
       '<button id="tc-light" style="flex:1;padding:20px 16px;border-radius:14px;border:2px solid #e5e0d8;background:#faf8f5;cursor:pointer;transition:border-color 0.1s,transform 0.1s;">' +
         '<div style="font-size:32px;margin-bottom:10px;">☀️</div>' +
-        '<div style="color:#0a1520;font-size:15px;font-weight:600;">Jour</div>' +
+        '<div style="color:#0a0e18;font-size:15px;font-weight:600;">Jour</div>' +
         '<div style="color:#5a6b7f;font-size:12px;margin-top:4px;">Clair et lumineux</div>' +
       '</button>' +
     '</div>' +
@@ -665,9 +667,9 @@ function showThemeChooser() {
   document.getElementById('tc-dark').onclick = () => choose('dark')
   document.getElementById('tc-light').onclick = () => choose('light')
   // Hover feedback
-  document.getElementById('tc-dark').onmouseover = function() { this.style.borderColor = '#2983eb'; this.style.transform = 'scale(1.03)' }
-  document.getElementById('tc-dark').onmouseout = function() { this.style.borderColor = '#1e2d40'; this.style.transform = 'none' }
-  document.getElementById('tc-light').onmouseover = function() { this.style.borderColor = '#2983eb'; this.style.transform = 'scale(1.03)' }
+  document.getElementById('tc-dark').onmouseover = function() { this.style.borderColor = '#b8a0d8'; this.style.transform = 'scale(1.03)' }
+  document.getElementById('tc-dark').onmouseout = function() { this.style.borderColor = '#182034'; this.style.transform = 'none' }
+  document.getElementById('tc-light').onmouseover = function() { this.style.borderColor = '#b8a0d8'; this.style.transform = 'scale(1.03)' }
   document.getElementById('tc-light').onmouseout = function() { this.style.borderColor = '#e5e0d8'; this.style.transform = 'none' }
 }
 
@@ -715,7 +717,7 @@ function showUsernameModal() {
       <input id="username-modal-input" class="username-modal-input" type="text" maxlength="30" placeholder="Ton pseudo" value="${emailPrefix.replace(/"/g, '&quot;')}">
       <div id="username-modal-msg" class="username-modal-msg"></div>
       <button id="username-modal-confirm" class="username-modal-confirm">Confirmer</button>
-      <button id="username-modal-skip" class="username-modal-skip" style="background:none;border:none;color:#4a6280;font-size:13px;cursor:pointer;margin-top:8px;padding:8px;">Passer pour l'instant</button>
+      <button id="username-modal-skip" class="username-modal-skip" style="background:none;border:none;color:#4a5870;font-size:13px;cursor:pointer;margin-top:8px;padding:8px;">Passer pour l'instant</button>
     </div>
   `
   document.body.appendChild(overlay)
@@ -728,7 +730,7 @@ function showUsernameModal() {
     const name = input.value.trim()
     if (!name) { msg.textContent = 'Le pseudo ne peut pas etre vide'; return }
     if (name.length < 2) { msg.textContent = 'Pseudo trop court (2 car. min)'; return }
-    msg.textContent = 'Enregistrement...'; msg.style.color = '#4a6280'
+    msg.textContent = 'Enregistrement...'; msg.style.color = '#4a5870'
     btn.disabled = true
     try {
       const res = await window.electronAPI.updateUsername(name)
@@ -833,7 +835,7 @@ function showAbout() {
           const d = new Date(expiresAt); expiryRow.style.display = 'flex'
           expiryEl.textContent = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
           const daysLeft = Math.ceil((d - Date.now()) / 86400000)
-          if (daysLeft <= 7) { expiryEl.style.color = daysLeft <= 3 ? '#E24B4A' : '#f0c040'; expiryEl.textContent += ' (' + daysLeft + ' j)' }
+          if (daysLeft <= 7) { expiryEl.style.color = daysLeft <= 3 ? '#E24B4A' : '#e8a088'; expiryEl.textContent += ' (' + daysLeft + ' j)' }
         }
       } else {
         planEl.textContent = 'Free'; planEl.className = 'value free'; expiryRow.style.display = 'none'; upgradeBtn.style.display = 'block'
@@ -992,7 +994,7 @@ function renderBadges() {
     card.className = 'badge-card' + (isUnlocked ? ' unlocked' : '')
     card.addEventListener('click', () => showBadgeDetail(def, unlocked[def.id]))
     const date = isUnlocked ? new Date(unlocked[def.id]).toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) : def.desc
-    const dateColor = isUnlocked ? '#f0c040' : '#4a6280'
+    const dateColor = isUnlocked ? '#e8a088' : '#4a5870'
     card.innerHTML = `<div style="font-size:28px;margin-bottom:6px;">${def.emoji}</div><div style="font-size:12px;font-weight:600;color:#fff;margin-bottom:3px;">${def.name}</div><div style="font-size:10px;color:${dateColor};line-height:1.4;">${isUnlocked ? '✓ ' + date : date}</div>`
     grid.appendChild(card)
   })
