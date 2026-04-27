@@ -311,7 +311,7 @@ document.addEventListener('click', (e) => {
 function confirmResetHistory() {
   document.getElementById('options-dropdown').classList.remove('open')
   showConfirmModal('Réinitialiser tout l\'historique ? Cette action est irréversible.', () => {
-    localStorage.removeItem(HIST_KEY); renderWeekBar()
+    saveHist([]); renderWeekBar()
     if (document.getElementById('hist-options').style.display !== 'none') renderHist()
   }, { confirmText: 'Réinitialiser', danger: true })
 }
@@ -342,10 +342,10 @@ function openProfile() {
   const badge = document.getElementById('plan-badge')
   document.getElementById('profile-plan').textContent = badge && badge.textContent.includes('Pro') ? 'Pro' : 'Free'
   // Stats
-  const hist = JSON.parse(localStorage.getItem('gd4_history') || '[]')
+  const hist = loadHist()
   const totalPoses = hist.reduce((a, s) => a + (s.poses || 0), 0)
   document.getElementById('profile-poses').textContent = totalPoses
-  const badges = Object.keys(JSON.parse(localStorage.getItem('gd4_badges') || '{}')).length
+  const badges = Object.keys(loadBadges()).length
   document.getElementById('profile-badges').textContent = badges
   // Streak from DOM (already computed)
   const streakEl = document.getElementById('week-streak')
