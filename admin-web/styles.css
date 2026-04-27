@@ -274,10 +274,12 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .move-picker-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .move-picker-header h2 { font-size: 16px; font-weight: 600; }
 .move-picker-info { font-size: 13px; color: var(--muted); flex: 1; }
-.move-picker-grid { flex: 1; overflow-y: auto; gap: 8px !important; }
-.move-picker-grid .grid-item { cursor: pointer; }
+.move-picker-grid { flex: 1; overflow-y: auto; gap: 8px !important; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important; }
+.move-picker-grid .grid-item { cursor: pointer; aspect-ratio: auto !important; overflow: visible !important; }
+.move-picker-grid .grid-item.folder { padding: 12px 8px; gap: 6px; }
+.move-picker-grid .grid-item.folder .icon { font-size: 36px; }
+.move-picker-grid .grid-item.folder .name { font-size: 12px; }
 .move-picker-grid .grid-item.folder:hover { border-color: var(--accent); transform: scale(1.02); }
-.move-picker-grid .grid-item.folder.current-dest { border: 2px solid var(--accent); background: rgba(56,189,248,0.08); }
 .move-picker-footer { display: flex; justify-content: flex-end; padding-top: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
 
 /* ═══ Moderation panel ═══ */
