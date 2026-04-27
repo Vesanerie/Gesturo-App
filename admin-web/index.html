@@ -354,6 +354,67 @@
       </div>
     </div><!-- /panel-system -->
 
+    <!-- ═ ROTATIONS PANEL ═ -->
+    <div id="panel-rotations" class="admin-panel hidden">
+      <div style="max-width: 900px; margin: 0 auto; padding: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <h2>🔄 Rotations de catalogue</h2>
+          <button class="add-btn" onclick="openCreateRotationModal()">＋ Nouvelle rotation</button>
+        </div>
+        <p class="muted" style="margin-bottom: 16px;">Planifie des changements de contenu R2 : upload vers staging, puis exécute pour archiver l'ancien et promouvoir le nouveau.</p>
+        <div id="rotations-list" style="display: flex; flex-direction: column; gap: 10px;">Chargement…</div>
+      </div>
+    </div><!-- /panel-rotations -->
+
+    <!-- ═ BROADCAST PANEL ═ -->
+    <div id="panel-broadcast" class="admin-panel hidden">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div class="challenge-form-card">
+          <h2>📬 Broadcast email</h2>
+          <p class="muted" style="margin-bottom: 16px;">Envoie un email à tous les utilisateurs ou à un segment. Nécessite RESEND_API_KEY dans les secrets Supabase.</p>
+          <div style="margin-bottom: 12px;">
+            <label class="muted" style="font-size: 12px; display: block; margin-bottom: 4px;">Destinataires</label>
+            <select id="broadcast-filter" style="width: 100%;">
+              <option value="all">Tous les utilisateurs</option>
+              <option value="pro">Pro uniquement</option>
+              <option value="free">Free uniquement</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label class="muted" style="font-size: 12px; display: block; margin-bottom: 4px;">Objet</label>
+            <input id="broadcast-subject" type="text" placeholder="Objet du message" style="width: 100%;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label class="muted" style="font-size: 12px; display: block; margin-bottom: 4px;">Message (HTML autorisé)</label>
+            <textarea id="broadcast-body" rows="10" placeholder="Écris ton message ici..." style="width: 100%; font-size: 13px; resize: vertical;"></textarea>
+          </div>
+          <button id="broadcast-send" class="add-btn" onclick="sendBroadcast()">📬 Envoyer le broadcast</button>
+        </div>
+      </div>
+    </div><!-- /panel-broadcast -->
+
+    <!-- ═ STRIPE PANEL ═ -->
+    <div id="panel-stripe" class="admin-panel hidden">
+      <div style="max-width: 1000px; margin: 0 auto; padding: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+          <h2>💰 Stripe</h2>
+          <button id="stripe-refresh" class="btn-secondary" onclick="loadStripeData()">↻ Actualiser</button>
+        </div>
+        <div id="stripe-kpis" class="stats-grid" style="margin-bottom: 24px;">
+          <div class="stat-card"><div class="stat-value" id="stripe-mrr">…</div><div class="stat-label">MRR</div></div>
+          <div class="stat-card"><div class="stat-value" id="stripe-active">…</div><div class="stat-label">Abonnements actifs</div></div>
+          <div class="stat-card"><div class="stat-value" id="stripe-canceled">…</div><div class="stat-label">Annulés</div></div>
+          <div class="stat-card"><div class="stat-value" id="stripe-trialing">…</div><div class="stat-label">En essai</div></div>
+          <div class="stat-card"><div class="stat-value" id="stripe-balance">…</div><div class="stat-label">Balance disponible</div></div>
+          <div class="stat-card"><div class="stat-value" id="stripe-pending">…</div><div class="stat-label">En attente</div></div>
+        </div>
+        <div class="challenge-list-card">
+          <h3 style="margin-bottom: 12px;">Derniers paiements</h3>
+          <div id="stripe-charges" style="display: flex; flex-direction: column; gap: 6px;">Chargement…</div>
+        </div>
+      </div>
+    </div><!-- /panel-stripe -->
+
     <!-- ═ ERRORS PANEL ═ -->
     <div id="panel-errors" class="admin-panel hidden">
       <div class="errors-toolbar">

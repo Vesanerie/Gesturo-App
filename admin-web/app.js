@@ -1589,6 +1589,7 @@ const NAV_GROUPS = {
   files:      { label: '📂 Contenu',    subs: [
     { id: 'files',      label: '📂 Fichiers',   onShow: () => {} },
     { id: 'challenges', label: '🏆 Challenges', onShow: () => loadChallengeList() },
+    { id: 'rotations',  label: '🔄 Rotations',  onShow: () => loadRotations() },
     { id: 'scraper',    label: '🖼 Scraper',    onShow: () => {} },
   ]},
   moderation: { label: '👥 Communauté', subs: [
@@ -1597,11 +1598,13 @@ const NAV_GROUPS = {
   ]},
   analytics:  { label: '📈 Monitoring', subs: [
     { id: 'analytics',  label: '📈 Stats',   onShow: () => loadAnalytics() },
+    { id: 'stripe',     label: '💰 Stripe',  onShow: () => loadStripeData() },
     { id: 'errors',     label: '🐛 Erreurs', onShow: () => loadErrors() },
   ]},
   system:     { label: '⚙️ Config',     subs: [
-    { id: 'announcements', label: '📣 Annonces', onShow: () => loadAnnouncements() },
-    { id: 'system',        label: '🛠 Système',  onShow: () => { loadMaintenanceState(); loadFeatureFlags(); } },
+    { id: 'announcements', label: '📣 Annonces',   onShow: () => loadAnnouncements() },
+    { id: 'broadcast',     label: '📬 Broadcast',  onShow: () => {} },
+    { id: 'system',        label: '🛠 Système',    onShow: () => { loadMaintenanceState(); loadFeatureFlags(); } },
   ]},
   blog:       { label: '📝 Blog',       subs: [
     { id: 'blog', label: '📝 Blog', onShow: () => loadBlogList() },
@@ -1911,8 +1914,10 @@ async function loadModerationPosts() {
       card.dataset.idx = idx;
       const dt = new Date(p.created_at);
       const dateStr = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      if (p.featured) card.classList.add('featured');
       card.innerHTML =
         '<div class="mod-check" title="Sélectionner (Espace)">✓</div>' +
+        (p.featured ? '<div class="mod-featured-badge">📌 Épinglé</div>' : '') +
         '<img class="mod-card-img" loading="lazy" src="' + thumbUrl(p.image_url, 400) + '" alt="">' +
         '<div class="mod-card-body">' +
           '<div class="mod-card-user">' + escapeHtml(p.username || '—') + '</div>' +
@@ -1922,7 +1927,8 @@ async function loadModerationPosts() {
         '</div>' +
         '<div class="mod-card-actions">' +
           (p.approved
-            ? '<button class="mod-btn-ban" data-act="ban" title="Bloquer cet utilisateur">🚫 Bloquer</button>' +
+            ? '<button class="mod-btn-pin" data-act="pin" title="' + (p.featured ? 'Désépingler' : 'Épingler en tête du feed') + '">' + (p.featured ? '📌 Désépingler' : '📌 Épingler') + '</button>' +
+              '<button class="mod-btn-ban" data-act="ban" title="Bloquer cet utilisateur">🚫 Bloquer</button>' +
               '<button class="mod-btn-reject" data-act="reject">✕ Rejeter</button>'
             : '<button class="mod-btn-approve" data-act="approve">✓ Approuver</button>' +
               '<button class="mod-btn-ban" data-act="ban" title="Bloquer cet utilisateur">🚫</button>' +
@@ -1944,6 +1950,15 @@ async function loadModerationPosts() {
       card.querySelectorAll('.mod-card-actions button').forEach(btn => {
         btn.addEventListener('click', async () => {
           const act = btn.dataset.act;
+          if (act === 'pin') {
+            try {
+              const newState = !p.featured;
+              await callUserData('adminToggleFeaturedPost', { postId: p.id, featured: newState });
+              toast(newState ? 'Post épinglé en tête du feed' : 'Post désépinglé', 'ok');
+              loadModerationPosts();
+            } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+            return;
+          }
           if (act === 'ban') {
             if (!confirm('Bloquer l\'utilisateur ' + p.user_email + ' ?\nIl ne pourra plus publier.')) return;
             try {
@@ -2203,18 +2218,30 @@ async function openUserProfile(targetEmail) {
     // Info badges
     let infoHtml = '<span class="up-info-item"><strong>' + escapeHtml(targetEmail) + '</strong></span>';
     if (p.banned) infoHtml += '<span class="up-tag banned">Banni</span>';
+    if (p.featured) infoHtml += '<span class="up-tag featured">⭐ Coup de cœur</span>';
     if (data.trusted) infoHtml += '<span class="up-tag trusted">Confiance</span>';
     infoHtml += '<span class="up-tag ' + (p.plan === 'pro' ? 'pro' : 'free') + '">' + (p.plan === 'pro' ? 'Pro' : 'Free') + '</span>';
     infoHtml += '<span class="up-info-item">' + data.approvedCount + ' post(s) approuvé(s)</span>';
     $('up-info').innerHTML = infoHtml;
     // Actions
     let actHtml = '';
+    actHtml += '<button class="btn-secondary" id="up-featured" style="border:1px solid ' + (p.featured ? 'rgba(240,192,64,0.5)' : 'var(--border)') + ';padding:8px 16px;' + (p.featured ? 'background:rgba(240,192,64,0.15);color:var(--warm);' : '') + '">' + (p.featured ? '⭐ Retirer Coup de cœur' : '⭐ Coup de cœur') + '</button>';
+    actHtml += '<button class="btn-secondary" id="up-email" style="border:1px solid var(--border);padding:8px 16px;">📧 Email</button>';
     if (p.banned) {
       actHtml += '<button class="btn-secondary" id="up-unban">Débloquer</button>';
     } else {
       actHtml += '<button class="mod-btn-ban btn-secondary" id="up-ban" style="border:1px solid var(--border);padding:8px 16px;">🚫 Bloquer</button>';
     }
     $('up-actions').innerHTML = actHtml;
+    $('up-featured').addEventListener('click', async () => {
+      try {
+        const newState = !p.featured;
+        await callUserData('adminToggleFeaturedUser', { email: targetEmail, featured: newState });
+        toast(newState ? 'Coup de cœur activé' : 'Coup de cœur retiré', 'ok');
+        openUserProfile(targetEmail);
+      } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+    });
+    $('up-email').addEventListener('click', () => openSendEmailModal(targetEmail));
     if (p.banned) {
       $('up-unban').addEventListener('click', async () => {
         try {
@@ -3757,6 +3784,271 @@ function buildArticleHTML(a) {
 </footer>
 </body>
 </html>`;
+}
+
+// ── Rotations ───────────────────────────────────────────────────────────────
+async function loadRotations() {
+  const list = $('rotations-list');
+  list.textContent = 'Chargement…';
+  try {
+    const data = await callUserData('adminListRotations', {});
+    const rotations = data.rotations || [];
+    list.innerHTML = '';
+    if (rotations.length === 0) {
+      list.innerHTML = '<div class="mod-empty">Aucune rotation. Crée-en une pour planifier un changement de catalogue.</div>';
+      return;
+    }
+    rotations.forEach(r => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:16px;';
+      const dt = new Date(r.created_at);
+      const dateStr = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+      const statusColors = { draft: 'color:var(--muted)', scheduled: 'color:var(--warm)', executed: 'color:#5fcf7f' };
+      const statusLabels = { draft: 'Brouillon', scheduled: 'Planifiée', executed: 'Exécutée' };
+      card.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+            '<strong style="font-size:15px;">' + escapeHtml(r.name) + '</strong>' +
+            '<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:rgba(100,100,100,0.15);' + (statusColors[r.status] || '') + ';">' + (statusLabels[r.status] || r.status) + '</span>' +
+          '</div>' +
+          '<span class="muted" style="font-size:12px;">' + dateStr + '</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);margin-bottom:10px;">' +
+          '<span>📂 ' + escapeHtml(r.target_prefix) + '</span>' +
+          '<span>📄 ' + r.fileCount + ' fichier(s)</span>' +
+          (r.scheduled_at ? '<span>📅 ' + new Date(r.scheduled_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</span>' : '') +
+          (r.executed_at ? '<span>✅ Exécutée le ' + new Date(r.executed_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</span>' : '') +
+        '</div>' +
+        '<div class="rot-actions" style="display:flex;gap:8px;"></div>';
+      const actions = card.querySelector('.rot-actions');
+      if (r.status === 'draft') {
+        const uploadBtn = document.createElement('button');
+        uploadBtn.className = 'btn-secondary';
+        uploadBtn.textContent = '📤 Uploader des fichiers';
+        uploadBtn.addEventListener('click', () => openRotationUpload(r.id, r.name));
+        actions.appendChild(uploadBtn);
+        const schedBtn = document.createElement('button');
+        schedBtn.className = 'add-btn';
+        schedBtn.style.cssText = 'padding:6px 14px;font-size:13px;';
+        schedBtn.textContent = '📅 Planifier';
+        schedBtn.addEventListener('click', async () => {
+          const dateInput = prompt('Date d\'exécution (YYYY-MM-DD HH:MM) ou laisser vide pour maintenant :');
+          try {
+            await callUserData('adminScheduleRotation', { rotationId: r.id, scheduledAt: dateInput || null });
+            toast('Rotation planifiée', 'ok');
+            loadRotations();
+          } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+        });
+        actions.appendChild(schedBtn);
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-danger';
+        delBtn.style.cssText = 'padding:6px 14px;font-size:13px;';
+        delBtn.textContent = '🗑 Supprimer';
+        delBtn.addEventListener('click', async () => {
+          if (!confirm('Supprimer la rotation "' + r.name + '" et ses fichiers staging ?')) return;
+          try {
+            await callUserData('adminDeleteRotation', { rotationId: r.id });
+            toast('Rotation supprimée', 'ok');
+            loadRotations();
+          } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+        });
+        actions.appendChild(delBtn);
+      }
+      if (r.status === 'scheduled') {
+        const execBtn = document.createElement('button');
+        execBtn.className = 'add-btn';
+        execBtn.style.cssText = 'padding:6px 14px;font-size:13px;';
+        execBtn.textContent = '🚀 Exécuter maintenant';
+        execBtn.addEventListener('click', async () => {
+          if (!confirm('Exécuter la rotation "' + r.name + '" ?\n\nLes fichiers existants dans ' + r.target_prefix + ' seront archivés et remplacés.')) return;
+          execBtn.disabled = true;
+          execBtn.textContent = 'Exécution…';
+          try {
+            const result = await callUserData('adminExecuteRotation', { rotationId: r.id });
+            toast('Rotation exécutée : ' + result.moved + ' fichiers déplacés, ' + result.archived + ' archivés', 'ok');
+            loadRotations();
+          } catch (e) { toast('Erreur : ' + e.message, 'err'); execBtn.disabled = false; execBtn.textContent = '🚀 Exécuter maintenant'; }
+        });
+        actions.appendChild(execBtn);
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-danger';
+        delBtn.style.cssText = 'padding:6px 14px;font-size:13px;';
+        delBtn.textContent = '🗑 Annuler';
+        delBtn.addEventListener('click', async () => {
+          if (!confirm('Supprimer la rotation "' + r.name + '" ?')) return;
+          try {
+            await callUserData('adminDeleteRotation', { rotationId: r.id });
+            toast('Rotation annulée', 'ok');
+            loadRotations();
+          } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+        });
+        actions.appendChild(delBtn);
+      }
+      list.appendChild(card);
+    });
+  } catch (e) {
+    list.innerHTML = '<div class="mod-empty">Erreur : ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function openCreateRotationModal() {
+  const name = prompt('Nom de la rotation (ex: "Nouvelles poses janvier") :');
+  if (!name) return;
+  const prefix = prompt('Préfixe de destination R2 (ex: Sessions/current/poses/) :');
+  if (!prefix) return;
+  const date = prompt('Date d\'exécution planifiée (YYYY-MM-DD HH:MM) ou laisser vide :');
+  (async () => {
+    try {
+      await callUserData('adminCreateRotation', { name, targetPrefix: prefix, scheduledAt: date || null });
+      toast('Rotation créée', 'ok');
+      loadRotations();
+    } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+  })();
+}
+
+function openRotationUpload(rotationId, rotationName) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = 'image/*';
+  input.addEventListener('change', async () => {
+    const files = Array.from(input.files || []);
+    if (files.length === 0) return;
+    toast('Upload de ' + files.length + ' fichiers pour "' + rotationName + '"…', 'ok');
+    try {
+      const filesMeta = files.map(f => ({ name: f.name, contentType: f.type || 'image/jpeg' }));
+      const result = await callUserData('adminGetRotationUploadUrls', { rotationId, files: filesMeta });
+      let uploaded = 0;
+      for (let i = 0; i < result.urls.length; i++) {
+        const { url } = result.urls[i];
+        await fetch(url, { method: 'PUT', body: files[i], headers: { 'Content-Type': files[i].type || 'image/jpeg' } });
+        uploaded++;
+        if (uploaded % 10 === 0) toast('Upload : ' + uploaded + '/' + files.length, 'ok');
+      }
+      toast('Upload terminé : ' + uploaded + ' fichiers', 'ok');
+      loadRotations();
+    } catch (e) { toast('Erreur upload : ' + e.message, 'err'); }
+  });
+  input.click();
+}
+
+// ── Send Email Modal ────────────────────────────────────────────────────────
+function openSendEmailModal(toEmail) {
+  let modal = document.getElementById('email-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'email-modal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML =
+      '<div class="modal-card" style="max-width:520px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+          '<h2>📧 Envoyer un email</h2>' +
+          '<button id="email-modal-close" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>' +
+        '</div>' +
+        '<div style="margin-bottom:12px;"><label class="muted" style="font-size:12px;">Destinataire</label><input id="email-to" type="email" style="width:100%;" readonly></div>' +
+        '<div style="margin-bottom:12px;"><label class="muted" style="font-size:12px;">Objet</label><input id="email-subject" type="text" placeholder="Objet du message" style="width:100%;"></div>' +
+        '<div style="margin-bottom:16px;"><label class="muted" style="font-size:12px;">Message (HTML autorisé)</label><textarea id="email-body" rows="8" placeholder="Écris ton message ici..." style="width:100%;font-size:13px;resize:vertical;"></textarea></div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;">' +
+          '<button id="email-cancel" class="btn-secondary">Annuler</button>' +
+          '<button id="email-send" class="add-btn">Envoyer</button>' +
+        '</div>' +
+        '<div id="email-msg" class="msg" style="margin-top:10px;"></div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+    document.getElementById('email-modal-close').addEventListener('click', () => modal.classList.add('hidden'));
+    document.getElementById('email-cancel').addEventListener('click', () => modal.classList.add('hidden'));
+    document.getElementById('email-send').addEventListener('click', async () => {
+      const to = document.getElementById('email-to').value;
+      const subject = document.getElementById('email-subject').value.trim();
+      const body = document.getElementById('email-body').value.trim();
+      if (!subject || !body) { document.getElementById('email-msg').textContent = 'Objet et message requis'; return; }
+      document.getElementById('email-send').disabled = true;
+      document.getElementById('email-send').textContent = 'Envoi…';
+      try {
+        await callUserData('adminSendEmail', { to, subject, html: body.replace(/\n/g, '<br>') });
+        toast('Email envoyé à ' + to, 'ok');
+        modal.classList.add('hidden');
+      } catch (e) {
+        document.getElementById('email-msg').textContent = 'Erreur : ' + e.message;
+      } finally {
+        document.getElementById('email-send').disabled = false;
+        document.getElementById('email-send').textContent = 'Envoyer';
+      }
+    });
+  }
+  document.getElementById('email-to').value = toEmail;
+  document.getElementById('email-subject').value = '';
+  document.getElementById('email-body').value = '';
+  document.getElementById('email-msg').textContent = '';
+  modal.classList.remove('hidden');
+}
+
+// ── Broadcast Email ─────────────────────────────────────────────────────────
+async function sendBroadcast() {
+  const subject = $('broadcast-subject').value.trim();
+  const html = $('broadcast-body').value.trim();
+  const filter = $('broadcast-filter').value;
+  if (!subject || !html) { toast('Objet et message requis', 'err'); return; }
+  const filterLabel = filter === 'pro' ? 'Pro' : filter === 'free' ? 'Free' : 'tous les utilisateurs';
+  if (!confirm('Envoyer cet email à ' + filterLabel + ' ?\n\nObjet : ' + subject)) return;
+  $('broadcast-send').disabled = true;
+  $('broadcast-send').textContent = 'Envoi en cours…';
+  try {
+    const result = await callUserData('adminBroadcastEmail', { subject, html: html.replace(/\n/g, '<br>'), filter });
+    toast('Broadcast envoyé : ' + result.sent + '/' + result.total + ' emails', 'ok');
+    if (result.errors?.length) toast('Erreurs : ' + result.errors.join(', '), 'err');
+  } catch (e) { toast('Erreur : ' + e.message, 'err'); }
+  $('broadcast-send').disabled = false;
+  $('broadcast-send').textContent = '📬 Envoyer le broadcast';
+}
+
+// ── Stripe Dashboard ────────────────────────────────────────────────────────
+async function loadStripeData() {
+  $('stripe-mrr').textContent = '…';
+  $('stripe-active').textContent = '…';
+  $('stripe-canceled').textContent = '…';
+  $('stripe-trialing').textContent = '…';
+  $('stripe-balance').textContent = '…';
+  $('stripe-pending').textContent = '…';
+  $('stripe-charges').textContent = 'Chargement…';
+  try {
+    const d = await callUserData('adminGetStripeData', {});
+    const fmt = (cents, cur) => {
+      const val = (cents / 100).toFixed(2);
+      const sym = cur === 'eur' ? '€' : cur === 'usd' ? '$' : cur?.toUpperCase() + ' ';
+      return cur === 'eur' ? val + ' €' : sym + val;
+    };
+    $('stripe-mrr').textContent = fmt(d.mrr, d.currency);
+    $('stripe-active').textContent = d.activeCount;
+    $('stripe-canceled').textContent = d.canceledCount;
+    $('stripe-trialing').textContent = d.trialingCount;
+    $('stripe-balance').textContent = fmt(d.balanceAvailable, d.currency);
+    $('stripe-pending').textContent = fmt(d.balancePending, d.currency);
+    // Charges
+    const list = $('stripe-charges');
+    list.innerHTML = '';
+    if (!d.recentCharges || d.recentCharges.length === 0) {
+      list.innerHTML = '<div class="mod-empty">Aucun paiement récent.</div>';
+      return;
+    }
+    d.recentCharges.forEach(c => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;font-size:13px;';
+      const dt = new Date(c.created * 1000);
+      const dateStr = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const statusCls = c.status === 'succeeded' ? 'color:#5fcf7f' : c.status === 'failed' ? 'color:var(--danger)' : 'color:var(--muted)';
+      const refundTag = c.refunded ? '<span style="background:rgba(226,75,74,0.15);color:var(--danger);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;margin-left:4px;">Remboursé</span>' : '';
+      row.innerHTML =
+        '<span style="min-width:90px;font-weight:600;">' + fmt(c.amount, c.currency) + '</span>' +
+        '<span style="' + statusCls + ';min-width:70px;">' + c.status + '</span>' + refundTag +
+        '<span style="flex:1;color:var(--muted);">' + escapeHtml(c.email) + '</span>' +
+        '<span style="color:var(--muted);font-size:12px;">' + dateStr + '</span>';
+      list.appendChild(row);
+    });
+  } catch (e) {
+    $('stripe-charges').innerHTML = '<div class="mod-empty">Erreur : ' + escapeHtml(e.message) + '</div>';
+  }
 }
 
 init();

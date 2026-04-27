@@ -335,6 +335,10 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 /* Ban button */
 .mod-btn-ban { background: rgba(230,163,65,0.15); color: #e6a341; }
 .mod-btn-ban:hover { background: rgba(230,163,65,0.3); }
+.mod-btn-pin { background: rgba(240,192,64,0.15); color: var(--warm); }
+.mod-btn-pin:hover { background: rgba(240,192,64,0.3); }
+.mod-card.featured { border: 1px solid rgba(240,192,64,0.4); }
+.mod-featured-badge { position: absolute; top: 6px; right: 6px; background: rgba(240,192,64,0.2); color: var(--warm); font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 600; z-index: 2; }
 .mod-card-banned { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(226,75,74,0.15); color: var(--danger); text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px; }
 
 /* Lightbox compare (ref + drawing side by side) */
@@ -369,6 +373,7 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 .up-tag.trusted { background: rgba(95,207,127,0.15); color: #5fcf7f; }
 .up-tag.free { background: rgba(106,138,168,0.15); color: var(--muted); }
 .up-tag.pro { background: rgba(240,192,64,0.15); color: var(--warm); }
+.up-tag.featured { background: rgba(240,192,64,0.2); color: var(--warm); }
 .up-actions { display: flex; gap: 8px; margin-bottom: 16px; }
 .up-section-title { font-size: 13px; font-weight: 600; color: var(--muted); margin: 12px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 .up-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important; gap: 6px !important; padding: 0 !important; max-height: 250px; overflow-y: auto; }

@@ -2,7 +2,7 @@
 // community posts, reactions.
 // Auth via Supabase JWT, DB writes via service role (bypasses RLS).
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { presignPut, putObject, deleteKeys } from '../_shared/r2.ts';
+import { presignPut, putObject, deleteKeys, listAll as listAllR2, moveObject } from '../_shared/r2.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
 
 const CORS = {
@@ -692,7 +692,7 @@ if (action === 'getStreak') {
       const safeSearch = (payload?.search || '').trim().toLowerCase().replace(/[.,()"'\\]/g, '');
       let query = admin
         .from('community_posts')
-        .select('id, user_email, username, image_key, ref_image_url, challenge_id, approved, created_at')
+        .select('id, user_email, username, image_key, ref_image_url, challenge_id, approved, featured, created_at')
         .order('created_at', { ascending: false })
         .range(reqOffset, reqOffset + reqLimit - 1);
       if (filter === 'pending') query = query.eq('approved', false);
@@ -788,7 +788,7 @@ if (action === 'getStreak') {
       if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
       const targetEmail = payload?.email;
       if (!targetEmail) return json({ error: 'missing email' }, 400);
-      const { data: prof } = await admin.from('profiles').select('username, email, banned, plan, created_at').eq('email', targetEmail).maybeSingle();
+      const { data: prof } = await admin.from('profiles').select('username, email, banned, featured, plan, created_at').eq('email', targetEmail).maybeSingle();
       const { data: allPosts } = await admin.from('community_posts')
         .select('id, image_key, approved, challenge_id, created_at')
         .eq('user_email', targetEmail).order('created_at', { ascending: false });
@@ -1208,6 +1208,120 @@ if (action === 'getStreak') {
       return json({ ok: true });
     }
 
+    // ── Admin send email ──
+    if (action === 'adminSendEmail') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { to, subject, html } = payload || {};
+      if (!to || !subject || !html) return json({ error: 'missing to, subject, or html' }, 400);
+      const resendKey = Deno.env.get('RESEND_API_KEY');
+      if (!resendKey) return json({ error: 'RESEND_API_KEY not set — configure it in Supabase secrets' }, 500);
+      const fromEmail = Deno.env.get('RESEND_FROM') || 'Gesturo <hello@gesturo.art>';
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resendKey}` },
+          body: JSON.stringify({ from: fromEmail, to: Array.isArray(to) ? to : [to], subject, html }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          return json({ error: err.message || 'Resend error ' + res.status }, res.status);
+        }
+        const result = await res.json();
+        // Log the action
+        await admin.from('moderation_log').insert({ admin_email: email, action: 'send_email', target_email: Array.isArray(to) ? to.join(', ') : to, reason: subject });
+        return json({ ok: true, id: result.id });
+      } catch (e) { return json({ error: (e as Error).message }, 500); }
+    }
+
+    // ── Admin broadcast email ──
+    if (action === 'adminBroadcastEmail') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { subject, html, filter } = payload || {};
+      if (!subject || !html) return json({ error: 'missing subject or html' }, 400);
+      const resendKey = Deno.env.get('RESEND_API_KEY');
+      if (!resendKey) return json({ error: 'RESEND_API_KEY not set' }, 500);
+      const fromEmail = Deno.env.get('RESEND_FROM') || 'Gesturo <hello@gesturo.art>';
+      // Get recipients
+      let query = admin.from('profiles').select('email').eq('banned', false);
+      if (filter === 'pro') query = query.eq('plan', 'pro');
+      else if (filter === 'free') query = query.eq('plan', 'free');
+      const { data: recipients } = await query;
+      if (!recipients || recipients.length === 0) return json({ error: 'Aucun destinataire' }, 400);
+      const emails = recipients.map((r: any) => r.email).filter(Boolean);
+      // Send in batches of 50 (Resend limit)
+      let sent = 0;
+      const errors: string[] = [];
+      for (let i = 0; i < emails.length; i += 50) {
+        const batch = emails.slice(i, i + 50);
+        try {
+          const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${resendKey}` },
+            body: JSON.stringify({ from: fromEmail, to: [fromEmail], bcc: batch, subject, html }),
+          });
+          if (res.ok) sent += batch.length;
+          else { const err = await res.json().catch(() => ({})); errors.push(err.message || 'batch error'); }
+        } catch (e) { errors.push((e as Error).message); }
+      }
+      await admin.from('moderation_log').insert({ admin_email: email, action: 'broadcast_email', reason: `${subject} — ${sent}/${emails.length} envoyés (filtre: ${filter || 'all'})` });
+      return json({ ok: true, sent, total: emails.length, errors });
+    }
+
+    // ── Stripe dashboard (admin) ──
+    if (action === 'adminGetStripeData') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+      if (!stripeKey) return json({ error: 'STRIPE_SECRET_KEY not set' }, 500);
+      const { default: Stripe } = await import('https://esm.sh/stripe@14.21.0?target=deno');
+      const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() });
+      try {
+        const [subs, charges, balance] = await Promise.all([
+          stripe.subscriptions.list({ limit: 100, status: 'all' }),
+          stripe.charges.list({ limit: 30 }),
+          stripe.balance.retrieve(),
+        ]);
+        // MRR = sum of active subs monthly amount
+        let mrr = 0;
+        let activeCount = 0;
+        let canceledCount = 0;
+        let trialingCount = 0;
+        for (const s of subs.data) {
+          if (s.status === 'active') {
+            activeCount++;
+            const item = s.items?.data?.[0];
+            if (item) {
+              let amount = item.price?.unit_amount || 0;
+              const interval = item.price?.recurring?.interval;
+              if (interval === 'year') amount = Math.round(amount / 12);
+              mrr += amount;
+            }
+          } else if (s.status === 'canceled') canceledCount++;
+          else if (s.status === 'trialing') trialingCount++;
+        }
+        // Recent charges
+        const recentCharges = charges.data.map((c: any) => ({
+          id: c.id,
+          amount: c.amount,
+          currency: c.currency,
+          status: c.status,
+          email: c.billing_details?.email || c.receipt_email || '—',
+          created: c.created,
+          refunded: c.refunded,
+        }));
+        // Balance
+        const balanceAvailable = balance.available?.reduce((s: number, b: any) => s + b.amount, 0) || 0;
+        const balancePending = balance.pending?.reduce((s: number, b: any) => s + b.amount, 0) || 0;
+        return json({
+          mrr, activeCount, canceledCount, trialingCount,
+          recentCharges, balanceAvailable, balancePending,
+          currency: subs.data[0]?.items?.data?.[0]?.price?.currency || charges.data[0]?.currency || 'eur',
+        });
+      } catch (e) { return json({ error: (e as Error).message }, 500); }
+    }
+
     // Track user activity (call from app on session start)
     if (action === 'pingActivity') {
       try {
@@ -1352,6 +1466,114 @@ if (action === 'getStreak') {
       for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
       const base64 = btoa(binary);
       return json({ base64, contentType: resp.headers.get('content-type') || 'image/jpeg' });
+    }
+
+    // ── Rotations (Phase D) ───────────────────────────────────────────────
+    if (action === 'adminListRotations') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { data, error } = await admin.from('rotations')
+        .select('id, name, target_prefix, status, scheduled_at, executed_at, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) return json({ error: error.message }, 500);
+      // Get file counts per rotation
+      for (const r of data || []) {
+        const { count } = await admin.from('rotation_files').select('id', { count: 'exact', head: true }).eq('rotation_id', r.id);
+        (r as any).fileCount = count || 0;
+      }
+      return json({ rotations: data || [] });
+    }
+
+    if (action === 'adminCreateRotation') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { name, targetPrefix, scheduledAt } = payload || {};
+      if (!name || !targetPrefix) return json({ error: 'missing name or targetPrefix' }, 400);
+      const { data, error } = await admin.from('rotations').insert({
+        name, target_prefix: targetPrefix, status: 'draft',
+        scheduled_at: scheduledAt || null, created_by: email,
+      }).select().single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ rotation: data });
+    }
+
+    if (action === 'adminGetRotationUploadUrls') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { rotationId, files } = payload || {};
+      if (!rotationId || !files?.length) return json({ error: 'missing rotationId or files' }, 400);
+      // Verify rotation exists and is draft
+      const { data: rot } = await admin.from('rotations').select('id, status, target_prefix').eq('id', rotationId).single();
+      if (!rot) return json({ error: 'rotation not found' }, 404);
+      if (rot.status !== 'draft') return json({ error: 'rotation is not in draft status' }, 400);
+      const stagingPrefix = `staging/${rotationId}/`;
+      const urls = [];
+      for (const f of files) {
+        const key = stagingPrefix + f.name;
+        const url = await presignPut(key, f.contentType || 'image/jpeg');
+        urls.push({ name: f.name, key, url });
+        await admin.from('rotation_files').insert({ rotation_id: rotationId, file_key: key, dest_key: rot.target_prefix + f.name });
+      }
+      return json({ urls });
+    }
+
+    if (action === 'adminScheduleRotation') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { rotationId, scheduledAt } = payload || {};
+      if (!rotationId) return json({ error: 'missing rotationId' }, 400);
+      const { error } = await admin.from('rotations').update({
+        status: 'scheduled', scheduled_at: scheduledAt || new Date().toISOString(),
+      }).eq('id', rotationId).eq('status', 'draft');
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === 'adminExecuteRotation') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { rotationId } = payload || {};
+      if (!rotationId) return json({ error: 'missing rotationId' }, 400);
+      const { data: rot } = await admin.from('rotations').select('*').eq('id', rotationId).single();
+      if (!rot) return json({ error: 'rotation not found' }, 404);
+      if (rot.status === 'executed') return json({ error: 'already executed' }, 400);
+      // Get files to move
+      const { data: files } = await admin.from('rotation_files').select('file_key, dest_key').eq('rotation_id', rotationId);
+      if (!files?.length) return json({ error: 'no files in rotation' }, 400);
+      // 1. Archive existing files at target prefix
+      const archiveTs = new Date().toISOString().replace(/[:.]/g, '-');
+      const existingFiles = await listAllR2(rot.target_prefix);
+      let archived = 0;
+      for (const f of existingFiles) {
+        const archiveKey = f.Key.replace(/^(Sessions|Animations)\/current\//, `$1/archive/${archiveTs}/`);
+        try { await moveObject(f.Key, archiveKey); archived++; } catch {}
+      }
+      // 2. Move staging files to destination
+      let moved = 0;
+      for (const f of files) {
+        try { await moveObject(f.file_key, f.dest_key); moved++; } catch {}
+      }
+      // 3. Update rotation status
+      await admin.from('rotations').update({ status: 'executed', executed_at: new Date().toISOString() }).eq('id', rotationId);
+      await admin.from('moderation_log').insert({ admin_email: email, action: 'execute_rotation', reason: `${rot.name}: ${moved} fichiers déplacés, ${archived} archivés` });
+      return json({ ok: true, moved, archived });
+    }
+
+    if (action === 'adminDeleteRotation') {
+      const { data: profile } = await admin.from('profiles').select('is_admin').eq('email', email).maybeSingle();
+      if (!profile?.is_admin) return json({ error: 'forbidden' }, 403);
+      const { rotationId } = payload || {};
+      if (!rotationId) return json({ error: 'missing rotationId' }, 400);
+      // Delete staging files from R2
+      const { data: files } = await admin.from('rotation_files').select('file_key').eq('rotation_id', rotationId);
+      if (files?.length) {
+        const keys = files.map((f: any) => f.file_key);
+        try { await deleteKeys(keys); } catch {}
+      }
+      await admin.from('rotation_files').delete().eq('rotation_id', rotationId);
+      await admin.from('rotations').delete().eq('id', rotationId);
+      return json({ ok: true });
     }
 
     // ── HARD RESET : wipe everything except users/profiles ───────────────
