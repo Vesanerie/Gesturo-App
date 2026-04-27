@@ -37,9 +37,9 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
   const card = document.createElement('div')
   card.dataset.cat = key
   if (locked) card.classList.add('cat-locked')
-  const borderColor = locked ? '#3a5570' : (isSelected ? (nudity ? '#E24B4A' : '#2983eb') : '#1e2d40')
+  const borderColor = locked ? '#4a5870' : (isSelected ? (nudity ? '#E24B4A' : '#b8a0d8') : '#182034')
   const borderStyle = locked ? 'dashed' : 'solid'
-  card.style.cssText = `position:relative;border-radius:10px;overflow:hidden;cursor:${locked ? 'not-allowed' : 'pointer'};border:1.5px ${borderStyle} ${borderColor};background:#131f2e;aspect-ratio:4/3;transition:border-color 0.15s,transform 0.15s;${locked ? 'opacity:0.5;' : ''}`
+  card.style.cssText = `position:relative;border-radius:10px;overflow:hidden;cursor:${locked ? 'not-allowed' : 'pointer'};border:1.5px ${borderStyle} ${borderColor};background:#111828;aspect-ratio:4/3;transition:border-color 0.15s,transform 0.15s;${locked ? 'opacity:0.5;' : ''}`
   if (previewUrl) {
     const img = document.createElement('img')
     img.src = previewUrl; img.loading = 'lazy'
@@ -49,16 +49,16 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
     card.appendChild(img)
   }
   const overlay = document.createElement('div')
-  overlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to top, rgba(5,10,18,0.95) 0%, rgba(5,10,18,0.3) 60%, transparent 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:10px;'
+  overlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to top, rgba(10,14,24,0.95) 0%, rgba(10,14,24,0.3) 60%, transparent 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:10px;'
   overlay.appendChild(Object.assign(document.createElement('div'), { textContent: getCatIcon(cat), style: 'font-size:18px;margin-bottom:4px;' }))
   const labelText = getCatLabel(cat) + (locked ? ' 🔒' : '')
   overlay.appendChild(Object.assign(document.createElement('div'), { textContent: labelText, style: 'font-size:12px;font-weight:600;color:#fff;line-height:1.2;' }))
   const subText = locked ? 'Pro' : (count + ' poses')
-  overlay.appendChild(Object.assign(document.createElement('div'), { textContent: subText, style: 'font-size:11px;color:#4a6280;margin-top:2px;' }))
+  overlay.appendChild(Object.assign(document.createElement('div'), { textContent: subText, style: 'font-size:11px;color:#4a5870;margin-top:2px;' }))
   card.appendChild(overlay)
   if (!hasSubs && !locked) {
     const badge = document.createElement('div')
-    badge.style.cssText = `position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:${nudity ? '#E24B4A' : '#2983eb'};display:${isSelected ? 'flex' : 'none'};align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;`
+    badge.style.cssText = `position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:${nudity ? '#E24B4A' : '#b8a0d8'};display:${isSelected ? 'flex' : 'none'};align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;`
     badge.textContent = '✓'
     card.appendChild(badge)
   }
@@ -102,11 +102,11 @@ function renderCategories(parentCat = null) {
   const header = document.createElement('div')
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentCat) {
-    header.innerHTML = `<button class="cat-back-btn" onclick="renderCategories(null)"><span class="cat-back-arrow">‹</span> ${getCatLabel(parentCat)}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Sous-collections</span>`
+    header.innerHTML = `<button class="cat-back-btn" onclick="renderCategories(null)"><span class="cat-back-arrow">‹</span> ${getCatLabel(parentCat)}</button><span style="font-size:12px;color:#4a5870;text-transform:uppercase;letter-spacing:0.8px;">Sous-collections</span>`
   } else {
     const selectableRoots = cats.filter(c => !isCatLocked(c))
     const allSelected = selectableRoots.length > 0 && selectableRoots.every(c => selectedCats.has(c))
-    header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Collections</span><button id="cat-all" onclick="toggleAllCats()" style="font-size:12px;background:transparent;border:0.5px solid #1e2d40;border-radius:6px;color:${allSelected ? '#2983eb' : '#3a5570'};padding:4px 10px;cursor:pointer;">${allSelected ? '✓ Tout' : 'Tout sélectionner'}</button>`
+    header.innerHTML = `<span style="font-size:12px;color:#4a5870;text-transform:uppercase;letter-spacing:0.8px;">Collections</span><button id="cat-all" onclick="toggleAllCats()" style="font-size:12px;background:transparent;border:0.5px solid #182034;border-radius:6px;color:${allSelected ? '#b8a0d8' : '#4a5870'};padding:4px 10px;cursor:pointer;">${allSelected ? '✓ Tout' : 'Tout sélectionner'}</button>`
   }
   wrap.appendChild(header)
   const grid = document.createElement('div')
@@ -139,7 +139,7 @@ function renderCategories(parentCat = null) {
       } else if (hasSubs) {
         card.onclick = () => renderCategories(cat)
         const arrow = document.createElement('div')
-        arrow.style.cssText = 'position:absolute;top:8px;left:8px;background:rgba(5,10,18,0.7);border-radius:4px;padding:2px 6px;font-size:10px;color:#8aaccc;'
+        arrow.style.cssText = 'position:absolute;top:8px;left:8px;background:rgba(10,14,24,0.7);border-radius:4px;padding:2px 6px;font-size:10px;color:#8898b0;'
         arrow.textContent = Object.keys(subs).length + ' collections →'
         card.appendChild(arrow)
       } else { card.onclick = () => toggleCat(cat, card) }
@@ -162,11 +162,11 @@ function showUpgradeModal() {
 // Applique l'état visuel (border, opacity, check) d'une catégorie card.
 function applyCatVisual(card, selected, nudity) {
   if (selected) {
-    card.style.borderColor = nudity ? '#E24B4A' : '#2983eb'
+    card.style.borderColor = nudity ? '#E24B4A' : '#b8a0d8'
     const img = card.querySelector('img'); if (img) img.style.opacity = '1'
     card.lastElementChild.style.display = 'flex'
   } else {
-    card.style.borderColor = '#1e2d40'
+    card.style.borderColor = '#182034'
     const img = card.querySelector('img'); if (img) img.style.opacity = '0.35'
     card.lastElementChild.style.display = 'none'
   }
@@ -233,14 +233,26 @@ function showDownloadPopup(catKey, card, isOffline) {
 }
 
 function collectCatUrls(catKey) {
+  // Direct category (e.g. "animals")
   const catData = categories[catKey]
-  if (!catData) return []
-  const entries = Array.isArray(catData) ? catData : (catData.entries || [])
-  const subs = Array.isArray(catData) ? {} : (catData.subcategories || {})
-  const urls = []
-  entries.forEach(e => { if (e.path) urls.push(e.path) })
-  for (const sub of Object.values(subs)) sub.forEach(e => { if (e.path) urls.push(e.path) })
-  return urls
+  if (catData) {
+    const entries = Array.isArray(catData) ? catData : (catData.entries || [])
+    const subs = Array.isArray(catData) ? {} : (catData.subcategories || {})
+    const urls = []
+    entries.forEach(e => { if (e.path) urls.push(e.path) })
+    for (const sub of Object.values(subs)) sub.forEach(e => { if (e.path) urls.push(e.path) })
+    return urls
+  }
+  // Sub-category (e.g. "poses-dynamiques/libre")
+  const parts = catKey.split('/')
+  if (parts.length === 2) {
+    const parent = categories[parts[0]]
+    if (parent && !Array.isArray(parent) && parent.subcategories) {
+      const subEntries = parent.subcategories[parts[1]] || []
+      return subEntries.map(e => e.path).filter(Boolean)
+    }
+  }
+  return []
 }
 
 function startPopupDownload(catKey, popup, backdrop) {
@@ -503,14 +515,14 @@ function updateAllBtn() {
   const btn = document.getElementById('cat-all'); if (!btn) return
   const selectable = Object.keys(categories).filter(c => !isCatLocked(c))
   const allSelected = selectable.length > 0 && selectable.every(c => selectedCats.has(c))
-  btn.style.color = allSelected ? '#2983eb' : '#3a5570'
+  btn.style.color = allSelected ? '#b8a0d8' : '#4a5870'
   btn.textContent = allSelected ? '✓ Tout' : 'Tout sélectionner'
 }
 
 function renderSequences(parentPath = null) {
   const wrap = document.getElementById('sequences-wrap'); wrap.innerHTML = ''
   if (Object.keys(sequences).length === 0) {
-    wrap.innerHTML = '<div style="font-size:13px;color:#3a5570;text-align:center;padding:20px 0;">Aucune séquence disponible.</div>'; return
+    wrap.innerHTML = '<div style="font-size:13px;color:#4a5870;text-align:center;padding:20px 0;">Aucune séquence disponible.</div>'; return
   }
   const header = document.createElement('div')
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
@@ -519,9 +531,9 @@ function renderSequences(parentPath = null) {
     // Le back doit remonter d'un niveau, ou revenir au root si plus rien.
     const rawParent = parentPath.split('/').slice(0, -1).join('/')
     const backTarget = rawParent ? "'" + rawParent + "'" : 'null'
-    header.innerHTML = `<button class="cat-back-btn" onclick="renderSequences(${backTarget})"><span class="cat-back-arrow">‹</span> ${label}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
+    header.innerHTML = `<button class="cat-back-btn" onclick="renderSequences(${backTarget})"><span class="cat-back-arrow">‹</span> ${label}</button><span style="font-size:12px;color:#4a5870;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
   } else {
-    header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
+    header.innerHTML = `<span style="font-size:12px;color:#4a5870;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
   }
   wrap.appendChild(header)
   const grid = document.createElement('div')
@@ -560,7 +572,7 @@ function renderSequences(parentPath = null) {
     card.onclick = () => renderSequences(folderPath)
     const count = Object.keys(sequences).filter(s => s.startsWith(folderPath + '/')).length
     const arrow = document.createElement('div')
-    arrow.style.cssText = 'position:absolute;top:8px;left:8px;background:rgba(5,10,18,0.7);border-radius:4px;padding:2px 6px;font-size:10px;color:#8aaccc;'
+    arrow.style.cssText = 'position:absolute;top:8px;left:8px;background:rgba(10,14,24,0.7);border-radius:4px;padding:2px 6px;font-size:10px;color:#8898b0;'
     arrow.textContent = count + ' séquences →'
     card.appendChild(arrow); grid.appendChild(card)
   }
@@ -603,21 +615,21 @@ function renderSequences(parentPath = null) {
 
 function buildSeqCard(label, previewUrl, isSelected, isLocked, isFolder, frameCount = null, seq = null) {
   const card = document.createElement('div')
-  card.style.cssText = `position:relative;border-radius:10px;overflow:hidden;cursor:pointer;border:1.5px solid ${isSelected ? '#2983eb' : '#1e2d40'};background:#131f2e;aspect-ratio:4/3;transition:border-color 0.15s,transform 0.15s;`
+  card.style.cssText = `position:relative;border-radius:10px;overflow:hidden;cursor:pointer;border:1.5px solid ${isSelected ? '#b8a0d8' : '#182034'};background:#111828;aspect-ratio:4/3;transition:border-color 0.15s,transform 0.15s;`
   const img = document.createElement('img')
   img.loading = 'lazy'
   img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity 0.3s;'
   if (previewUrl) { img.src = previewUrl; img.onload = () => { img.style.opacity = isSelected ? '1' : '0.45' }; img.onerror = () => { img.style.opacity = '0' } }
   card.appendChild(img)
   const overlay = document.createElement('div')
-  overlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to top, rgba(5,10,18,0.95) 0%, rgba(5,10,18,0.3) 60%, transparent 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:10px;'
+  overlay.style.cssText = 'position:absolute;inset:0;background:linear-gradient(to top, rgba(10,14,24,0.95) 0%, rgba(10,14,24,0.3) 60%, transparent 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:10px;'
   overlay.appendChild(Object.assign(document.createElement('div'), { textContent: isFolder ? '📁' : (isLocked ? '🔒' : '▶'), style: 'font-size:18px;margin-bottom:4px;' }))
   overlay.appendChild(Object.assign(document.createElement('div'), { textContent: label.replace(/-/g, ' '), style: 'font-size:12px;font-weight:600;color:#fff;line-height:1.2;' }))
-  if (frameCount) overlay.appendChild(Object.assign(document.createElement('div'), { textContent: frameCount + ' frames', style: 'font-size:11px;color:#4a6280;margin-top:2px;' }))
+  if (frameCount) overlay.appendChild(Object.assign(document.createElement('div'), { textContent: frameCount + ' frames', style: 'font-size:11px;color:#4a5870;margin-top:2px;' }))
   card.appendChild(overlay)
   if (!isFolder && isSelected) {
     const badge = document.createElement('div')
-    badge.style.cssText = 'position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:#2983eb;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;'
+    badge.style.cssText = 'position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:#b8a0d8;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;'
     badge.textContent = '✓'; card.appendChild(badge)
   }
   if (!isFolder && seq && sequences[seq]) {
