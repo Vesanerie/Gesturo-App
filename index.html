@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Gesturo">
   <meta name="theme-color" content="#0a1520">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; media-src 'self' data: blob:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https: wss:; media-src 'self' data: blob:;">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -30,21 +30,7 @@
   <link rel="stylesheet" href="styles/components/onboarding.css">
   <link rel="stylesheet" href="styles/accessibility.css">
   <link rel="stylesheet" href="styles/theme-light.css">
-  <script>
-    // Appliquer le thème AVANT le premier paint pour éviter un flash dark→light.
-    // Lu en localStorage (clé gd4_theme). Valeurs : 'light' | 'dark' (défaut dark).
-    (function() {
-      try {
-        if (localStorage.getItem('gd4_theme') === 'light') {
-          document.documentElement.classList.add('theme-light-preload');
-          document.addEventListener('DOMContentLoaded', function() {
-            document.body.classList.add('theme-light');
-            document.documentElement.classList.remove('theme-light-preload');
-          });
-        }
-      } catch (e) {}
-    })();
-  </script>
+  <script src="src/theme-preload.js"></script>
 </head>
 <body>
 
