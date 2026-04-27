@@ -71,7 +71,7 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
     const dlBtn = document.createElement('button')
     dlBtn.className = 'cat-dl-btn'
     const isOffline = window.__offlinePacks.isDownloaded(key)
-    dlBtn.textContent = isOffline ? '✓' : '⬇'
+    dlBtn.innerHTML = isOffline ? '✓' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>'
     dlBtn.title = isOffline ? 'Téléchargé — appuyer pour supprimer' : 'Télécharger hors-ligne'
     if (isOffline) dlBtn.classList.add('downloaded')
     dlBtn.onclick = (e) => { e.stopPropagation(); handleCatDownload(key, dlBtn) }
@@ -181,11 +181,11 @@ function toggleCat(cat, card) {
 }
 
 function handleCatDownload(catKey, btn) {
-  if (!window.__offlinePacks) return
+  if (!window.__offlinePacks || !currentUserIsPro) return
   if (window.__offlinePacks.isDownloaded(catKey)) {
     if (!confirm('Supprimer le pack hors-ligne "' + getCatLabel(catKey) + '" ?')) return
     window.__offlinePacks.delete(catKey).then(() => {
-      btn.textContent = '⬇'
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>'
       btn.classList.remove('downloaded')
       btn.title = 'Télécharger hors-ligne'
     })
@@ -216,7 +216,7 @@ function handleCatDownload(catKey, btn) {
     btn.title = 'Téléchargé — appuyer pour supprimer'
   })
   dl.onError((msg) => {
-    btn.textContent = '⬇'
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>'
     btn.classList.remove('downloading')
     console.warn('[offline] download error:', msg)
   })
