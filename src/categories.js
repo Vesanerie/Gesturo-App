@@ -212,13 +212,13 @@ function showDownloadPopup(catKey, card, isOffline) {
       '<div id="dl-popup-progress" class="dl-popup-progress" style="display:none;"><div id="dl-popup-bar" class="dl-popup-bar"></div><span id="dl-popup-pct">0%</span></div>' +
       '<button class="dl-popup-btn dl-popup-cancel" id="dl-popup-cancel">Annuler</button>'
   }
-  document.body.appendChild(popup)
-  // Backdrop click to close
+  // Backdrop click to close (inserted BEFORE popup so popup is on top)
   const backdrop = document.createElement('div')
   backdrop.id = 'dl-popup-backdrop'
   backdrop.className = 'dl-popup-backdrop'
   backdrop.onclick = () => { popup.remove(); backdrop.remove() }
   document.body.appendChild(backdrop)
+  document.body.appendChild(popup)
   // Wire buttons
   const cancel = document.getElementById('dl-popup-cancel')
   if (cancel) cancel.onclick = () => { popup.remove(); backdrop.remove() }
@@ -237,13 +237,15 @@ function showDownloadPopup(catKey, card, isOffline) {
 
 function startPopupDownload(catKey, popup, backdrop) {
   const catData = categories[catKey]
-  if (!catData) return
+  console.log('[offline] startPopupDownload', catKey, 'catData:', catData ? 'exists' : 'null')
+  if (!catData) { console.warn('[offline] no catData for', catKey); return }
   const entries = Array.isArray(catData) ? catData : (catData.entries || [])
   const subs = Array.isArray(catData) ? {} : (catData.subcategories || {})
   const urls = []
   entries.forEach(e => { if (e.path) urls.push(e.path) })
   for (const sub of Object.values(subs)) sub.forEach(e => { if (e.path) urls.push(e.path) })
-  if (urls.length === 0) return
+  console.log('[offline] urls count:', urls.length)
+  if (urls.length === 0) { console.warn('[offline] no urls found for', catKey); return }
   const dlBtn = document.getElementById('dl-popup-download')
   const progress = document.getElementById('dl-popup-progress')
   const bar = document.getElementById('dl-popup-bar')
