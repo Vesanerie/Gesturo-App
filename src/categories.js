@@ -10,7 +10,9 @@ function thumbUrl(url, w = 200) {
 // ══ CATÉGORIES ══
 const CAT_ICONS = { 'animals': '🐾', 'jambes-pieds': '🦵', 'mains': '🤲', 'nudite': '🔞', 'poses-dynamiques': '⚡', 'visage': '👤' }
 function getCatIcon(cat) { return CAT_ICONS[cat.toLowerCase()] || '📁' }
-function getCatLabel(cat) { const labels = { 'animals': 'Animaux', 'jambes-pieds': 'Jambes & Pieds', 'mains': 'Mains', 'nudite': 'Nudité', 'poses-dynamiques': 'Poses Dynamiques', 'visage': 'Visage' }; return labels[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, ' ') }
+function getCatLabel(cat) { const labels = { 'animals': 'Animaux', 'jambes-pieds': 'Jambes & Pieds', 'mains': 'Mains', 'nudite': 'Nudité', 'poses-dynamiques': 'Poses Dynamiques', 'visage': 'Visage' }; return labels[cat.toLowerCase()] || getSeqLabel(cat) }
+const SEQ_LABELS = { 'locomotion': 'Locomotion', 'combat': 'Combat', 'accessoires': 'Accessoires', 'corps': 'Corps', 'sport': 'Sport', 'walk': 'Marche homme', 'wwalk': 'Marche femme', 'run': 'Course homme', 'wrun': 'Course femme', 'gratuit': 'Marche homme', 'sword-lunge': 'Escrime fente', 'sword-strike': 'Frappe épée', 'swing': 'Swing bâton', 'weapon': 'Chorégraphie arme', 'abdo': 'Caisses debout', 'porter': 'Porter caisse', 'jump': 'Saut', 'main': 'Ouverture main', 'skate1': 'Skate 1', 'skate2': 'Skate 2', 'skate3': 'Skate 3' }
+function getSeqLabel(name) { return SEQ_LABELS[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1).replace(/-/g, ' ') }
 const NUDITY_KW = ['nudité', 'nudite', 'nu ', 'nude', 'nsfw']
 function isNudity(n) { return NUDITY_KW.some(k => n.toLowerCase().includes(k)) }
 // Cats injectées côté client comme teasers lockés (non renvoyées par le
@@ -371,7 +373,7 @@ function renderSequences(parentPath = null) {
   const header = document.createElement('div')
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentPath) {
-    const label = parentPath.split('/').pop()
+    const label = getSeqLabel(parentPath.split('/').pop())
     // Le back doit remonter d'un niveau, ou revenir au root si plus rien.
     const rawParent = parentPath.split('/').slice(0, -1).join('/')
     const backTarget = rawParent ? "'" + rawParent + "'" : 'null'
@@ -411,7 +413,7 @@ function renderSequences(parentPath = null) {
   }
   // Helpers pour render — extraits pour permettre un ordre custom selon plan
   const renderFolder = (previewUrl, folderPath) => {
-    const label = folderPath.split('/').pop()
+    const label = getSeqLabel(folderPath.split('/').pop())
     const card = buildSeqCard(label, isR2Mode ? thumbUrl(previewUrl, 250) : previewUrl, false, false, true)
     card.onclick = () => renderSequences(folderPath)
     const count = Object.keys(sequences).filter(s => s.startsWith(folderPath + '/')).length
@@ -428,7 +430,7 @@ function renderSequences(parentPath = null) {
     const isLocked = !currentUserIsPro && isR2Mode && (seq !== _freeAllowedSeq || data.locked)
     const isSelected = selectedSeq === seq
     const previewUrl = isR2Mode ? thumbUrl(data.paths[0], 250) : 'file://' + data.paths[0]
-    const label = seq.split('/').pop()
+    const label = getSeqLabel(seq.split('/').pop())
     const card = buildSeqCard(label, previewUrl, isSelected, isLocked, false, data.paths.length, seq)
     card.onclick = () => {
       if (isLocked) { showUpgradeModal(); return }
