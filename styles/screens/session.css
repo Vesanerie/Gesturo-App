@@ -40,7 +40,11 @@
 .s-btn-blue:hover { background: #0f2035; }
 #controls { display: flex; gap: 8px; }
 
-/* Position handled by #titlebar-actions on desktop */
+#plan-badge {
+  position: fixed; top: 14px; right: 134px; font-size: 11px; font-weight: 600;
+  padding: 4px 8px; border-radius: 6px; display: none; z-index: 200;
+  height: 32px; align-items: center; justify-content: center;
+}
 
 /* ─────────────────────────────────────────────────────────────────────
    MOBILE — Session pose (≤768px)

@@ -269,7 +269,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
    ⚠ Aucune règle ici ne doit fuiter sur le desktop. Tout est dans le bloc.
    ───────────────────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
-  #screen-config { padding: calc(env(safe-area-inset-top, 0px) + 60px) 14px 20px; position: relative; }
+  #screen-config { padding: calc(env(safe-area-inset-top, 0px) + 52px) 14px 20px; position: relative; }
   /* (Bandeau top maintenant géré par body::before dans base.css —
      couvre status bar + zone des boutons flottants.) */
   .config-inner {
@@ -616,7 +616,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
 
   /* ── Zone principale décalée de la largeur de la sidebar ── */
   #screen-config {
-    padding: calc(env(safe-area-inset-top, 0px) + 40px) 32px 40px calc(var(--tablet-sidebar-width) + 40px);
+    padding: calc(env(safe-area-inset-top, 0px) + 60px) 32px 40px calc(var(--tablet-sidebar-width) + 40px);
     align-items: flex-start;
     position: relative;
   }
@@ -658,7 +658,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
     width: var(--tablet-sidebar-width);
     flex-direction: column;
     gap: 6px;
-    padding: calc(env(safe-area-inset-top, 0px) + 72px) 14px
+    padding: calc(env(safe-area-inset-top, 0px) + 86px) 14px
              calc(env(safe-area-inset-bottom, 0px) + 18px) 14px;
     border: none;
     border-right: 0.5px solid #182034;
@@ -674,7 +674,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
   #screen-config .sidebar-logo-icon {
     display: block;
     position: absolute;
-    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    top: calc(env(safe-area-inset-top, 0px) + 28px);
     left: 22px;
     width: 36px;
     height: 36px;
@@ -684,7 +684,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
   #screen-config .mode-tabs::before {
     content: 'Gesturo';
     position: absolute;
-    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    top: calc(env(safe-area-inset-top, 0px) + 36px);
     left: 66px;
     right: 24px;
     font-family: 'Syne', sans-serif;
@@ -699,7 +699,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
   #screen-config .mode-tabs::after {
     content: '';
     position: absolute;
-    top: calc(env(safe-area-inset-top, 0px) + 58px);
+    top: calc(env(safe-area-inset-top, 0px) + 72px);
     left: 14px;
     right: 14px;
     height: 0.5px;
@@ -907,7 +907,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
 
   /* ── Zone principale décalée de la sidebar, contenu étalé ── */
   body:not(.legacy-ui) #screen-config {
-    padding: 40px 60px 40px calc(var(--desktop-sidebar-width) + 60px);
+    padding: 60px 60px 40px calc(var(--desktop-sidebar-width) + 60px);
     align-items: flex-start;
   }
   body:not(.legacy-ui) .config-inner {
@@ -935,7 +935,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
     width: var(--desktop-sidebar-width);
     flex-direction: column;
     gap: 6px;
-    padding: 80px 16px 20px 16px;
+    padding: 90px 16px 20px 16px;
     border: none;
     border-right: 0.5px solid #182034;
     border-radius: 0;
@@ -950,7 +950,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
   body:not(.legacy-ui) #screen-config .mode-tabs::before {
     content: 'Gesturo';
     position: absolute;
-    top: 26px;
+    top: 36px;
     left: 26px;
     right: 26px;
     font-family: 'Syne', sans-serif;
@@ -965,7 +965,7 @@ input[type=number], select { background: #182034; border: 0.5px solid #182034; b
   body:not(.legacy-ui) #screen-config .mode-tabs::after {
     content: '';
     position: absolute;
-    top: 66px;
+    top: 76px;
     left: 16px;
     right: 16px;
     height: 0.5px;
