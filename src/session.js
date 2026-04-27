@@ -27,6 +27,7 @@ function getStudyDuration() { const chip = document.querySelector('#study-chips 
 
 // ══ DÉMARRER SESSION ══
 async function startSession() {
+  hapticMedium()
   if (mainMode === 'anim') { startAnimSession(); return }
   const pending = allEntries.filter(e => e.type === 'pdf-pending')
   for (const e of pending) {

@@ -870,6 +870,7 @@ function saveBadges(b) { _writeScoped(BADGES_KEY, JSON.stringify(b)) }
 function unlockBadge(id) {
   const badges = loadBadges()
   if (badges[id]) return
+  hapticSuccess()
   const ts = Date.now()
   badges[id] = ts; saveBadges(badges)
   // Persist côté serveur (fire-and-forget) pour retrouver le badge sur

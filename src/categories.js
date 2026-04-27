@@ -65,6 +65,10 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
   if (!locked) {
     card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-2px)' })
     card.addEventListener('mouseleave', () => { card.style.transform = '' })
+    // Mobile tap feedback
+    card.addEventListener('touchstart', () => { card.classList.add('tap-active') }, { passive: true })
+    card.addEventListener('touchend', () => { card.classList.remove('tap-active') }, { passive: true })
+    card.addEventListener('touchcancel', () => { card.classList.remove('tap-active') }, { passive: true })
   }
   return card
 }
@@ -165,6 +169,7 @@ function toggleCat(cat, card) {
     selectedCats.add(cat)
     applyCatVisual(card, true, nudity)
   }
+  hapticLight()
   updateAllBtn()
   renderSelectionPile()
 }
@@ -179,6 +184,7 @@ function toggleSubCat(parentCat, sub, card) {
     selectedCats.add(key)
     applyCatVisual(card, true, nudity)
   }
+  hapticLight()
   renderSelectionPile()
 }
 
@@ -445,6 +451,7 @@ function renderSequences(parentPath = null) {
     const card = buildSeqCard(label, previewUrl, isSelected, isLocked, false, data.paths.length, seq)
     card.onclick = () => {
       if (isLocked) { showUpgradeModal(); return }
+      hapticLight()
       selectedSeq = seq; renderSequences(parentPath); selectSeqPreload(seq)
     }
     grid.appendChild(card)
@@ -516,6 +523,10 @@ function buildSeqCard(label, previewUrl, isSelected, isLocked, isFolder, frameCo
     card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-2px)' })
     card.addEventListener('mouseleave', () => { card.style.transform = '' })
   }
+  // Mobile tap feedback
+  card.addEventListener('touchstart', () => { card.classList.add('tap-active') }, { passive: true })
+  card.addEventListener('touchend', () => { card.classList.remove('tap-active') }, { passive: true })
+  card.addEventListener('touchcancel', () => { card.classList.remove('tap-active') }, { passive: true })
   return card
 }
 

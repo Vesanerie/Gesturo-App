@@ -333,6 +333,7 @@ function askEndAnim() {
 
 // ══ RÉCAP POSE ══
 function finishSession() {
+  hapticSuccess()
   clearInterval(ticker); ticker = null
   if (_bgPreloadTimer) { clearTimeout(_bgPreloadTimer); _bgPreloadTimer = null }
   const logs = sessionLog.filter(Boolean)

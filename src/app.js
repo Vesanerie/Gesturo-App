@@ -340,9 +340,19 @@ function showScreen(id) {
   if (oldId && oldId !== id && GAME_SCREENS.includes(oldId)) {
     cleanupActiveSession()
   }
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active')
+    s.classList.remove('screen-enter')
+  })
   const screen = document.getElementById(id)
-  if (screen) screen.classList.add('active')
+  if (screen) {
+    screen.classList.add('active')
+    // Transition fade sur mobile/tablet
+    if (oldId && oldId !== id) {
+      screen.classList.add('screen-enter')
+      screen.addEventListener('animationend', () => screen.classList.remove('screen-enter'), { once: true })
+    }
+  }
   const visible = id === 'screen-config'
   // Cacher la pile de sélection quand on quitte l'écran Config
   const pile = document.getElementById('selection-pile')

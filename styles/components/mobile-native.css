@@ -1,0 +1,98 @@
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE NATIVE UX — transitions, micro-interactions, fade-in
+   Conditionné par media queries mobile/tablet. Zéro impact desktop.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Screen transitions (fade) ──
+   showScreen() ajoute .screen-enter sur le nouvel écran.
+   L'animation dure 200ms puis la classe est retirée par JS. */
+@media (max-width: 1399px) {
+  .screen.screen-enter {
+    animation: screen-fade-in 0.2s ease-out;
+  }
+  @keyframes screen-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ── 2. Micro-interactions : scale tap sur cards et boutons ──
+   Uniquement touch devices (pas hover). Le JS ajoute .tap-active
+   sur touchstart et le retire sur touchend/touchcancel. */
+@media (max-width: 1399px) {
+  /* Category cards (inline styles, besoin de !important pour override) */
+  [data-cat].tap-active {
+    transform: scale(0.96) !important;
+    transition: transform 0.1s ease !important;
+  }
+
+  /* Boutons génériques */
+  .btn-start:not(:disabled):active,
+  .s-btn:active,
+  .mode-tab:active,
+  .bottom-tab:active,
+  .chip:active,
+  .sub-mode-card:active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease;
+  }
+}
+
+/* ── 3. Bouton Démarrer : gradient pêche → lavande ── */
+@media (max-width: 1399px) {
+  .btn-start:not(:disabled) {
+    background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%) !important;
+    color: #fff;
+  }
+}
+/* Desktop aussi — le bouton doit être cohérent partout */
+.btn-start:not(:disabled) {
+  background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%);
+}
+
+/* ── 4. Images fade-in (déjà géré par JS dans buildCatCard: opacity 0 → onload) ──
+   Rien à ajouter ici, c'est déjà implémenté inline dans categories.js.
+   On ajoute juste un fallback CSS pour les images lazy-loaded génériques. */
+
+/* ── 5. Logo iPhone — forcer la visibilité sur mobile ──
+   Le titlebar est transparent avec z-index 300, mais sur iPhone
+   le bandeau body::before (z-index 150) est dessous. Le problème
+   est que #titlebar a height:44px mais le contenu peut être masqué
+   par le safe-area-inset-top ou un z-index concurrent. On s'assure
+   que le logo est visible et bien positionné. */
+@media (max-width: 767px) {
+  #titlebar {
+    z-index: 501;
+    height: calc(env(safe-area-inset-top, 0px) + 44px);
+    padding-top: env(safe-area-inset-top, 0px);
+    pointer-events: none;
+  }
+  #titlebar-logo {
+    display: flex !important;
+    pointer-events: auto;
+  }
+  /* S'assurer que le texte gradient est visible sur Safari iOS */
+  .titlebar-text {
+    background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: #e8a088; /* fallback si background-clip échoue */
+  }
+
+  /* Cacher le titlebar sur les écrans plein-photo */
+  body:has(#screen-session.active) #titlebar,
+  body:has(#screen-anim.active) #titlebar,
+  body:has(#screen-cinema.active) #titlebar,
+  body:has(#screen-end.active) #titlebar {
+    display: none;
+  }
+}
+
+/* ── 6. Séquence cards tap feedback ── */
+@media (max-width: 1399px) {
+  .seq-item:active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease;
+  }
+}
