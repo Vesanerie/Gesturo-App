@@ -42,12 +42,13 @@
 @media (max-width: 1399px) {
   .btn-start:not(:disabled) {
     background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%) !important;
-    color: #fff;
+    color: #0a0e18;
   }
 }
 /* Desktop aussi — le bouton doit être cohérent partout */
 .btn-start:not(:disabled) {
   background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%);
+  color: #0a0e18;
 }
 
 /* ── 4. Images fade-in (déjà géré par JS dans buildCatCard: opacity 0 → onload) ──

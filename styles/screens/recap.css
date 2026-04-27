@@ -8,7 +8,7 @@
 .end-btns { display: flex; gap: 8px; }
 .end-btn { border: 0.5px solid #182034; border-radius: 8px; background: transparent; color: #8898b0; padding: 8px 18px; font-size: 13px; cursor: pointer; }
 .end-btn:hover { background: #182034; }
-.end-btn-primary { background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%); color: #fff; border-color: transparent; font-weight: 600; }
+.end-btn-primary { background: linear-gradient(135deg, #e8a088 0%, #b8a0d8 100%); color: #0a0e18; border-color: transparent; font-weight: 600; }
 .end-btn-primary:hover { opacity: 0.9; }
 .end-btn-share { border-color: #b8a0d844; color: #b8a0d8; }
 .end-btn-share:hover { background: #b8a0d822; }
