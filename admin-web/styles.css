@@ -890,8 +890,10 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
 }
 .roadmap-column.drag-over {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(41,131,235,0.12), inset 0 0 30px rgba(41,131,235,0.03);
-  background: linear-gradient(180deg, rgba(41,131,235,0.04) 0%, rgba(8,16,28,0.4) 100%);
+  box-shadow: 0 0 0 2px rgba(41,131,235,0.2), inset 0 0 40px rgba(41,131,235,0.05);
+  background: linear-gradient(180deg, rgba(41,131,235,0.08) 0%, rgba(8,16,28,0.4) 100%);
+  transform: scale(1.01);
+  transition: all 0.2s ease;
 }
 .roadmap-col-header {
   display: flex; align-items: center; gap: 8px;
@@ -949,7 +951,9 @@ body[data-thumb-size="L"] .grid { grid-template-columns: repeat(auto-fill, minma
   box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(41,131,235,0.08);
 }
 .roadmap-card:hover::after { opacity: 1; }
-.roadmap-card.dragging { opacity: 0.35; transform: rotate(2deg) scale(0.97); }
+.roadmap-card.dragging { opacity: 0.3; transform: rotate(2deg) scale(0.95); transition: all 0.15s; }
+.roadmap-card[draggable="true"] { cursor: grab; }
+.roadmap-card[draggable="true"]:active { cursor: grabbing; }
 .roadmap-card-stripe {
   width: 3px; flex-shrink: 0;
   background: var(--accent);

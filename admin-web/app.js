@@ -4185,8 +4185,7 @@ function renderRoadmap() {
       const subsTotal = subs.length;
       const subsPct = subsTotal ? Math.round((subsDone / subsTotal) * 100) : 0;
 
-      return `<div class="roadmap-card" draggable="true" data-id="${item.id}" onclick="openRoadmapEdit('${item.id}')"
-        ondragstart="roadmapDragStart(event)" ondragend="roadmapDragEnd(event)">
+      return `<div class="roadmap-card" draggable="true" data-id="${item.id}">
         <div class="roadmap-card-stripe" style="background:${pri.stripe};"></div>
         <div class="roadmap-card-body">
           <div class="roadmap-card-top">
@@ -4231,17 +4230,49 @@ function formatRoadmapRelative(iso) {
   return formatRoadmapDate(iso.slice(0, 10));
 }
 
-// ── Drag & Drop ──
-function roadmapDragStart(e) {
-  roadmapDragId = e.target.closest('.roadmap-card').dataset.id;
-  e.target.closest('.roadmap-card').classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
+// ── Drag & Drop (event delegation, click-vs-drag safe) ──
+let roadmapDragStartX = 0, roadmapDragStartY = 0, roadmapDidDrag = false;
+
+function initRoadmapCardEvents() {
+  const board = document.querySelector('.roadmap-board');
+  if (!board) return;
+
+  // mousedown/up to distinguish click from drag
+  board.addEventListener('mousedown', (e) => {
+    roadmapDragStartX = e.clientX;
+    roadmapDragStartY = e.clientY;
+    roadmapDidDrag = false;
+  });
+
+  board.addEventListener('dragstart', (e) => {
+    const card = e.target.closest('.roadmap-card');
+    if (!card) return;
+    roadmapDragId = card.dataset.id;
+    card.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', card.dataset.id);
+    roadmapDidDrag = true;
+  });
+
+  board.addEventListener('dragend', (e) => {
+    const card = e.target.closest('.roadmap-card');
+    if (card) card.classList.remove('dragging');
+    document.querySelectorAll('.roadmap-column').forEach(c => c.classList.remove('drag-over'));
+    roadmapDragId = null;
+  });
+
+  // Click to edit — only if we didn't drag
+  board.addEventListener('click', (e) => {
+    if (e.target.closest('.roadmap-move-btn') || e.target.closest('.roadmap-quick-add')) return;
+    const card = e.target.closest('.roadmap-card');
+    if (!card) return;
+    const dx = Math.abs(e.clientX - roadmapDragStartX);
+    const dy = Math.abs(e.clientY - roadmapDragStartY);
+    if (roadmapDidDrag && (dx > 5 || dy > 5)) return;
+    openRoadmapEdit(card.dataset.id);
+  });
 }
-function roadmapDragEnd(e) {
-  e.target.closest('.roadmap-card')?.classList.remove('dragging');
-  document.querySelectorAll('.roadmap-column').forEach(c => c.classList.remove('drag-over'));
-  roadmapDragId = null;
-}
+
 function roadmapDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
@@ -4514,7 +4545,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => roadmapQuickAdd(btn.dataset.status));
   });
 
-  // Drag & drop on columns
+  // Drag & drop + click delegation
+  initRoadmapCardEvents();
   document.querySelectorAll('.roadmap-column').forEach(col => {
     col.addEventListener('dragover', roadmapDragOver);
     col.addEventListener('drop', roadmapDrop);
