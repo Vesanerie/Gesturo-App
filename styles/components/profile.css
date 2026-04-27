@@ -132,7 +132,6 @@
 
 /* ── Mobile ── */
 @media (max-width: 767px) {
-  #profile-btn { display: none !important; }
   .profile-overlay {
     padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px
              calc(env(safe-area-inset-bottom, 0px) + 20px);
