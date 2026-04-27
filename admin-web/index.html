@@ -103,6 +103,7 @@
     <div id="action-bar" class="action-bar hidden">
       <span id="selection-count"></span>
       <div class="action-bar-buttons">
+        <button id="action-move" class="btn-secondary">📂 Déplacer</button>
         <button id="action-restore" class="btn-secondary">♻ Restaurer</button>
         <button id="action-archive" class="btn-secondary">📦 Archiver</button>
         <button id="action-delete" class="btn-danger">🗑 Supprimer</button>
@@ -561,6 +562,22 @@ Regles :
     </div>
   </div>
 
+  <!-- Move picker modal -->
+  <div id="move-picker-modal" class="modal-backdrop hidden">
+    <div class="modal move-picker-modal">
+      <div class="move-picker-header">
+        <h2>Déplacer vers…</h2>
+        <span id="move-picker-info" class="move-picker-info"></span>
+        <button id="move-picker-close" class="btn-ghost">Annuler</button>
+      </div>
+      <nav id="move-picker-breadcrumb" class="breadcrumb"></nav>
+      <div id="move-picker-grid" class="grid move-picker-grid"></div>
+      <div class="move-picker-footer">
+        <button id="move-picker-confirm" class="btn-primary">Déplacer ici</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Context menu sur l'espace vide (clic droit dans le vide) -->
   <div id="ctx-empty" class="ctx-menu hidden">
     <button class="ctx-item" data-act="mkdir">📁＋ Nouveau dossier</button>
@@ -570,6 +587,7 @@ Regles :
   <div id="ctx-menu" class="ctx-menu hidden">
     <button class="ctx-item" data-act="open">👁 Ouvrir</button>
     <button class="ctx-item" data-act="rename">✏️ Renommer</button>
+    <button class="ctx-item" data-act="move">📂 Déplacer</button>
     <button class="ctx-item" data-act="restore">♻ Restaurer</button>
     <button class="ctx-item" data-act="archive">📦 Archiver</button>
     <button class="ctx-item ctx-danger" data-act="delete">🗑 Supprimer</button>

@@ -988,6 +988,9 @@ document.querySelectorAll('#ctx-menu .ctx-item').forEach((btn) => {
     $('ctx-menu').classList.add('hidden');
     if (!target) return;
 
+    // ── Move (works for both files and folders) ────────────────────────────
+    if (action === 'move') { openMovePickerForCtx(); return; }
+
     // ── Folder target ──────────────────────────────────────────────────────
     if (target.folder) {
       const { prefix, name } = target.folder;
@@ -1049,8 +1052,196 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#ctx-menu')) $('ctx-menu').classList.add('hidden');
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') $('ctx-menu').classList.add('hidden');
+  if (e.key === 'Escape') {
+    $('ctx-menu').classList.add('hidden');
+    if (!$('move-picker-modal').classList.contains('hidden')) closeMovePicker();
+  }
 });
+
+// ═══ Move Picker (folder browser to move files) ═══════════════════════════
+let _movePickerPrefix = '';
+let _movePickerKeys = [];      // files to move
+let _movePickerPrefixes = [];  // folders to move
+
+function openMovePicker() {
+  const { keys, prefixes } = splitSelection();
+  if (keys.length === 0 && prefixes.length === 0) return;
+  _movePickerKeys = keys;
+  _movePickerPrefixes = prefixes;
+  // Start browsing from the ADMIN_ALLOWED_ROOTS level
+  _movePickerPrefix = '';
+  const parts = [];
+  if (keys.length) parts.push(`${keys.length} fichier${keys.length > 1 ? 's' : ''}`);
+  if (prefixes.length) parts.push(`${prefixes.length} dossier${prefixes.length > 1 ? 's' : ''}`);
+  $('move-picker-info').textContent = parts.join(' + ');
+  $('move-picker-modal').classList.remove('hidden');
+  loadMovePickerGrid();
+}
+
+function openMovePickerForCtx() {
+  const target = ctxTarget;
+  if (!target) return;
+  if (target.folder) {
+    _movePickerKeys = [];
+    _movePickerPrefixes = [target.folder.prefix];
+    $('move-picker-info').textContent = `1 dossier`;
+  } else {
+    _movePickerKeys = [...selected];
+    _movePickerPrefixes = [];
+    $('move-picker-info').textContent = `${_movePickerKeys.length} fichier${_movePickerKeys.length > 1 ? 's' : ''}`;
+  }
+  _movePickerPrefix = '';
+  $('move-picker-modal').classList.remove('hidden');
+  loadMovePickerGrid();
+}
+
+function closeMovePicker() {
+  $('move-picker-modal').classList.add('hidden');
+  _movePickerKeys = [];
+  _movePickerPrefixes = [];
+}
+
+async function loadMovePickerGrid() {
+  const grid = $('move-picker-grid');
+  grid.innerHTML = '<div class="grid-loader"><div class="grid-spinner"></div></div>';
+  renderMovePickerBreadcrumb();
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { grid.textContent = 'Pas de session.'; return; }
+
+    // If we're at root level, show the two allowed roots
+    if (!_movePickerPrefix) {
+      grid.innerHTML = '';
+      ['Sessions/', 'Animations/'].forEach(root => {
+        const card = document.createElement('div');
+        card.className = 'grid-item folder';
+        card.innerHTML = '<div class="icon">📁</div><div class="name">' + root.replace('/', '') + '</div>';
+        card.addEventListener('click', () => {
+          _movePickerPrefix = root;
+          loadMovePickerGrid();
+        });
+        grid.appendChild(card);
+      });
+      return;
+    }
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ action: 'browse', prefix: _movePickerPrefix }),
+    });
+    if (!res.ok) { grid.textContent = 'Erreur ' + res.status; return; }
+    const data = await res.json();
+    grid.innerHTML = '';
+    (data.folders || []).forEach(f => {
+      const card = document.createElement('div');
+      card.className = 'grid-item folder';
+      card.innerHTML = '<div class="icon">📁</div><div class="name">' + escapeHtml(f.name) + '</div>';
+      card.addEventListener('click', () => {
+        _movePickerPrefix = f.prefix;
+        loadMovePickerGrid();
+      });
+      grid.appendChild(card);
+    });
+    if (grid.children.length === 0) grid.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center">Aucun sous-dossier — clique "Déplacer ici" pour déplacer dans ce dossier.</div>';
+  } catch (e) { grid.textContent = 'Erreur : ' + e.message; }
+}
+
+function renderMovePickerBreadcrumb() {
+  const bc = $('move-picker-breadcrumb');
+  bc.innerHTML = '';
+  // Root button
+  const rootBtn = document.createElement('button');
+  rootBtn.className = 'crumb' + (!_movePickerPrefix ? ' current' : '');
+  rootBtn.textContent = 'R2';
+  if (_movePickerPrefix) {
+    rootBtn.addEventListener('click', () => {
+      _movePickerPrefix = '';
+      loadMovePickerGrid();
+    });
+  }
+  bc.appendChild(rootBtn);
+  if (!_movePickerPrefix) return;
+
+  const parts = _movePickerPrefix.split('/').filter(Boolean);
+  let acc = '';
+  parts.forEach((part, i) => {
+    acc += part + '/';
+    const sep = document.createElement('span');
+    sep.className = 'sep'; sep.textContent = '›';
+    bc.appendChild(sep);
+    const btn = document.createElement('button');
+    btn.className = 'crumb' + (i === parts.length - 1 ? ' current' : '');
+    btn.textContent = part;
+    const target = acc;
+    if (i < parts.length - 1) {
+      btn.addEventListener('click', () => {
+        _movePickerPrefix = target;
+        loadMovePickerGrid();
+      });
+    }
+    bc.appendChild(btn);
+  });
+}
+
+async function executeMove() {
+  const destPrefix = _movePickerPrefix;
+  if (!destPrefix) { toast('Choisis un dossier de destination', 'err'); return; }
+  const keysToMove = [..._movePickerKeys];
+  const prefixesToMove = [..._movePickerPrefixes];
+  closeMovePicker();
+
+  // Move individual files
+  if (keysToMove.length > 0) {
+    await callAdmin('move', { keys: keysToMove, destPrefix }, `Déplacement de ${keysToMove.length} fichier${keysToMove.length > 1 ? 's' : ''}…`);
+  }
+  // Move folders: list all files inside, then move them to destPrefix/folderName/
+  for (const prefix of prefixesToMove) {
+    const folderName = prefix.split('/').filter(Boolean).pop();
+    const folderDest = destPrefix + folderName + '/';
+    toast(`Listage de ${folderName}…`);
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-r2`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action: 'list', prefix }),
+      });
+      if (!res.ok) { toast(`Erreur listage ${folderName}`, 'err'); continue; }
+      const data = await res.json();
+      const allKeys = (data.files || []).map(f => f.key);
+      if (allKeys.length === 0) { toast(`Dossier ${folderName} vide`, 'err'); continue; }
+      // Move files preserving subfolder structure relative to the source prefix
+      // Backend move puts files at destPrefix + filename, so we need to compute
+      // the relative path and build per-subfolder batches
+      const bySubfolder = {};
+      for (const key of allKeys) {
+        const relative = key.slice(prefix.length); // e.g. "sub/file.jpg" or "file.jpg"
+        const parts = relative.split('/');
+        const fileName = parts.pop();
+        const subPath = parts.length > 0 ? parts.join('/') + '/' : '';
+        const dest = folderDest + subPath;
+        if (!bySubfolder[dest]) bySubfolder[dest] = [];
+        bySubfolder[dest].push(key);
+      }
+      for (const [dest, keys] of Object.entries(bySubfolder)) {
+        await callAdmin('move', { keys, destPrefix: dest }, `Déplacement vers ${dest} (${keys.length})…`);
+      }
+    } catch (e) { toast(`Erreur: ${e.message}`, 'err'); }
+  }
+}
+
+$('move-picker-close').addEventListener('click', closeMovePicker);
+$('move-picker-confirm').addEventListener('click', executeMove);
+$('action-move').addEventListener('click', openMovePicker);
 
 // ── Bouton "Ajouter" (alternative au drag & drop) ──────────────────────────
 $('add-btn').addEventListener('click', () => $('add-input').click());
