@@ -372,19 +372,30 @@ function renderSequences(parentPath = null) {
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'
   if (parentPath) {
     const label = parentPath.split('/').pop()
-    header.innerHTML = `<button class="cat-back-btn" onclick="renderSequences(${parentPath.split('/').slice(0,-1).join('/') ? "'"+parentPath.split('/').slice(0,-1).join('/')+"'" : 'null'})"><span class="cat-back-arrow">‹</span> ${label}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
+    // Le back doit remonter d'un niveau, mais si on tombe dans le préfixe
+    // (current/pro), on revient au root (null) directement.
+    const rawParent = parentPath.split('/').slice(0, -1).join('/')
+    const skipPrefix = isR2Mode ? 2 : 0
+    const backTarget = rawParent.split('/').length <= skipPrefix ? 'null' : "'" + rawParent + "'"
+    header.innerHTML = `<button class="cat-back-btn" onclick="renderSequences(${backTarget})"><span class="cat-back-arrow">‹</span> ${label}</button><span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
   } else {
-    header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Collections</span>`
+    header.innerHTML = `<span style="font-size:12px;color:#3a5570;text-transform:uppercase;letter-spacing:0.8px;">Séquences</span>`
   }
   wrap.appendChild(header)
   const grid = document.createElement('div')
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;'
   wrap.appendChild(grid)
   const folders = new Map(); const leafSequences = []
+  // Skip = nombre de segments de préfixe à ignorer pour arriver aux dossiers
+  // thématiques. En R2 : current/pro/combat/... → skip 2 (current/pro).
+  // En local : pas de préfixe current/pro.
+  const skip = isR2Mode ? 2 : 0
   for (const [seq, data] of Object.entries(sequences)) {
     // PRO users : masquer complètement les séquences du dossier free/
     if (currentUserIsPro && isR2Mode && seq.startsWith('current/free')) continue
     const seqParts = seq.split('/')
+    // Segments après le préfixe (current/pro ou current/free)
+    const meaningful = seqParts.slice(skip)
     if (parentPath) {
       const parentParts = parentPath.split('/')
       if (!seqParts.slice(0, parentParts.length).join('/').startsWith(parentPath)) continue
@@ -392,17 +403,14 @@ function renderSequences(parentPath = null) {
       if (remaining.length === 1) leafSequences.push(seq)
       else if (remaining.length > 1) { const fn = parentPath + '/' + remaining[0]; if (!folders.has(fn)) folders.set(fn, data.paths[0]) }
     } else {
-      const tier = seqParts.slice(0, 2).join('/')
-      // Cas spécial : une séquence rangée directement dans current/pro/ (ex.
-      // current/pro/sequence_1, sans sous-dossier Men/Women/etc.) a length=3.
-      // Sans ce garde-fou, elle apparaîtrait comme leaf au root, à côté du
-      // folder "pro" — incohérent visuellement et fait fuiter qu'une seq Pro
-      // existe sans la cacher derrière le cadenas du folder. On la regroupe
-      // toujours sous le folder "current/pro".
-      if (seqParts.length === 3 && tier !== 'current/pro') {
+      // Au root : grouper par le 1er segment thématique (combat, locomotion, etc.)
+      if (meaningful.length === 1) {
+        // Séquence directement à la racine thématique → leaf
         leafSequences.push(seq)
       } else {
-        if (!folders.has(tier)) folders.set(tier, data.paths[0])
+        // Dossier thématique → folder au niveau skip + 1
+        const folderPath = seqParts.slice(0, skip + 1).join('/')
+        if (!folders.has(folderPath)) folders.set(folderPath, data.paths[0])
       }
     }
   }
