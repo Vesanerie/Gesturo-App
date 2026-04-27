@@ -100,44 +100,28 @@
 
     // ── R2 (delegated to Supabase Edge Functions, see auth-mobile.js) ──
     listR2Photos: async ({ isPro } = {}) => {
-      // Fast offline check: if no network, go straight to cache
-      if (!navigator.onLine && window.__offlinePacks) {
-        if (!window.__offlinePacks.ready && window.__offlinePacks.whenReady) await window.__offlinePacks.whenReady;
-        const cache = await window.__offlinePacks.loadCatalogCache();
-        if (cache?.photos) { console.log('[offline] no network, using cached catalog'); return cache.photos; }
-      }
       try {
-        const sb = await Promise.race([
-          window.__gesturoAuth.getSupabase(),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
-        ]);
+        const sb = await window.__gesturoAuth.getSupabase();
         const { data, error } = await sb.functions.invoke('list-r2-photos', { body: { isPro: !!isPro } });
         if (error) throw error;
         const photos = data || [];
+        // Cache for offline use
         if (window.__offlinePacks && photos.length > 0) {
           window.__offlinePacks.saveCatalogCache(photos, null).catch(() => {});
         }
         return photos;
       } catch (e) {
+        // Offline fallback: load from cache
         if (window.__offlinePacks) {
-          if (!window.__offlinePacks.ready && window.__offlinePacks.whenReady) await window.__offlinePacks.whenReady;
           const cache = await window.__offlinePacks.loadCatalogCache();
-          if (cache?.photos) { console.log('[offline] fallback to cached catalog'); return cache.photos; }
+          if (cache?.photos) { console.log('[offline] using cached catalog'); return cache.photos; }
         }
         throw e;
       }
     },
     listR2Animations: async ({ isPro } = {}) => {
-      if (!navigator.onLine && window.__offlinePacks) {
-        if (!window.__offlinePacks.ready && window.__offlinePacks.whenReady) await window.__offlinePacks.whenReady;
-        const cache = await window.__offlinePacks.loadCatalogCache();
-        if (cache?.anims) { console.log('[offline] no network, using cached animations'); return cache.anims; }
-      }
       try {
-        const sb = await Promise.race([
-          window.__gesturoAuth.getSupabase(),
-          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
-        ]);
+        const sb = await window.__gesturoAuth.getSupabase();
         const { data, error } = await sb.functions.invoke('list-r2-animations', { body: { isPro: !!isPro } });
         if (error) throw error;
         const anims = data || [];
@@ -147,9 +131,8 @@
         return anims;
       } catch (e) {
         if (window.__offlinePacks) {
-          if (!window.__offlinePacks.ready && window.__offlinePacks.whenReady) await window.__offlinePacks.whenReady;
           const cache = await window.__offlinePacks.loadCatalogCache();
-          if (cache?.anims) { console.log('[offline] fallback to cached animations'); return cache.anims; }
+          if (cache?.anims) { console.log('[offline] using cached animations'); return cache.anims; }
         }
         throw e;
       }

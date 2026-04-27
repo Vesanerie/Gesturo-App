@@ -30,9 +30,6 @@
     const urlToLocal = new Map() // r2Url → capacitor file URI
     const activeDownloads = new Map() // catKey → { progress, total, cancel }
 
-    // Serialize catalog cache writes to avoid read-modify-write race (Bug #7)
-    let _catalogWriteChain = Promise.resolve()
-
     // ── Filesystem helpers ──────────────────────────────────────────────
     async function readJSON(path) {
       try {
@@ -49,12 +46,6 @@
     async function deleteDir(path) {
       try { await FS.rmdir({ path, directory: Dir.DATA, recursive: true }) } catch {}
     }
-    async function fileExists(path) {
-      try {
-        await FS.stat({ path, directory: Dir.DATA })
-        return true
-      } catch { return false }
-    }
     async function getUri(path) {
       try {
         const r = await FS.getUri({ path, directory: Dir.DATA })
@@ -67,44 +58,25 @@
       const data = await readJSON(BASE + '/index.json')
       index = data || {}
       urlToLocal.clear()
+      // Build URL→local map from index (no async getUri per file — too slow)
+      // We resolve one path to get the base directory URI, then derive the rest
       let baseUri = null
       try {
         const r = await FS.getUri({ path: BASE, directory: Dir.DATA })
         baseUri = r.uri
       } catch {}
-      if (!baseUri) return
-
-      // Bug #3 fix: verify files actually exist, remove stale entries
-      const staleKeys = []
-      for (const [catKey, pack] of Object.entries(index)) {
-        if (!pack.files) { staleKeys.push(catKey); continue }
-        const dirExists = await fileExists(BASE + '/' + catKey)
-        if (!dirExists) { staleKeys.push(catKey); continue }
-        let validCount = 0
-        for (const [r2Url, localPath] of Object.entries(pack.files)) {
-          const exists = await fileExists(localPath)
-          if (exists) {
-            const filename = localPath.split('/').pop()
-            const fileUri = baseUri + '/' + catKey + '/' + encodeURIComponent(filename)
-            urlToLocal.set(r2Url, window.Capacitor.convertFileSrc(fileUri))
-            validCount++
-          } else {
-            delete pack.files[r2Url]
+      if (baseUri) {
+        for (const [catKey, pack] of Object.entries(index)) {
+          if (pack.files) {
+            for (const [r2Url, localPath] of Object.entries(pack.files)) {
+              // localPath = "offline-packs/catKey/filename.jpg"
+              // baseUri = file:///.../.../offline-packs
+              const filename = localPath.split('/').pop()
+              const fileUri = baseUri + '/' + catKey + '/' + filename
+              urlToLocal.set(r2Url, window.Capacitor.convertFileSrc(fileUri))
+            }
           }
         }
-        if (validCount === 0) {
-          staleKeys.push(catKey)
-        } else {
-          pack.fileCount = validCount
-        }
-      }
-      if (staleKeys.length > 0) {
-        for (const k of staleKeys) {
-          await deleteDir(BASE + '/' + k)
-          delete index[k]
-        }
-        await saveIndex()
-        console.log('[offline] cleaned ' + staleKeys.length + ' stale packs')
       }
     }
     async function saveIndex() {
@@ -113,19 +85,13 @@
     }
 
     // ── R2 catalog cache (for offline boot) ─────────────────────────────
-    // Bug #7 fix: serialize writes to avoid read-modify-write race
     async function saveCatalogCache(photos, anims) {
-      _catalogWriteChain = _catalogWriteChain.then(async () => {
-        try {
-          await ensureDir(BASE)
-          const existing = await readJSON(BASE + '/catalog-cache.json') || {}
-          if (photos) existing.photos = photos
-          if (anims) existing.anims = anims
-          existing.savedAt = new Date().toISOString()
-          await writeJSON(BASE + '/catalog-cache.json', existing)
-        } catch (e) { console.warn('[offline] saveCatalogCache error:', e.message) }
-      })
-      return _catalogWriteChain
+      await ensureDir(BASE)
+      const existing = await readJSON(BASE + '/catalog-cache.json') || {}
+      if (photos) existing.photos = photos
+      if (anims) existing.anims = anims
+      existing.savedAt = new Date().toISOString()
+      await writeJSON(BASE + '/catalog-cache.json', existing)
     }
     async function loadCatalogCache() {
       return await readJSON(BASE + '/catalog-cache.json')
@@ -133,12 +99,6 @@
 
     // ── Download a pack ─────────────────────────────────────────────────
     function download(catKey, r2Urls) {
-      // Bug #1 fix: prevent double download of same pack
-      if (activeDownloads.has(catKey)) {
-        console.warn('[offline] download already in progress for', catKey)
-        return null
-      }
-
       let cancelled = false
       let progress = 0
       const total = r2Urls.length
@@ -152,44 +112,42 @@
         await ensureDir(dirPath)
         const files = {}
         let sizeBytes = 0
-        let successCount = 0
 
+        // Process in batches of CONCURRENCY
         for (let i = 0; i < r2Urls.length; i += CONCURRENCY) {
           if (cancelled) { emit('error', 'cancelled'); activeDownloads.delete(catKey); return }
           const batch = r2Urls.slice(i, i + CONCURRENCY)
-          await Promise.allSettled(batch.map(async (url) => {
+          const results = await Promise.allSettled(batch.map(async (url) => {
             if (cancelled) return
             const filename = url.split('/').pop()
             const filePath = dirPath + '/' + filename
             try {
-              const base64 = await imgToBase64(url)
+              const resp = await fetch(url)
+              if (!resp.ok) throw new Error('HTTP ' + resp.status)
+              const blob = await resp.blob()
+              sizeBytes += blob.size
+              const base64 = await blobToBase64(blob)
               await FS.writeFile({ path: filePath, data: base64, directory: Dir.DATA })
-              const stat = await FS.stat({ path: filePath, directory: Dir.DATA })
-              sizeBytes += stat.size || 0
               files[url] = filePath
-              successCount++
               const uri = await getUri(filePath)
               if (uri) urlToLocal.set(url, window.Capacitor.convertFileSrc(uri))
             } catch (e) {
               console.warn('[offline] failed:', filename, e.message)
             }
           }))
-          // Bug #2 fix: progress reflects actual successes
-          progress = successCount
+          progress += batch.length
           const dl = activeDownloads.get(catKey)
           if (dl) dl.progress = progress
-          emit('progress', { progress: successCount, total })
+          emit('progress', { progress, total })
         }
 
         // Save manifest + index
-        if (successCount > 0) {
-          const manifest = { fileCount: successCount, sizeBytes, downloadedAt: new Date().toISOString(), files }
-          await writeJSON(dirPath + '/manifest.json', manifest)
-          index[catKey] = { fileCount: successCount, sizeBytes, downloadedAt: manifest.downloadedAt, files }
-          await saveIndex()
-        }
+        const manifest = { fileCount: Object.keys(files).length, sizeBytes, downloadedAt: new Date().toISOString(), files }
+        await writeJSON(dirPath + '/manifest.json', manifest)
+        index[catKey] = { fileCount: manifest.fileCount, sizeBytes, downloadedAt: manifest.downloadedAt, files }
+        await saveIndex()
         activeDownloads.delete(catKey)
-        emit('complete', { fileCount: successCount, sizeBytes })
+        emit('complete', { fileCount: manifest.fileCount, sizeBytes })
       }
       run().catch(e => { activeDownloads.delete(catKey); emit('error', e.message) })
 
@@ -203,12 +161,6 @@
 
     // ── Delete a pack ───────────────────────────────────────────────────
     async function deletePack(catKey) {
-      // Bug #21 fix: cancel active download before deleting
-      const active = activeDownloads.get(catKey)
-      if (active) {
-        active.cancel()
-        activeDownloads.delete(catKey)
-      }
       const pack = index[catKey]
       if (pack?.files) {
         for (const r2Url of Object.keys(pack.files)) urlToLocal.delete(r2Url)
@@ -218,36 +170,16 @@
       await saveIndex()
     }
 
-    // ── Cleanup orphaned directories (Bug #4) ──────────────────────────
-    async function cleanupOrphans() {
-      try {
-        const result = await FS.readdir({ path: BASE, directory: Dir.DATA })
-        for (const entry of result.files) {
-          if (entry.type === 'directory' && !index[entry.name]) {
-            console.log('[offline] removing orphan:', entry.name)
-            await deleteDir(BASE + '/' + entry.name)
-          }
-        }
-      } catch {}
-    }
-
     // ── Helpers ─────────────────────────────────────────────────────────
-    // Download image via <img> + canvas — bypasses CORS (no fetch needed)
-    function imgToBase64(url) {
+    function blobToBase64(blob) {
       return new Promise((resolve, reject) => {
-        const img = new Image()
-        img.crossOrigin = 'anonymous'
-        img.onload = () => {
-          try {
-            const c = document.createElement('canvas')
-            c.width = img.naturalWidth; c.height = img.naturalHeight
-            c.getContext('2d').drawImage(img, 0, 0)
-            const dataUrl = c.toDataURL('image/jpeg', 0.92)
-            resolve(dataUrl.split(',')[1]) // strip data:...;base64, prefix
-          } catch (e) { reject(e) }
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const result = reader.result
+          resolve(result.split(',')[1]) // strip data:...;base64, prefix
         }
-        img.onerror = () => reject(new Error('img load failed'))
-        img.src = url
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
       })
     }
 
@@ -283,8 +215,6 @@
 
     // Boot
     loadIndex().then(() => {
-      return cleanupOrphans()
-    }).then(() => {
       window.__offlinePacks.ready = true
       _readyResolve()
       console.log('[offline] ready, ' + Object.keys(index).length + ' packs cached')

@@ -68,7 +68,8 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
   }
   // Offline: long-press to download (mobile Pro only)
   if (window.__offlinePacks && !locked && currentUserIsPro) {
-    if (window.__offlinePacks.isDownloaded(key)) {
+    const isOffline = window.__offlinePacks.isDownloaded(key)
+    if (isOffline) {
       const dlBadge = document.createElement('div')
       dlBadge.className = 'cat-dl-badge'
       dlBadge.textContent = '✓ Hors-ligne'
@@ -76,8 +77,7 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
     }
     let lpTimer = null
     card.addEventListener('touchstart', (e) => {
-      // Bug #6 fix: read isDownloaded at popup time, not at card-build time
-      lpTimer = setTimeout(() => { lpTimer = null; showDownloadPopup(key, card, window.__offlinePacks.isDownloaded(key)) }, 500)
+      lpTimer = setTimeout(() => { lpTimer = null; showDownloadPopup(key, card, isOffline) }, 500)
     }, { passive: true })
     card.addEventListener('touchend', () => { if (lpTimer) clearTimeout(lpTimer) })
     card.addEventListener('touchmove', () => { if (lpTimer) clearTimeout(lpTimer) })
@@ -266,7 +266,6 @@ function startPopupDownload(catKey, popup, backdrop) {
   dlBtn.style.display = 'none'
   progress.style.display = 'flex'
   const dl = window.__offlinePacks.download(catKey, urls)
-  if (!dl) { pct.textContent = 'En cours…'; return }
   dl.onProgress(({ progress: p, total }) => {
     const percent = Math.round(p / total * 100)
     bar.style.width = percent + '%'
@@ -279,6 +278,48 @@ function startPopupDownload(catKey, popup, backdrop) {
   dl.onError(() => {
     pct.textContent = 'Erreur'
     setTimeout(() => { popup.remove(); backdrop.remove() }, 1500)
+  })
+}
+
+function handleCatDownload(catKey, btn) {
+  if (!window.__offlinePacks || !currentUserIsPro) return
+  if (window.__offlinePacks.isDownloaded(catKey)) {
+    if (!confirm('Supprimer le pack hors-ligne "' + getCatLabel(catKey) + '" ?')) return
+    window.__offlinePacks.delete(catKey).then(() => {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>'
+      btn.classList.remove('downloaded')
+      btn.title = 'Télécharger hors-ligne'
+    })
+    return
+  }
+  // Gather all R2 URLs for this category
+  const catData = categories[catKey]
+  if (!catData) return
+  const entries = Array.isArray(catData) ? catData : (catData.entries || [])
+  const subs = Array.isArray(catData) ? {} : (catData.subcategories || {})
+  const urls = []
+  entries.forEach(e => { if (e.path) urls.push(e.path) })
+  for (const sub of Object.values(subs)) {
+    sub.forEach(e => { if (e.path) urls.push(e.path) })
+  }
+  if (urls.length === 0) return
+  const size = urls.length * 150 // ~150KB avg estimate
+  btn.textContent = '0%'
+  btn.classList.add('downloading')
+  const dl = window.__offlinePacks.download(catKey, urls)
+  dl.onProgress(({ progress, total }) => {
+    btn.textContent = Math.round(progress / total * 100) + '%'
+  })
+  dl.onComplete(() => {
+    btn.textContent = '✓'
+    btn.classList.remove('downloading')
+    btn.classList.add('downloaded')
+    btn.title = 'Téléchargé — appuyer pour supprimer'
+  })
+  dl.onError((msg) => {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>'
+    btn.classList.remove('downloading')
+    console.warn('[offline] download error:', msg)
   })
 }
 
@@ -527,8 +568,7 @@ function renderSequences(parentPath = null) {
   // Helpers pour render — extraits pour permettre un ordre custom selon plan
   const renderFolder = (previewUrl, folderPath) => {
     const label = getSeqLabel(folderPath.split('/').pop())
-    const localPreview = window.__offlinePacks && window.__offlinePacks.resolveLocal(previewUrl)
-    const card = buildSeqCard(label, localPreview || (isR2Mode ? thumbUrl(previewUrl, 250) : previewUrl), false, false, true)
+    const card = buildSeqCard(label, isR2Mode ? thumbUrl(previewUrl, 250) : previewUrl, false, false, true)
     card.onclick = () => renderSequences(folderPath)
     const count = Object.keys(sequences).filter(s => s.startsWith(folderPath + '/')).length
     const arrow = document.createElement('div')
@@ -543,8 +583,7 @@ function renderSequences(parentPath = null) {
     // même si le client a reçu leur preview (sécu redondante).
     const isLocked = !currentUserIsPro && isR2Mode && (seq !== _freeAllowedSeq || data.locked)
     const isSelected = selectedSeq === seq
-    const localSeqPreview = window.__offlinePacks && window.__offlinePacks.resolveLocal(data.paths[0])
-    const previewUrl = localSeqPreview || (isR2Mode ? thumbUrl(data.paths[0], 250) : 'file://' + data.paths[0])
+    const previewUrl = isR2Mode ? thumbUrl(data.paths[0], 250) : 'file://' + data.paths[0]
     const label = getSeqLabel(seq.split('/').pop())
     const card = buildSeqCard(label, previewUrl, isSelected, isLocked, false, data.paths.length, seq)
     card.onclick = () => {
@@ -606,9 +645,7 @@ function buildSeqCard(label, previewUrl, isSelected, isLocked, isFolder, frameCo
         paths.push(allPaths[Math.floor(i * allPaths.length / sampleCount)])
       }
       Promise.all(paths.map(p => new Promise(resolve => {
-        const local = window.__offlinePacks && window.__offlinePacks.resolveLocal(p)
-        const src = local || (isR2Mode ? thumbUrl(p, 200) : 'file://' + p)
-        const i = new Image()
+        const i = new Image(); const src = isR2Mode ? thumbUrl(p, 200) : 'file://' + p
         i.onload = () => { previewFrames.push(src); resolve() }; i.onerror = resolve; i.src = src
       }))).then(() => {
         if (previewFrames.length === 0) return
@@ -627,13 +664,9 @@ function buildSeqCard(label, previewUrl, isSelected, isLocked, isFolder, frameCo
 
 async function selectSeqPreload(seq) {
   if (preloadCache[seq]) return
-  if (window.__offlinePacks && !window.__offlinePacks.ready && window.__offlinePacks.whenReady) {
-    await window.__offlinePacks.whenReady
-  }
   const paths = sequences[seq].paths
   await Promise.all(paths.map(p => new Promise(resolve => {
-    const local = window.__offlinePacks && window.__offlinePacks.resolveLocal(p)
-    const img = new Image(); img.onload = img.onerror = resolve; img.src = local || (isR2Mode ? p : 'file://' + p)
+    const img = new Image(); img.onload = img.onerror = resolve; img.src = isR2Mode ? p : 'file://' + p
   })))
   preloadCache[seq] = true
 }
@@ -645,8 +678,7 @@ async function selectSeq(seq, el) {
   const paths = sequences[seq].paths || sequences[seq]
   const check = el.querySelector('.seq-check'); if (check) check.textContent = '...'
   await Promise.all(paths.map(p => new Promise(resolve => {
-    const local = window.__offlinePacks && window.__offlinePacks.resolveLocal(p)
-    const img = new Image(); img.onload = img.onerror = resolve; img.src = local || (isR2Mode ? p : 'file://' + p)
+    const img = new Image(); img.onload = img.onerror = resolve; img.src = isR2Mode ? p : 'file://' + p
   })))
   preloadCache[seq] = true; el.classList.add('ready'); if (check) check.textContent = '✓'
 }
