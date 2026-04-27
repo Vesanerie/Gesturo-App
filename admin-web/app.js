@@ -3938,9 +3938,9 @@ function openSendEmailModal(toEmail) {
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'email-modal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-backdrop';
     modal.innerHTML =
-      '<div class="modal-card" style="max-width:520px;">' +
+      '<div class="modal" style="max-width:520px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
           '<h2>📧 Envoyer un email</h2>' +
           '<button id="email-modal-close" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>' +
