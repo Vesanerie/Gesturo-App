@@ -67,7 +67,7 @@ function buildCatCard(cat, key, count, previewUrl, isSelected, hasSubs, nudity =
     card.addEventListener('mouseleave', () => { card.style.transform = '' })
   }
   // Offline: long-press to download (mobile Pro only)
-  if (window.__offlinePacks && !locked && !hasSubs && currentUserIsPro) {
+  if (window.__offlinePacks && !locked && currentUserIsPro) {
     const isOffline = window.__offlinePacks.isDownloaded(key)
     if (isOffline) {
       const dlBadge = document.createElement('div')
@@ -199,12 +199,9 @@ function showDownloadPopup(catKey, card, isOffline) {
       '<button class="dl-popup-btn dl-popup-delete" id="dl-popup-delete">Supprimer le pack</button>' +
       '<button class="dl-popup-btn dl-popup-cancel" id="dl-popup-cancel">Annuler</button>'
   } else {
-    const catData = categories[catKey]
-    const entries = Array.isArray(catData) ? catData : (catData?.entries || [])
-    const subs = Array.isArray(catData) ? {} : (catData?.subcategories || {})
-    let count = entries.length
-    for (const sub of Object.values(subs)) count += sub.length
-    const estSize = Math.round(count * 150 / 1024) // ~150KB per image → MB
+    const urls = collectCatUrls(catKey)
+    const count = urls.length
+    const estSize = Math.round(count * 150 / 1024) // ~150KB per image → KB
     popup.innerHTML =
       '<div class="dl-popup-title">Télécharger « ' + label + ' »</div>' +
       '<div class="dl-popup-info">' + count + ' images · ~' + (estSize > 1024 ? (estSize / 1024).toFixed(1) + ' Mo' : estSize + ' Ko') + '</div>' +
@@ -235,16 +232,20 @@ function showDownloadPopup(catKey, card, isOffline) {
   }
 }
 
-function startPopupDownload(catKey, popup, backdrop) {
+function collectCatUrls(catKey) {
   const catData = categories[catKey]
-  console.log('[offline] startPopupDownload', catKey, 'catData:', catData ? 'exists' : 'null')
-  if (!catData) { console.warn('[offline] no catData for', catKey); return }
+  if (!catData) return []
   const entries = Array.isArray(catData) ? catData : (catData.entries || [])
   const subs = Array.isArray(catData) ? {} : (catData.subcategories || {})
   const urls = []
   entries.forEach(e => { if (e.path) urls.push(e.path) })
   for (const sub of Object.values(subs)) sub.forEach(e => { if (e.path) urls.push(e.path) })
-  console.log('[offline] urls count:', urls.length)
+  return urls
+}
+
+function startPopupDownload(catKey, popup, backdrop) {
+  const urls = collectCatUrls(catKey)
+  console.log('[offline] startPopupDownload', catKey, 'urls:', urls.length)
   if (urls.length === 0) { console.warn('[offline] no urls found for', catKey); return }
   const dlBtn = document.getElementById('dl-popup-download')
   const progress = document.getElementById('dl-popup-progress')
