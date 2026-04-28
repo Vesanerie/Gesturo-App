@@ -19,7 +19,7 @@
 /* ── Sub-tabs ── */
 .oeuvre-tabs {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  top: calc(env(safe-area-inset-top, 0px) + 50px);
   left: 0;
   right: 0;
   display: flex;
@@ -53,7 +53,7 @@ body.theme-light .oeuvre-tab.active {
 /* ── Mes dessins (dans oeuvre) ── */
 #oeuvre-mine-view {
   width: 100%;
-  padding: calc(env(safe-area-inset-top, 0px) + 52px) 12px calc(env(safe-area-inset-bottom, 0px) + 80px);
+  padding: calc(env(safe-area-inset-top, 0px) + 92px) 12px calc(env(safe-area-inset-bottom, 0px) + 80px);
   overflow-y: auto;
   max-height: 100vh;
   max-height: 100dvh;
@@ -67,7 +67,7 @@ body.theme-light .oeuvre-tab.active {
 /* ── Date en haut ── */
 .oeuvre-date {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 48px);
+  top: calc(env(safe-area-inset-top, 0px) + 90px);
   left: 0;
   right: 0;
   text-align: center;
