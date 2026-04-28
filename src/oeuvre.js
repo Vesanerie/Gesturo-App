@@ -255,7 +255,39 @@ function _oeuvreCloseBreathing() {
   if (el) el.classList.remove('open')
 }
 
-// ── Swipe detection ──
+// ── Swipe detection (screen-level: switch tabs + gestures) ──
+
+let _oeuvreScreenTouchStartX = 0
+let _oeuvreScreenTouchStartY = 0
+let _oeuvreScreenTouchStartTime = 0
+
+function _oeuvreScreenTouchStart(e) {
+  var t = e.touches[0]
+  _oeuvreScreenTouchStartX = t.clientX
+  _oeuvreScreenTouchStartY = t.clientY
+  _oeuvreScreenTouchStartTime = Date.now()
+}
+
+function _oeuvreScreenTouchEnd(e) {
+  if (!e.changedTouches || !e.changedTouches[0]) return
+  var t = e.changedTouches[0]
+  var dx = t.clientX - _oeuvreScreenTouchStartX
+  var dy = t.clientY - _oeuvreScreenTouchStartY
+  var elapsed = Date.now() - _oeuvreScreenTouchStartTime
+  var absDx = Math.abs(dx)
+  var absDy = Math.abs(dy)
+
+  if (elapsed > 400 || absDx < 60 || absDy > absDx) return
+
+  // Horizontal swipe between tabs
+  if (dx < -60 && _oeuvreTab === 'jour') {
+    _switchOeuvreTab('mine')
+  } else if (dx > 60 && _oeuvreTab === 'mine') {
+    _switchOeuvreTab('jour')
+  }
+}
+
+// ── Swipe detection (jour view only: details/archives/card/breathing) ──
 
 let _oeuvreTouchStartX = 0
 let _oeuvreTouchStartY = 0
@@ -263,7 +295,7 @@ let _oeuvreTouchStartTime = 0
 
 function _oeuvreOnTouchStart(e) {
   if (_oeuvreDetailsOpen || _oeuvreArchivesOpen || _oeuvreCardOpen || _oeuvreBreathingOpen) return
-  const t = e.touches[0]
+  var t = e.touches[0]
   _oeuvreTouchStartX = t.clientX
   _oeuvreTouchStartY = t.clientY
   _oeuvreTouchStartTime = Date.now()
@@ -276,9 +308,9 @@ function _oeuvreOnTouchStart(e) {
 
 function _oeuvreOnTouchMove(e) {
   if (_oeuvreLongPressTimer) {
-    const t = e.touches[0]
-    const dx = Math.abs(t.clientX - _oeuvreTouchStartX)
-    const dy = Math.abs(t.clientY - _oeuvreTouchStartY)
+    var t = e.touches[0]
+    var dx = Math.abs(t.clientX - _oeuvreTouchStartX)
+    var dy = Math.abs(t.clientY - _oeuvreTouchStartY)
     if (dx > 10 || dy > 10) {
       clearTimeout(_oeuvreLongPressTimer)
       _oeuvreLongPressTimer = null
@@ -294,12 +326,12 @@ function _oeuvreOnTouchEnd(e) {
   if (_oeuvreBreathingOpen || _oeuvreDetailsOpen || _oeuvreArchivesOpen || _oeuvreCardOpen) return
   if (!e.changedTouches || !e.changedTouches[0]) return
 
-  const t = e.changedTouches[0]
-  const dx = t.clientX - _oeuvreTouchStartX
-  const dy = t.clientY - _oeuvreTouchStartY
-  const elapsed = Date.now() - _oeuvreTouchStartTime
-  const absDx = Math.abs(dx)
-  const absDy = Math.abs(dy)
+  var t = e.changedTouches[0]
+  var dx = t.clientX - _oeuvreTouchStartX
+  var dy = t.clientY - _oeuvreTouchStartY
+  var elapsed = Date.now() - _oeuvreTouchStartTime
+  var absDx = Math.abs(dx)
+  var absDy = Math.abs(dy)
 
   // Minimum swipe distance
   if (elapsed > 500) return
@@ -309,9 +341,6 @@ function _oeuvreOnTouchEnd(e) {
     // Vertical swipe
     if (dy < -40) _oeuvreOpenDetails()    // Swipe up → details
     if (dy > 40) _oeuvreOpenArchives()    // Swipe down → archives
-  } else {
-    // Horizontal swipe
-    if (dx < -40) _oeuvreOpenCard()       // Swipe left → carte
   }
 }
 
@@ -353,7 +382,11 @@ function _initOeuvreListeners() {
   document.getElementById('otab-jour').addEventListener('click', function() { _switchOeuvreTab('jour') })
   document.getElementById('otab-mine').addEventListener('click', function() { _switchOeuvreTab('mine') })
 
-  // Touch gestures on main screen area
+  // Swipe horizontal to switch tabs (screen-level)
+  screen.addEventListener('touchstart', _oeuvreScreenTouchStart, { passive: true })
+  screen.addEventListener('touchend', _oeuvreScreenTouchEnd)
+
+  // Touch gestures on main screen area (jour view only)
   var mainArea = screen.querySelector('.oeuvre-main')
   if (mainArea) {
     mainArea.addEventListener('touchstart', _oeuvreOnTouchStart, { passive: true })
