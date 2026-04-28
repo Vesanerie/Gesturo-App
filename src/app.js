@@ -568,25 +568,44 @@ let _dailyPoseEntry = null
 
 async function _updateWidgetDailyPose(isPro) {
   if (!window.__isIOS || !window.electronAPI?.updateWidgetData) return
-  if (!allEntries.length) return
-  const rng = _seededRandom(_dailyPoseSeed())
-  // Filter eligible entries (FREE = poses-dynamiques only)
-  const eligible = isPro ? allEntries : allEntries.filter(e => e.category === 'poses-dynamiques')
-  if (!eligible.length) return
-  const idx = Math.floor(rng() * eligible.length)
-  const entry = eligible[idx]
-  _dailyPoseEntry = entry
-  // Build thumb URL (400px) — R2 images path → direct URL
-  const thumbUrl = entry.path
-  // Get streak
+
+  // Try to get active challenge first
+  let challenge = null
+  try {
+    const res = await window.electronAPI.getChallenges()
+    const challenges = res?.challenges || []
+    if (challenges.length) challenge = challenges[0]
+  } catch (e) {}
+
+  // Fallback to random pose if no challenge
+  let imageURL = '', title = '', subtitle = '', challengeId = ''
+  if (challenge) {
+    imageURL = challenge.ref_image_url || ''
+    title = challenge.title || 'Challenge du jour'
+    subtitle = challenge.category || ''
+    challengeId = challenge.id || ''
+  } else if (allEntries.length) {
+    const rng = _seededRandom(_dailyPoseSeed())
+    const eligible = isPro ? allEntries : allEntries.filter(e => e.category === 'poses-dynamiques')
+    if (eligible.length) {
+      const entry = eligible[Math.floor(rng() * eligible.length)]
+      _dailyPoseEntry = entry
+      imageURL = entry.path
+      title = 'Pose du jour'
+      subtitle = entry.category
+    }
+  }
+  if (!imageURL && !title) return
+
   let streak = 0
   try { const s = await window.electronAPI.getStreak(); streak = s?.streak || 0 } catch (e) {}
-  window.electronAPI.updateWidgetData({
-    poseURL: thumbUrl,
-    category: entry.category,
-    streak,
-    isPro: !!isPro
-  })
+
+  const now = new Date()
+  const date = now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0')
+
+  window.electronAPI.updateWidgetData({ imageURL, title, subtitle, challengeId, streak, date })
 }
 
 // Deep link from widget tap → open session with daily pose

@@ -1,7 +1,7 @@
-// PoseOfDayWidget — WidgetKit provider + entry for the "Pose du jour" widget.
+// PoseOfDayWidget — WidgetKit provider + entry for the Gesturo widget.
 // Reads pre-cached data from the App Group shared UserDefaults written by the
 // main Gesturo app (via GesturoWidgetBridge Capacitor plugin).
-// No network requests happen here — the app is the single source of truth.
+// The image is pre-downloaded by the bridge — no network requests here.
 
 import WidgetKit
 import SwiftUI
@@ -9,23 +9,25 @@ import SwiftUI
 // MARK: - Shared constants
 
 private let appGroupID = "group.art.gesturo.shared"
-private let deepLinkURL = URL(string: "com.gesturo.app://daily-pose")!
+private let deepLinkBase = "com.gesturo.app://"
 
 // MARK: - Timeline Entry
 
 struct PoseOfDayEntry: TimelineEntry {
     let date: Date
-    let imageURL: URL?
-    let categoryName: String
+    let localImagePath: String?
+    let title: String
+    let subtitle: String
     let streak: Int
-    let isEmpty: Bool          // true when no data has been written yet
+    let challengeId: String?
+    let isEmpty: Bool
 }
 
 // MARK: - Timeline Provider
 
 struct PoseOfDayProvider: TimelineProvider {
     func placeholder(in context: Context) -> PoseOfDayEntry {
-        PoseOfDayEntry(date: .now, imageURL: nil, categoryName: "Poses dynamiques", streak: 0, isEmpty: true)
+        PoseOfDayEntry(date: .now, localImagePath: nil, title: "Challenge du jour", subtitle: "", streak: 0, challengeId: nil, isEmpty: true)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PoseOfDayEntry) -> Void) {
@@ -34,40 +36,37 @@ struct PoseOfDayProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<PoseOfDayEntry>) -> Void) {
         let entry = currentEntry()
-
-        // Next refresh at midnight local time (or in 1h if date is stale).
         let calendar = Calendar.current
         let tomorrow = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: .now)!)
-        let refreshDate = tomorrow
-
-        let timeline = Timeline(entries: [entry], policy: .after(refreshDate))
+        let timeline = Timeline(entries: [entry], policy: .after(tomorrow))
         completion(timeline)
     }
 
-    // Read shared UserDefaults written by the Capacitor bridge.
     private func currentEntry() -> PoseOfDayEntry {
         guard let defaults = UserDefaults(suiteName: appGroupID) else {
-            return PoseOfDayEntry(date: .now, imageURL: nil, categoryName: "", streak: 0, isEmpty: true)
+            return PoseOfDayEntry(date: .now, localImagePath: nil, title: "", subtitle: "", streak: 0, challengeId: nil, isEmpty: true)
         }
 
-        let storedDateStr = defaults.string(forKey: "dailyPoseDate") ?? ""
-        let urlStr = defaults.string(forKey: "dailyPoseURL") ?? ""
-        let category = defaults.string(forKey: "dailyPoseCategory") ?? ""
+        let storedDate = defaults.string(forKey: "widgetDate") ?? ""
+        let title = defaults.string(forKey: "widgetTitle") ?? ""
+        let subtitle = defaults.string(forKey: "widgetSubtitle") ?? ""
         let streak = defaults.integer(forKey: "currentStreak")
+        let challengeId = defaults.string(forKey: "widgetChallengeId")
+        let imagePath = defaults.string(forKey: "widgetImagePath")
 
-        // Check if the stored date is still today.
+        // Check if the stored date is still today
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withFullDate]
         let today = isoFormatter.string(from: .now)
-
-        let isEmpty = urlStr.isEmpty || storedDateStr != today
-        let imageURL = URL(string: urlStr)
+        let isEmpty = storedDate != today || title.isEmpty
 
         return PoseOfDayEntry(
             date: .now,
-            imageURL: isEmpty ? nil : imageURL,
-            categoryName: category,
+            localImagePath: isEmpty ? nil : imagePath,
+            title: title,
+            subtitle: subtitle,
             streak: streak,
+            challengeId: challengeId,
             isEmpty: isEmpty
         )
     }
@@ -80,11 +79,17 @@ struct PoseOfDayWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: PoseOfDayProvider()) { entry in
+            let deepLink: URL = {
+                if let cid = entry.challengeId, !cid.isEmpty {
+                    return URL(string: "\(deepLinkBase)challenge?id=\(cid)") ?? URL(string: deepLinkBase)!
+                }
+                return URL(string: "\(deepLinkBase)daily-pose")!
+            }()
             PoseOfDayView(entry: entry)
-                .widgetURL(deepLinkURL)
+                .widgetURL(deepLink)
         }
-        .configurationDisplayName("Pose du jour")
-        .description("Une pose aléatoire chaque jour pour vous motiver à dessiner.")
+        .configurationDisplayName("Gesturo")
+        .description("Le challenge du jour — dessinez et partagez !")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

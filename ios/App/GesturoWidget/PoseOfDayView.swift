@@ -1,10 +1,5 @@
 // PoseOfDayView — SwiftUI views for small / medium / large widget sizes.
-// Design tokens match the main Gesturo app:
-//   - Background: #0a0e18
-//   - Accent (peach): #e8a088
-//   - Muted text: #4a5870
-//   - Streak gold: #f0c040
-//   - Primary (lavender): #b8a0d8
+// Design tokens match the main Gesturo app.
 
 import SwiftUI
 import WidgetKit
@@ -17,11 +12,18 @@ private let mutedText = Color(red: 74/255, green: 88/255, blue: 112/255)
 private let streakGold = Color(red: 240/255, green: 192/255, blue: 64/255)
 private let lavender = Color(red: 184/255, green: 160/255, blue: 216/255)
 
-// MARK: - Main entry view (dispatches by widget family)
+// MARK: - Load image from App Group container
+
+private func loadLocalImage(_ path: String?) -> UIImage? {
+    guard let path = path, let url = URL(string: path) else { return nil }
+    guard let data = try? Data(contentsOf: url) else { return nil }
+    return UIImage(data: data)
+}
+
+// MARK: - Main entry view
 
 struct PoseOfDayView: View {
     var entry: PoseOfDayEntry
-
     @Environment(\.widgetFamily) var family
 
     var body: some View {
@@ -41,7 +43,7 @@ struct PoseOfDayView: View {
     }
 }
 
-// MARK: - Small (2x2): image only, rounded corners, tap opens app
+// MARK: - Small (2x2): image + challenge label overlay
 
 private struct SmallView: View {
     let entry: PoseOfDayEntry
@@ -50,12 +52,32 @@ private struct SmallView: View {
         if entry.isEmpty {
             PlaceholderView()
         } else {
-            PoseImage(url: entry.imageURL, cornerRadius: 16)
+            ZStack(alignment: .bottomLeading) {
+                LocalImage(path: entry.localImagePath, cornerRadius: 16)
+
+                LinearGradient(
+                    colors: [.clear, bgColor.opacity(0.85)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CHALLENGE")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(lavender)
+                    Text(entry.title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                }
+                .padding(12)
+            }
         }
     }
 }
 
-// MARK: - Medium (4x2): image left + text right
+// MARK: - Medium (4x2): image left + info right + CTA
 
 private struct MediumView: View {
     let entry: PoseOfDayEntry
@@ -65,28 +87,36 @@ private struct MediumView: View {
             PlaceholderView()
         } else {
             HStack(spacing: 12) {
-                PoseImage(url: entry.imageURL, cornerRadius: 16)
+                LocalImage(path: entry.localImagePath, cornerRadius: 14)
                     .frame(maxWidth: .infinity)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Spacer()
-                    Text("Pose du jour")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(accentPeach)
 
-                    Text(entry.categoryName)
-                        .font(.system(size: 11))
-                        .foregroundColor(mutedText)
-                        .lineLimit(1)
+                    Text("CHALLENGE")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(lavender)
+
+                    Text(entry.title)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(accentPeach)
+                        .lineLimit(2)
+
+                    if !entry.subtitle.isEmpty {
+                        Text(entry.subtitle)
+                            .font(.system(size: 11))
+                            .foregroundColor(mutedText)
+                            .lineLimit(1)
+                    }
 
                     Spacer()
 
-                    Text("Dessiner")
+                    Text("Participer")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(lavender.opacity(0.3))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 7)
+                        .background(lavender)
                         .clipShape(Capsule())
 
                     Spacer()
@@ -98,7 +128,7 @@ private struct MediumView: View {
     }
 }
 
-// MARK: - Large (4x4): big image + gradient overlay at bottom
+// MARK: - Large (4x4): big image + gradient overlay + CTA
 
 private struct LargeView: View {
     let entry: PoseOfDayEntry
@@ -108,42 +138,45 @@ private struct LargeView: View {
             PlaceholderView()
         } else {
             ZStack(alignment: .bottom) {
-                PoseImage(url: entry.imageURL, cornerRadius: 20)
+                LocalImage(path: entry.localImagePath, cornerRadius: 20)
 
-                // Gradient overlay
                 LinearGradient(
-                    colors: [.clear, bgColor.opacity(0.9)],
+                    colors: [.clear, bgColor.opacity(0.95)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: 100)
+                .frame(height: 130)
                 .clipShape(
                     RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight])
                 )
 
-                // Text overlay
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Pose du jour")
-                        .font(.system(size: 13, weight: .bold))
+                VStack(spacing: 8) {
+                    Text("CHALLENGE")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(lavender)
+
+                    Text(entry.title)
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(accentPeach)
+                        .multilineTextAlignment(.center)
 
-                    HStack {
-                        Text(entry.categoryName)
-                            .font(.system(size: 11))
-                            .foregroundColor(mutedText)
-                            .lineLimit(1)
-
-                        Spacer()
-
+                    HStack(spacing: 16) {
                         if entry.streak > 0 {
                             Text("\u{1F525} \(entry.streak) jours")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(streakGold)
                         }
+
+                        Text("Participer")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 8)
+                            .background(lavender)
+                            .clipShape(Capsule())
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 14)
+                .padding(.bottom, 16)
             }
         }
     }
@@ -151,46 +184,32 @@ private struct LargeView: View {
 
 // MARK: - Reusable components
 
-/// Async image loader with object-fit cover
-private struct PoseImage: View {
-    let url: URL?
+/// Load image from local App Group file path
+private struct LocalImage: View {
+    let path: String?
     let cornerRadius: CGFloat
 
     var body: some View {
-        if let url = url {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                case .failure:
-                    fallbackView
-                default:
-                    ProgressView()
-                        .tint(lavender)
-                }
+        if let uiImage = loadLocalImage(path) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        } else {
+            ZStack {
+                bgColor
+                Image("GesturoLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 40, height: 40)
+                    .opacity(0.3)
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        } else {
-            fallbackView
         }
-    }
-
-    private var fallbackView: some View {
-        ZStack {
-            bgColor
-            Image("GesturoLogo")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 40, height: 40)
-                .opacity(0.3)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }
 
-/// Placeholder shown when no data is available (first launch, not logged in)
+/// Placeholder shown when no data is available
 private struct PlaceholderView: View {
     var body: some View {
         ZStack {
@@ -202,7 +221,7 @@ private struct PlaceholderView: View {
                     .frame(width: 56, height: 56)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                Text("Pose du jour")
+                Text("Challenge du jour")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
 
@@ -210,6 +229,18 @@ private struct PlaceholderView: View {
                     .font(.system(size: 11))
                     .foregroundColor(mutedText)
             }
+        }
+    }
+}
+
+// MARK: - iOS 16/17 background compat
+
+private struct WidgetBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            content.containerBackground(bgColor, for: .widget)
+        } else {
+            content.background(bgColor)
         }
     }
 }
@@ -229,18 +260,6 @@ private struct RoundedCorner: Shape {
     }
 }
 
-// MARK: - iOS 16/17 background compat
-
-private struct WidgetBackgroundModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOSApplicationExtension 17.0, *) {
-            content.containerBackground(bgColor, for: .widget)
-        } else {
-            content.background(bgColor)
-        }
-    }
-}
-
 // MARK: - Preview
 
 #if DEBUG
@@ -248,16 +267,20 @@ struct PoseOfDayView_Previews: PreviewProvider {
     static var previews: some View {
         let entry = PoseOfDayEntry(
             date: .now,
-            imageURL: URL(string: "https://example.com/pose.jpg"),
-            categoryName: "Poses dynamiques",
+            localImagePath: nil,
+            title: "Dessinez un chat assis",
+            subtitle: "Poses dynamiques",
             streak: 12,
+            challengeId: "abc123",
             isEmpty: false
         )
         let empty = PoseOfDayEntry(
             date: .now,
-            imageURL: nil,
-            categoryName: "",
+            localImagePath: nil,
+            title: "",
+            subtitle: "",
             streak: 0,
+            challengeId: nil,
             isEmpty: true
         )
 
