@@ -39,14 +39,17 @@ public class GesturoWidgetBridge: CAPPlugin, CAPBridgedPlugin {
         defaults.set(challengeId, forKey: "widgetChallengeId")
         defaults.set(date, forKey: "widgetDate")
 
-        // Download image to shared container so the widget can read it locally
+        // Download image, resize for WidgetKit (max ~1M pixels), save to App Group
         if let url = URL(string: imageURL) {
             let task = URLSession.shared.dataTask(with: url) { data, _, _ in
-                if let data = data, let containerURL = FileManager.default.containerURL(
+                if let data = data,
+                   let original = UIImage(data: data),
+                   let containerURL = FileManager.default.containerURL(
                     forSecurityApplicationGroupIdentifier: self.suiteName
                 ) {
+                    let resized = Self.resizeForWidget(original, maxSide: 800)
                     let imgPath = containerURL.appendingPathComponent("widget-image.jpg")
-                    try? data.write(to: imgPath)
+                    try? resized.jpegData(compressionQuality: 0.8)?.write(to: imgPath)
                     defaults.set(imgPath.absoluteString, forKey: "widgetImagePath")
                 }
 
@@ -66,5 +69,19 @@ public class GesturoWidgetBridge: CAPPlugin, CAPBridgedPlugin {
         }
 
         call.resolve(["ok": true])
+    }
+
+    /// Resize image so the longest side is at most `maxSide` pixels.
+    /// WidgetKit rejects images with totalArea > ~1,070,784 px.
+    private static func resizeForWidget(_ image: UIImage, maxSide: CGFloat) -> UIImage {
+        let w = image.size.width
+        let h = image.size.height
+        guard max(w, h) > maxSide else { return image }
+        let scale = maxSide / max(w, h)
+        let newSize = CGSize(width: w * scale, height: h * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
     }
 }
