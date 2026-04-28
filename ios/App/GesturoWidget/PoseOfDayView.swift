@@ -180,9 +180,11 @@ private struct PoseImage: View {
     private var fallbackView: some View {
         ZStack {
             bgColor
-            Text("G")
-                .font(.system(size: 40, weight: .bold, design: .rounded))
-                .foregroundColor(lavender.opacity(0.15))
+            Image("GesturoLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 40, height: 40)
+                .opacity(0.3)
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
@@ -193,16 +195,20 @@ private struct PlaceholderView: View {
     var body: some View {
         ZStack {
             bgColor
-            VStack(spacing: 8) {
-                Text("G")
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .foregroundColor(lavender.opacity(0.2))
-                Text("Gesturo")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(mutedText)
+            VStack(spacing: 10) {
+                Image("GesturoLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                Text("Pose du jour")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+
                 Text("Ouvrir l'app pour activer")
-                    .font(.system(size: 10))
-                    .foregroundColor(mutedText.opacity(0.6))
+                    .font(.system(size: 11))
+                    .foregroundColor(mutedText)
             }
         }
     }
