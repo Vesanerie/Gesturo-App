@@ -121,7 +121,8 @@ body::after {
 #bottom-tab-bar { display: none; }
 
 @media (max-width: 767px) {
-  body:has(#screen-config.active) #bottom-tab-bar { display: flex; }
+  body:has(#screen-config.active) #bottom-tab-bar,
+  body:has(#screen-oeuvre.active) #bottom-tab-bar { display: flex; }
 
   #bottom-tab-bar {
     position: fixed;

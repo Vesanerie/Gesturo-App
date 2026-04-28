@@ -16,10 +16,10 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		A231771F58CE49C7877A4ADF /* VisionKitScannerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2F2EBA433D4A579D2151E2 /* VisionKitScannerPlugin.swift */; };
-		BCD8D6302FA030000079F620 /* GesturoWidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD8D62F2FA030000079F620 /* GesturoWidgetBridge.swift */; };
 		BCD8D6182FA02CBD0079F620 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCD8D6172FA02CBD0079F620 /* WidgetKit.framework */; };
 		BCD8D61A2FA02CBD0079F620 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCD8D6192FA02CBD0079F620 /* SwiftUI.framework */; };
 		BCD8D6252FA02CBF0079F620 /* GesturoWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BCD8D6152FA02CBD0079F620 /* GesturoWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BCD8D6302FA030000079F620 /* GesturoWidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD8D62F2FA030000079F620 /* GesturoWidgetBridge.swift */; };
 		DC402B32BD6548CE81C5EFA8 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C91B141AEEF4ED7A5F74EB2 /* MainViewController.swift */; };
 /* End PBXBuildFile section */
 
@@ -60,10 +60,12 @@
 		8C91B141AEEF4ED7A5F74EB2 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		AA2F2EBA433D4A579D2151E2 /* VisionKitScannerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionKitScannerPlugin.swift; sourceTree = "<group>"; };
-		BCD8D62F2FA030000079F620 /* GesturoWidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GesturoWidgetBridge.swift; sourceTree = "<group>"; };
 		BCD8D6152FA02CBD0079F620 /* GesturoWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GesturoWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BCD8D6172FA02CBD0079F620 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		BCD8D6192FA02CBD0079F620 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		BCD8D62F2FA030000079F620 /* GesturoWidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GesturoWidgetBridge.swift; sourceTree = "<group>"; };
+		BCD8D66F2FA02E1F0079F620 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		BCD8D6702FA02E7A0079F620 /* GesturoWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GesturoWidgetExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -104,6 +106,7 @@
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
+				BCD8D6702FA02E7A0079F620 /* GesturoWidgetExtension.entitlements */,
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				BCD8D61B2FA02CBD0079F620 /* GesturoWidget */,
@@ -124,6 +127,7 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				BCD8D66F2FA02E1F0079F620 /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				8C91B141AEEF4ED7A5F74EB2 /* MainViewController.swift */,
@@ -422,6 +426,7 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Q4W8LZ8636;
@@ -445,6 +450,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Q4W8LZ8636;
@@ -474,6 +480,7 @@
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_ENTITLEMENTS = GesturoWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Q4W8LZ8636;
@@ -517,6 +524,7 @@
 				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_ENTITLEMENTS = GesturoWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = Q4W8LZ8636;

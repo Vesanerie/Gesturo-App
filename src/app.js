@@ -65,6 +65,10 @@ window.addEventListener('DOMContentLoaded', () => {
     })
   }
   renderWeekBar()
+  // Boot sur l'ecran Oeuvre du jour (mobile)
+  if (window.innerWidth < 768 && typeof _showOeuvreScreen === 'function') {
+    _showOeuvreScreen()
+  }
   document.getElementById('options-btn').style.display = 'flex'
   document.getElementById('discord-btn').style.display = 'flex'
   document.getElementById('profile-btn').style.display = 'flex'

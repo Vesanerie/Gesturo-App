@@ -392,6 +392,11 @@ body.theme-light .oeuvre-empty {
   color: #8a7a6a;
 }
 
+/* Tab oeuvre visible uniquement dans la sidebar (tablet+desktop) */
+@media (min-width: 768px) {
+  #tab-oeuvre { display: flex !important; }
+}
+
 /* ══ TABLET (768-1399) ══ */
 @media (min-width: 768px) and (max-width: 1399px) {
   #screen-oeuvre {

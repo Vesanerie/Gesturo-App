@@ -526,7 +526,7 @@ function maybeShowOnboarding() {
 
 function showOnboarding() {
   if (document.getElementById('onboarding-overlay')) return
-  const SLIDE_COUNT = 3
+  const SLIDE_COUNT = 4
   let current = 0
 
   const overlay = document.createElement('div')
@@ -538,18 +538,31 @@ function showOnboarding() {
       <div class="onboarding-viewport">
         <div class="onboarding-track" id="onboarding-track">
           <div class="onboarding-slide" data-slide="0">
-            <div class="onboarding-logo ob-logo-anim">Gestur<span class="gesturo-o">o</span><span class="onboarding-logo-dot">.</span></div>
-            <h2 class="onboarding-title">Bienvenue sur Gestur<span class="gesturo-o">o</span></h2>
+            <img class="ob-logo-img" src="assets/logo-onboarding.png" alt="Gesturo">
+            <h2 class="onboarding-title">Bienvenue sur <span class="ob-title-brand">Gestur<span class="gesturo-o">o</span></span></h2>
             <p class="onboarding-subtitle">Ton compagnon d\u2019entra\u00eenement au dessin</p>
           </div>
           <div class="onboarding-slide" data-slide="1">
+            <h2 class="onboarding-title">3 modes d\u2019entra\u00eenement</h2>
             <div class="ob-modes">
-              <div class="ob-mode ob-mode-0"><div class="ob-mode-icon">\ud83d\udd8c</div><div class="ob-mode-name">Poses</div><div class="ob-mode-desc">Dessine des poses chronom\u00e9tr\u00e9es</div></div>
-              <div class="ob-mode ob-mode-1"><div class="ob-mode-icon">\ud83c\udf9e</div><div class="ob-mode-name">Animation</div><div class="ob-mode-desc">D\u00e9compose le mouvement</div></div>
-              <div class="ob-mode ob-mode-2"><div class="ob-mode-icon">\ud83c\udfac</div><div class="ob-mode-name">Cin\u00e9ma</div><div class="ob-mode-desc">\u00c9tudie la composition des films</div></div>
+              <div class="ob-mode ob-mode-0"><div class="ob-mode-icon">\ud83d\udd8c</div><div class="ob-mode-text"><div class="ob-mode-name">Poses</div><div class="ob-mode-desc">Dessine des poses chronom\u00e9tr\u00e9es</div></div></div>
+              <div class="ob-mode ob-mode-1"><div class="ob-mode-icon">\ud83c\udf9e</div><div class="ob-mode-text"><div class="ob-mode-name">Animation</div><div class="ob-mode-desc">D\u00e9compose le mouvement</div></div></div>
+              <div class="ob-mode ob-mode-2"><div class="ob-mode-icon">\ud83c\udfac</div><div class="ob-mode-text"><div class="ob-mode-name">Cin\u00e9ma</div><div class="ob-mode-desc">\u00c9tudie la composition des films</div></div></div>
             </div>
           </div>
           <div class="onboarding-slide" data-slide="2">
+            <div class="ob-community">
+              <div class="ob-community-icon">\ud83c\udf0d</div>
+              <h2 class="onboarding-title">Une communaut\u00e9 de dessinateurs</h2>
+              <p class="onboarding-subtitle">Partage tes dessins, d\u00e9couvre ceux des autres et participe aux challenges hebdomadaires</p>
+              <div class="ob-community-features">
+                <div class="ob-community-feat ob-feat-0"><span>\ud83d\udcf8</span> Partage</div>
+                <div class="ob-community-feat ob-feat-1"><span>\ud83c\udfc6</span> Challenges</div>
+                <div class="ob-community-feat ob-feat-2"><span>\u2764\ufe0f</span> R\u00e9actions</div>
+              </div>
+            </div>
+          </div>
+          <div class="onboarding-slide" data-slide="3">
             <div class="ob-cta-icon">\u270f\ufe0f</div>
             <h2 class="onboarding-title">Pr\u00eat \u00e0 dessiner ?</h2>
             <button class="onboarding-start-btn ob-cta-pulse" id="onboarding-start">Commencer</button>
@@ -561,6 +574,7 @@ function showOnboarding() {
           <button class="onboarding-dot active" data-idx="0" aria-label="Slide 1"></button>
           <button class="onboarding-dot" data-idx="1" aria-label="Slide 2"></button>
           <button class="onboarding-dot" data-idx="2" aria-label="Slide 3"></button>
+          <button class="onboarding-dot" data-idx="3" aria-label="Slide 4"></button>
         </div>
       </div>
     </div>
@@ -570,7 +584,9 @@ function showOnboarding() {
   const track = document.getElementById('onboarding-track')
   const dots = overlay.querySelectorAll('.onboarding-dot')
   const allSlides = overlay.querySelectorAll('.onboarding-slide')
+  const card = overlay.querySelector('.onboarding-card')
 
+  // ── Bubbles ──
   function activateSlideAnims(idx) {
     allSlides.forEach((s, i) => {
       s.classList.toggle('ob-visible', i === idx)
