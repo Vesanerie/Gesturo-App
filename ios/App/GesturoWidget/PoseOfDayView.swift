@@ -1,5 +1,5 @@
 // PoseOfDayView — SwiftUI views for small / medium / large widget sizes.
-// Design tokens match the main Gesturo app.
+// Images are pre-downloaded and resized by the provider — no network here.
 
 import SwiftUI
 import WidgetKit
@@ -35,7 +35,7 @@ struct PoseOfDayView: View {
     }
 }
 
-// MARK: - Small (2x2): image fills + gradient bottom + title
+// MARK: - Small (2x2)
 
 private struct SmallView: View {
     let entry: PoseOfDayEntry
@@ -45,7 +45,7 @@ private struct SmallView: View {
             PlaceholderView()
         } else {
             ZStack(alignment: .bottomLeading) {
-                RemoteImage(url: entry.imageURL)
+                EntryImage(image: entry.image)
 
                 LinearGradient(
                     colors: [.clear, bgColor.opacity(0.9)],
@@ -68,7 +68,7 @@ private struct SmallView: View {
     }
 }
 
-// MARK: - Medium (4x2): image left + info right + CTA
+// MARK: - Medium (4x2)
 
 private struct MediumView: View {
     let entry: PoseOfDayEntry
@@ -78,7 +78,7 @@ private struct MediumView: View {
             PlaceholderView()
         } else {
             HStack(spacing: 0) {
-                RemoteImage(url: entry.imageURL)
+                EntryImage(image: entry.image)
                     .frame(maxWidth: .infinity)
 
                 VStack(alignment: .leading, spacing: 5) {
@@ -116,7 +116,7 @@ private struct MediumView: View {
     }
 }
 
-// MARK: - Large (4x4): big image + gradient overlay + CTA
+// MARK: - Large (4x4)
 
 private struct LargeView: View {
     let entry: PoseOfDayEntry
@@ -126,7 +126,7 @@ private struct LargeView: View {
             PlaceholderView()
         } else {
             ZStack(alignment: .bottom) {
-                RemoteImage(url: entry.imageURL)
+                EntryImage(image: entry.image)
 
                 LinearGradient(
                     colors: [.clear, bgColor.opacity(0.95)],
@@ -170,40 +170,24 @@ private struct LargeView: View {
 
 // MARK: - Reusable components
 
-/// Remote image via AsyncImage — SwiftUI handles caching
-private struct RemoteImage: View {
-    let url: URL?
+/// Display the pre-resized image from the entry (no network, no oversized archive)
+private struct EntryImage: View {
+    let image: UIImage?
 
     var body: some View {
-        if let url = url {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                case .failure:
-                    fallbackView
-                default:
-                    ZStack {
-                        bgColor
-                        ProgressView().tint(lavender)
-                    }
-                }
-            }
-        } else {
-            fallbackView
-        }
-    }
-
-    private var fallbackView: some View {
-        ZStack {
-            bgColor
-            Image("GesturoLogo")
+        if let image = image {
+            Image(uiImage: image)
                 .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 40, height: 40)
-                .opacity(0.3)
+                .aspectRatio(contentMode: .fill)
+        } else {
+            ZStack {
+                bgColor
+                Image("GesturoLogo")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 40, height: 40)
+                    .opacity(0.3)
+            }
         }
     }
 }
@@ -251,7 +235,7 @@ struct PoseOfDayView_Previews: PreviewProvider {
     static var previews: some View {
         let entry = PoseOfDayEntry(
             date: .now,
-            imageURL: URL(string: "https://example.com/pose.jpg"),
+            image: nil,
             title: "Dessinez un chat assis",
             subtitle: "Poses dynamiques",
             streak: 12,
@@ -260,7 +244,7 @@ struct PoseOfDayView_Previews: PreviewProvider {
         )
         let empty = PoseOfDayEntry(
             date: .now,
-            imageURL: nil,
+            image: nil,
             title: "",
             subtitle: "",
             streak: 0,
