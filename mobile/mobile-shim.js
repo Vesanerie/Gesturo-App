@@ -78,6 +78,7 @@
     authExpired: [],
     authRequired: [],
     dailyPoseDeepLink: [],
+    challengeDeepLink: [],
   };
   const on = (key) => (cb) => { listeners[key].push(cb); };
 
@@ -542,6 +543,7 @@
       }
     },
     onDailyPoseDeepLink: on('dailyPoseDeepLink'),
+    onChallengeDeepLink: on('challengeDeepLink'),
 
     // ── Moodboard webview path — N/A on mobile ──
     getMoodboardPreloadPath: async () => null,

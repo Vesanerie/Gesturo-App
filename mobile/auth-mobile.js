@@ -158,9 +158,14 @@
     if (App?.addListener) {
       App.addListener('appUrlOpen', (event) => {
         if (!event?.url) return;
-        // Daily pose deep link from widget — emit event for app.js to handle
+        // Widget deep links
         if (event.url.startsWith('com.gesturo.app://daily-pose')) {
           window.__mobileBus?.emit('dailyPoseDeepLink');
+          return;
+        }
+        if (event.url.startsWith('com.gesturo.app://challenge')) {
+          const id = new URL(event.url).searchParams.get('id') || '';
+          window.__mobileBus?.emit('challengeDeepLink', id);
           return;
         }
         if (event.url.startsWith('com.gesturo.app://')) {

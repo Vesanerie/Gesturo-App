@@ -255,9 +255,20 @@ window.addEventListener('DOMContentLoaded', () => {
         }
       }
       loadR2(isPro)
-      // Widget deep link handler (iOS)
+      // Widget deep link handlers (iOS)
       if (window.electronAPI.onDailyPoseDeepLink) {
         window.electronAPI.onDailyPoseDeepLink(() => _handleDailyPoseDeepLink())
+      }
+      if (window.electronAPI.onChallengeDeepLink) {
+        window.electronAPI.onChallengeDeepLink((challengeId) => {
+          // Wait for challenges to load, then participate
+          const tryParticipate = () => {
+            if (typeof participateChallenge === 'function') {
+              participateChallenge(challengeId || '')
+            }
+          }
+          setTimeout(tryParticipate, 1000)
+        })
       }
       syncFavsFromServer()
       syncHistFromServer()

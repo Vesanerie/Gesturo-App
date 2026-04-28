@@ -6,6 +6,7 @@
 // make network requests at render time.
 
 import Capacitor
+import UIKit
 import WidgetKit
 
 @objc(GesturoWidgetBridge)
