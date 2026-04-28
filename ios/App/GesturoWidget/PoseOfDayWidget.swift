@@ -2,6 +2,7 @@
 // The provider downloads and resizes the image so the view never exceeds
 // WidgetKit's archival pixel budget (~500K px for small widgets).
 
+import UIKit
 import WidgetKit
 import SwiftUI
 
