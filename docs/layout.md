@@ -30,7 +30,14 @@ src/
 
 mobile/
   mobile-shim.js             Réimplémente window.electronAPI via Capacitor
-  auth-mobile.js             Supabase PKCE + deep link
+  auth-mobile.js             Supabase PKCE + deep link (+ widget deep links)
+
+ios/App/GesturoWidget/
+  GesturoWidget.swift        Entry point WidgetBundle
+  PoseOfDayWidget.swift      Provider (download+resize image) + entry + config
+  PoseOfDayView.swift        Vues small/medium/large, GeometryReader constrained
+ios/App/App/
+  GesturoWidgetBridge.swift  Plugin Capacitor → UserDefaults App Group + reload
 scripts/
   r2.js                      CLI R2 : list, stats, rename, move, upload, delete, backup
   r2-sort.js                 Tri visuel R2 (sample → download → plan.json → execute)

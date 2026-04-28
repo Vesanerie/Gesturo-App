@@ -12,6 +12,7 @@
   NE PAS utiliser CapacitorHttp (casse le chargement images).
 
 ## P2 — UX
+- ~~Widget iOS~~ — fait (challenge du jour, 3 tailles, deep link Participer)
 - **Bouton profil/dessins en bas à droite** — style tab bar Instagram.
   Bouton cliquable (bottom-right) qui ouvre une vue avec les dessins de
   l'utilisateur et son profil. UX réseau social, accès rapide au contenu perso.

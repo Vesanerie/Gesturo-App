@@ -75,6 +75,15 @@ Lancer avant chaque push. Après modif `preload.js`, `index.html`, `src/*.js`, o
 - **768-1399px** : titlebar logo caché, sidebar a son propre logo+dégradé
 - **≥1400px** : sidebar permanente avec dégradé (config.css)
 
+## Widget iOS
+
+- 3 tailles (small/medium/large), affiche le challenge du jour + bouton Participer
+- Pipeline : `_updateWidgetDailyPose()` (app.js) → `GesturoWidgetBridge` (Swift) → UserDefaults App Group → provider download+resize 400px → vue SwiftUI
+- Deep link : `com.gesturo.app://challenge?id=xxx` → `participateChallenge()`
+- **Image max 400px** côté provider (budget WidgetKit ~500K px), **GeometryReader** obligatoire dans les vues
+- Refresh : à minuit + à chaque ouverture de l'app
+- Fichiers : `ios/App/GesturoWidget/` (widget) + `ios/App/App/GesturoWidgetBridge.swift` (bridge)
+
 ## Auto-update
 
 electron-updater check GitHub releases `Vesanerie/Gesturo-App`.
