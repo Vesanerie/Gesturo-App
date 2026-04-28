@@ -170,23 +170,29 @@ private struct LargeView: View {
 
 // MARK: - Reusable components
 
-/// Display the pre-resized image from the entry (no network, no oversized archive)
+/// Display the pre-resized image, constrained to widget bounds via GeometryReader
+/// so WidgetKit never archives a view larger than the widget itself.
 private struct EntryImage: View {
     let image: UIImage?
 
     var body: some View {
-        if let image = image {
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-        } else {
-            ZStack {
-                bgColor
-                Image("GesturoLogo")
+        GeometryReader { geo in
+            if let image = image {
+                Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 40, height: 40)
-                    .opacity(0.3)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+            } else {
+                ZStack {
+                    bgColor
+                    Image("GesturoLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 40, height: 40)
+                        .opacity(0.3)
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
             }
         }
     }
