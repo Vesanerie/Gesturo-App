@@ -327,11 +327,31 @@ function _escAttr(s) {
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+// ── Sub-tabs ──
+
+let _oeuvreTab = 'jour'
+
+function _switchOeuvreTab(tab) {
+  if (_oeuvreTab === tab) return
+  _oeuvreTab = tab
+  document.getElementById('otab-jour').classList.toggle('active', tab === 'jour')
+  document.getElementById('otab-mine').classList.toggle('active', tab === 'mine')
+  document.getElementById('oeuvre-jour-view').style.display = tab === 'jour' ? '' : 'none'
+  document.getElementById('oeuvre-mine-view').style.display = tab === 'mine' ? '' : 'none'
+  if (tab === 'mine') {
+    renderMyPosts('oeuvre-mine-grid', 'oeuvre-mine-empty')
+  }
+}
+
 // ── Init ──
 
 function _initOeuvreListeners() {
   var screen = document.getElementById('screen-oeuvre')
   if (!screen) return
+
+  // Sub-tabs
+  document.getElementById('otab-jour').addEventListener('click', function() { _switchOeuvreTab('jour') })
+  document.getElementById('otab-mine').addEventListener('click', function() { _switchOeuvreTab('mine') })
 
   // Touch gestures on main screen area
   var mainArea = screen.querySelector('.oeuvre-main')

@@ -16,10 +16,58 @@
 }
 #screen-oeuvre.active { display: flex; }
 
+/* ── Sub-tabs ── */
+.oeuvre-tabs {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  z-index: 10;
+}
+.oeuvre-tab {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 18px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.oeuvre-tab.active {
+  color: #e8ddd4;
+  border-bottom-color: #b8a0d8;
+}
+body.theme-light .oeuvre-tab {
+  color: rgba(0, 0, 0, 0.35);
+}
+body.theme-light .oeuvre-tab.active {
+  color: #2a2018;
+  border-bottom-color: #7858a8;
+}
+
+/* ── Mes dessins (dans oeuvre) ── */
+#oeuvre-mine-view {
+  width: 100%;
+  padding: calc(env(safe-area-inset-top, 0px) + 52px) 12px calc(env(safe-area-inset-bottom, 0px) + 80px);
+  overflow-y: auto;
+  max-height: 100vh;
+  max-height: 100dvh;
+}
+#oeuvre-mine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
 /* ── Date en haut ── */
 .oeuvre-date {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 18px);
+  top: calc(env(safe-area-inset-top, 0px) + 48px);
   left: 0;
   right: 0;
   text-align: center;

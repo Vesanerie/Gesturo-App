@@ -932,28 +932,24 @@ function switchCommunityTab(tab) {
   // Sinon (1er clic sur un autre tab) : switch normal.
   if (_communityTab === tab) {
     if (tab === 'feed') renderCommunity(true)
-    else if (tab === 'mine') renderMyPosts()
     else if (tab === 'leaderboard') renderLeaderboard()
     return
   }
   _communityTab = tab
   document.getElementById('ctab-feed').classList.toggle('active', tab === 'feed')
-  document.getElementById('ctab-mine').classList.toggle('active', tab === 'mine')
   document.getElementById('ctab-leaderboard').classList.toggle('active', tab === 'leaderboard')
   document.getElementById('community-feed').style.display = tab === 'feed' ? '' : 'none'
-  document.getElementById('community-mine').style.display = tab === 'mine' ? '' : 'none'
   document.getElementById('community-leaderboard').style.display = tab === 'leaderboard' ? '' : 'none'
   document.getElementById('community-empty').style.display = 'none'
   if (tab === 'feed') renderCommunity(true)
-  else if (tab === 'mine') renderMyPosts()
   else if (tab === 'leaderboard') renderLeaderboard()
 }
 
 let _myPostsToken = 0
-async function renderMyPosts() {
+async function renderMyPosts(targetGridId, targetEmptyId) {
   const token = ++_myPostsToken
-  const grid = document.getElementById('community-mine')
-  const empty = document.getElementById('community-empty')
+  const grid = document.getElementById(targetGridId || 'community-mine')
+  const empty = document.getElementById(targetEmptyId || 'community-empty')
   const oldStats = grid.parentNode.querySelector('.my-posts-stats')
   if (oldStats) oldStats.remove()
   grid.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'Chargement...'
@@ -1083,7 +1079,6 @@ function _initCommunityListeners() {
   document.getElementById('link-instagram').addEventListener('click', function(e) { e.preventDefault(); window.electronAPI.openExternal('https://www.instagram.com/gesturo.art') })
   document.getElementById('link-discord-community').addEventListener('click', function(e) { e.preventDefault(); window.electronAPI.openExternal('https://discord.gg/f9pf3vmgg2') })
   document.getElementById('ctab-feed').addEventListener('click', function() { switchCommunityTab('feed') })
-  document.getElementById('ctab-mine').addEventListener('click', function() { switchCommunityTab('mine') })
   document.getElementById('ctab-leaderboard').addEventListener('click', function() { switchCommunityTab('leaderboard') })
   document.getElementById('challenge-select').addEventListener('change', filterByChallenge)
   document.getElementById('community-upload-overlay').addEventListener('click', function(e) { if (e.target === this) closeCommunityUpload() })
