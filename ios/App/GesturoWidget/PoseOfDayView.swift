@@ -12,14 +12,6 @@ private let mutedText = Color(red: 74/255, green: 88/255, blue: 112/255)
 private let streakGold = Color(red: 240/255, green: 192/255, blue: 64/255)
 private let lavender = Color(red: 184/255, green: 160/255, blue: 216/255)
 
-// MARK: - Load image from App Group container
-
-private func loadLocalImage(_ path: String?) -> UIImage? {
-    guard let path = path, let url = URL(string: path) else { return nil }
-    guard let data = try? Data(contentsOf: url) else { return nil }
-    return UIImage(data: data)
-}
-
 // MARK: - Main entry view
 
 struct PoseOfDayView: View {
@@ -52,29 +44,25 @@ private struct SmallView: View {
         if entry.isEmpty {
             PlaceholderView()
         } else {
-            GeometryReader { geo in
-                ZStack(alignment: .bottomLeading) {
-                    LocalImage(path: entry.localImagePath, cornerRadius: 0)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
+            ZStack(alignment: .bottomLeading) {
+                RemoteImage(url: entry.imageURL)
 
-                    LinearGradient(
-                        colors: [.clear, bgColor.opacity(0.9)],
-                        startPoint: UnitPoint(x: 0.5, y: 0.4),
-                        endPoint: .bottom
-                    )
+                LinearGradient(
+                    colors: [.clear, bgColor.opacity(0.9)],
+                    startPoint: UnitPoint(x: 0.5, y: 0.4),
+                    endPoint: .bottom
+                )
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("CHALLENGE")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(lavender)
-                        Text(entry.title)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
-                    }
-                    .padding(14)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CHALLENGE")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(lavender)
+                    Text(entry.title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
                 }
+                .padding(14)
             }
         }
     }
@@ -90,15 +78,9 @@ private struct MediumView: View {
             PlaceholderView()
         } else {
             HStack(spacing: 0) {
-                // Image left — square, takes half width
-                GeometryReader { geo in
-                    LocalImage(path: entry.localImagePath, cornerRadius: 0)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
-                }
-                .frame(maxWidth: .infinity)
+                RemoteImage(url: entry.imageURL)
+                    .frame(maxWidth: .infinity)
 
-                // Info right
                 VStack(alignment: .leading, spacing: 5) {
                     Text("CHALLENGE")
                         .font(.system(size: 9, weight: .bold))
@@ -143,52 +125,44 @@ private struct LargeView: View {
         if entry.isEmpty {
             PlaceholderView()
         } else {
-            GeometryReader { geo in
-                ZStack(alignment: .bottom) {
-                    LocalImage(path: entry.localImagePath, cornerRadius: 0)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
+            ZStack(alignment: .bottom) {
+                RemoteImage(url: entry.imageURL)
 
-                    // Gradient couvre le tiers inférieur
-                    LinearGradient(
-                        colors: [.clear, bgColor.opacity(0.95)],
-                        startPoint: UnitPoint(x: 0.5, y: 0.0),
-                        endPoint: .bottom
-                    )
-                    .frame(height: geo.size.height * 0.45)
+                LinearGradient(
+                    colors: [.clear, bgColor.opacity(0.95)],
+                    startPoint: UnitPoint(x: 0.5, y: 0.3),
+                    endPoint: .bottom
+                )
 
-                    // Contenu texte + bouton — padding généreux pour ne pas
-                    // être mangé par le corner radius du widget (~22px)
-                    VStack(spacing: 8) {
-                        Text("CHALLENGE")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(lavender)
+                VStack(spacing: 8) {
+                    Text("CHALLENGE")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(lavender)
 
-                        Text(entry.title)
-                            .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(accentPeach)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
+                    Text(entry.title)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(accentPeach)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
 
-                        HStack(spacing: 14) {
-                            if entry.streak > 0 {
-                                Text("\u{1F525} \(entry.streak)j")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(streakGold)
-                            }
-
-                            Text("Participer")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 22)
-                                .padding(.vertical, 9)
-                                .background(lavender)
-                                .clipShape(Capsule())
+                    HStack(spacing: 14) {
+                        if entry.streak > 0 {
+                            Text("\u{1F525} \(entry.streak)j")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(streakGold)
                         }
+
+                        Text("Participer")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 22)
+                            .padding(.vertical, 9)
+                            .background(lavender)
+                            .clipShape(Capsule())
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 26)
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 26)
             }
         }
     }
@@ -196,25 +170,40 @@ private struct LargeView: View {
 
 // MARK: - Reusable components
 
-/// Load image from local App Group file path
-private struct LocalImage: View {
-    let path: String?
-    let cornerRadius: CGFloat
+/// Remote image via AsyncImage — SwiftUI handles caching
+private struct RemoteImage: View {
+    let url: URL?
 
     var body: some View {
-        if let uiImage = loadLocalImage(path) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-        } else {
-            ZStack {
-                bgColor
-                Image("GesturoLogo")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 40, height: 40)
-                    .opacity(0.3)
+        if let url = url {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure:
+                    fallbackView
+                default:
+                    ZStack {
+                        bgColor
+                        ProgressView().tint(lavender)
+                    }
+                }
             }
+        } else {
+            fallbackView
+        }
+    }
+
+    private var fallbackView: some View {
+        ZStack {
+            bgColor
+            Image("GesturoLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 40, height: 40)
+                .opacity(0.3)
         }
     }
 }
@@ -262,7 +251,7 @@ struct PoseOfDayView_Previews: PreviewProvider {
     static var previews: some View {
         let entry = PoseOfDayEntry(
             date: .now,
-            localImagePath: nil,
+            imageURL: URL(string: "https://example.com/pose.jpg"),
             title: "Dessinez un chat assis",
             subtitle: "Poses dynamiques",
             streak: 12,
@@ -271,7 +260,7 @@ struct PoseOfDayView_Previews: PreviewProvider {
         )
         let empty = PoseOfDayEntry(
             date: .now,
-            localImagePath: nil,
+            imageURL: nil,
             title: "",
             subtitle: "",
             streak: 0,

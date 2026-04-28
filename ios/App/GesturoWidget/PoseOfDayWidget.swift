@@ -1,7 +1,7 @@
 // PoseOfDayWidget — WidgetKit provider + entry for the Gesturo widget.
-// Reads pre-cached data from the App Group shared UserDefaults written by the
+// Reads data from the App Group shared UserDefaults written by the
 // main Gesturo app (via GesturoWidgetBridge Capacitor plugin).
-// The image is pre-downloaded by the bridge — no network requests here.
+// Image is loaded via AsyncImage — SwiftUI handles caching.
 
 import WidgetKit
 import SwiftUI
@@ -15,7 +15,7 @@ private let deepLinkBase = "com.gesturo.app://"
 
 struct PoseOfDayEntry: TimelineEntry {
     let date: Date
-    let localImagePath: String?
+    let imageURL: URL?
     let title: String
     let subtitle: String
     let streak: Int
@@ -27,7 +27,7 @@ struct PoseOfDayEntry: TimelineEntry {
 
 struct PoseOfDayProvider: TimelineProvider {
     func placeholder(in context: Context) -> PoseOfDayEntry {
-        PoseOfDayEntry(date: .now, localImagePath: nil, title: "Challenge du jour", subtitle: "", streak: 0, challengeId: nil, isEmpty: true)
+        PoseOfDayEntry(date: .now, imageURL: nil, title: "Challenge du jour", subtitle: "", streak: 0, challengeId: nil, isEmpty: true)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PoseOfDayEntry) -> Void) {
@@ -44,7 +44,7 @@ struct PoseOfDayProvider: TimelineProvider {
 
     private func currentEntry() -> PoseOfDayEntry {
         guard let defaults = UserDefaults(suiteName: appGroupID) else {
-            return PoseOfDayEntry(date: .now, localImagePath: nil, title: "", subtitle: "", streak: 0, challengeId: nil, isEmpty: true)
+            return PoseOfDayEntry(date: .now, imageURL: nil, title: "", subtitle: "", streak: 0, challengeId: nil, isEmpty: true)
         }
 
         let storedDate = defaults.string(forKey: "widgetDate") ?? ""
@@ -52,7 +52,7 @@ struct PoseOfDayProvider: TimelineProvider {
         let subtitle = defaults.string(forKey: "widgetSubtitle") ?? ""
         let streak = defaults.integer(forKey: "currentStreak")
         let challengeId = defaults.string(forKey: "widgetChallengeId")
-        let imagePath = defaults.string(forKey: "widgetImagePath")
+        let imageURLStr = defaults.string(forKey: "widgetImageURL") ?? ""
 
         // Check if the stored date is still today
         let isoFormatter = ISO8601DateFormatter()
@@ -62,7 +62,7 @@ struct PoseOfDayProvider: TimelineProvider {
 
         return PoseOfDayEntry(
             date: .now,
-            localImagePath: isEmpty ? nil : imagePath,
+            imageURL: isEmpty ? nil : URL(string: imageURLStr),
             title: title,
             subtitle: subtitle,
             streak: streak,
