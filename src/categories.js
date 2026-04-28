@@ -684,8 +684,30 @@ async function selectSeq(seq, el) {
   preloadCache[seq] = true; _evictPreloadCache(); el.classList.add('ready'); if (check) check.textContent = '✓'
 }
 
+// ══ OEUVRE DU JOUR (separate screen) ══
+function _showOeuvreScreen() {
+  showScreen('screen-oeuvre')
+  loadOeuvre()
+  // Sync bottom tab bar
+  var btabOeuvre = document.getElementById('btab-oeuvre')
+  var btabStart = document.getElementById('btab-start')
+  var btabCommu = document.getElementById('btab-community')
+  if (btabOeuvre) btabOeuvre.classList.add('active')
+  if (btabStart) btabStart.classList.remove('active')
+  if (btabCommu) btabCommu.classList.remove('active')
+  // Sync sidebar tabs
+  document.querySelectorAll('.mode-tab').forEach(function(t) { t.classList.remove('active') })
+  var tabOeuvre = document.getElementById('tab-oeuvre')
+  if (tabOeuvre) tabOeuvre.classList.add('active')
+}
+
 // ══ MODES ══
 function switchMainMode(mode) {
+  // Si on est sur l'ecran oeuvre, revenir sur config d'abord
+  var activeScreen = document.querySelector('.screen.active')
+  if (activeScreen && activeScreen.id === 'screen-oeuvre') {
+    showScreen('screen-config')
+  }
   // Skip si on est déjà dans ce mode — évite de relancer un render sur tap répété
   if (mainMode === mode) return
   // Kill les preview intervals des séquences quand on quitte le mode anim
@@ -696,6 +718,7 @@ function switchMainMode(mode) {
     })
   }
   mainMode = mode
+  document.getElementById('tab-oeuvre').classList.remove('active')
   document.getElementById('tab-pose').classList.toggle('active', mode === 'pose')
   document.getElementById('tab-anim').classList.toggle('active', mode === 'anim')
   document.getElementById('tab-favs').classList.toggle('active', mode === 'favs')
@@ -734,9 +757,11 @@ function switchMainMode(mode) {
     if (communityInterval) { clearInterval(communityInterval); communityInterval = null }
     if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null }
   }
-  // Sync bottom tab bar (mobile) — Démarrer = tout sauf community
+  // Sync bottom tab bar (mobile)
+  const btabOeuvre = document.getElementById('btab-oeuvre')
   const btabStart = document.getElementById('btab-start')
   const btabCommu = document.getElementById('btab-community')
+  if (btabOeuvre) btabOeuvre.classList.remove('active')
   if (btabStart && btabCommu) {
     btabStart.classList.toggle('active', mode !== 'community')
     btabCommu.classList.toggle('active', mode === 'community')
@@ -754,6 +779,7 @@ function _evictPreloadCache() {
 }
 
 function _initCategoriesListeners() {
+  document.getElementById('tab-oeuvre').addEventListener('click', function() { _showOeuvreScreen() })
   document.getElementById('tab-pose').addEventListener('click', function() { switchMainMode('pose') })
   document.getElementById('tab-anim').addEventListener('click', function() { switchMainMode('anim') })
   document.getElementById('tab-cinema').addEventListener('click', function() { switchMainMode('cinema') })
@@ -763,6 +789,7 @@ function _initCategoriesListeners() {
   document.getElementById('tab-community').addEventListener('click', function() { switchMainMode('community') })
   document.getElementById('pile-clear').addEventListener('click', clearSelectionPile)
   document.getElementById('pile-mini-bar').addEventListener('click', togglePileSheet)
+  document.getElementById('btab-oeuvre').addEventListener('click', function() { _showOeuvreScreen() })
   document.getElementById('btab-start').addEventListener('click', function() { switchMainMode('pose') })
   document.getElementById('btab-community').addEventListener('click', function() { switchMainMode('community') })
 }

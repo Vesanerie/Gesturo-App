@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="styles/components/streak.css">
   <link rel="stylesheet" href="styles/components/history.css">
   <link rel="stylesheet" href="styles/components/badges.css">
+  <link rel="stylesheet" href="styles/screens/oeuvre.css">
   <link rel="stylesheet" href="styles/components/community.css">
   <link rel="stylesheet" href="styles/components/auth.css">
   <link rel="stylesheet" href="styles/components/profile.css">
@@ -132,6 +133,53 @@
   </div>
 </div>
 
+<!-- ══ OEUVRE DU JOUR ══ -->
+<div class="screen" id="screen-oeuvre">
+  <div class="oeuvre-date"></div>
+  <div class="oeuvre-main">
+    <div class="oeuvre-image-wrap" style="display:none;">
+      <img class="oeuvre-image" src="" alt="Oeuvre du jour">
+    </div>
+    <div class="oeuvre-info" style="display:none;">
+      <p class="oeuvre-title"></p>
+      <p class="oeuvre-caption"></p>
+    </div>
+    <div class="oeuvre-empty" style="display:none;"></div>
+  </div>
+  <div class="oeuvre-hint">Swipe pour explorer</div>
+</div>
+
+<!-- Oeuvre : details bottom sheet -->
+<div id="oeuvre-details" class="oeuvre-details">
+  <div class="oeuvre-details-handle"></div>
+  <div class="oeuvre-details-body"></div>
+</div>
+
+<!-- Oeuvre : archives -->
+<div id="oeuvre-archives" class="oeuvre-archives">
+  <button class="oeuvre-archives-back">&larr; Retour</button>
+  <div class="oeuvre-archives-title">Archives</div>
+  <div class="oeuvre-archives-grid"></div>
+</div>
+
+<!-- Oeuvre : carte a collectionner -->
+<div id="oeuvre-card-overlay" class="oeuvre-card-overlay">
+  <div class="oeuvre-collect-card">
+    <div class="oeuvre-card-image"><img src="" alt=""></div>
+    <div class="oeuvre-card-meta">
+      <div class="oeuvre-card-artist"></div>
+      <div class="oeuvre-card-date"></div>
+      <div class="oeuvre-card-number"></div>
+      <div class="oeuvre-card-badge">Oeuvre du jour</div>
+    </div>
+  </div>
+</div>
+
+<!-- Oeuvre : mode respiration -->
+<div id="oeuvre-breathing" class="oeuvre-breathing">
+  <img src="" alt="Respiration">
+</div>
+
 <!-- ══ CONFIG ══ -->
 <div class="screen active" id="screen-config">
   <div class="config-inner">
@@ -157,6 +205,7 @@
     </div>
 
     <div class="mode-tabs">
+      <button class="mode-tab" id="tab-oeuvre">🖼 Oeuvre du jour</button>
       <button class="mode-tab active" id="tab-pose">🖌 Poses</button>
       <button class="mode-tab" id="tab-anim">🎞 Animation</button>
       <button class="mode-tab" id="tab-cinema">🎬 Cinéma</button>
@@ -673,6 +722,10 @@
 
 <!-- Bottom tab bar — visible uniquement sur mobile via CSS -->
 <nav id="bottom-tab-bar">
+  <button class="bottom-tab active" id="btab-oeuvre">
+    <span class="btab-icon">🖼</span>
+    <span class="btab-label">Oeuvre</span>
+  </button>
   <button class="bottom-tab" id="btab-start">
     <span class="btab-icon">▶</span>
     <span class="btab-label">Démarrer</span>
@@ -728,6 +781,7 @@
 <script src="src/options.js"></script>
 <script src="src/bubbles.js"></script>
 <script src="src/cinema.js"></script>
+<script src="src/oeuvre.js"></script>
 <script src="src/mobile-native.js"></script>
 </body>
 </html>

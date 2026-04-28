@@ -502,6 +502,38 @@ if (action === 'getStreak') {
       }
     }
 
+    if (action === 'getFeaturedPost') {
+      const r2Public = Deno.env.get('R2_PUBLIC_URL') || '';
+      // Current featured post
+      const { data: current } = await admin
+        .from('community_posts')
+        .select('id, user_email, username, image_key, caption, technique, time_spent, inspirations, prep_sketches, featured, created_at')
+        .eq('approved', true)
+        .eq('featured', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      // Previous featured posts (archives) — last 30 that were featured then unfeatured
+      const { data: archives } = await admin
+        .from('community_posts')
+        .select('id, user_email, username, image_key, caption, created_at')
+        .eq('approved', true)
+        .eq('featured', false)
+        .not('image_key', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      const mapPost = (p: any) => ({ ...p, image_url: r2Public ? `${r2Public}/${p.image_key}` : '' });
+      // Fetch display names
+      const allEmails = [...new Set([current?.user_email, ...(archives || []).map((a: any) => a.user_email)].filter(Boolean))];
+      const { data: profiles } = await admin.from('profiles').select('email, username').in('email', allEmails);
+      const nameMap: Record<string, string> = {};
+      (profiles || []).forEach((p: any) => { nameMap[p.email] = p.username || p.email; });
+      return json({
+        current: current ? { ...mapPost(current), display_name: nameMap[current.user_email] || current.username } : null,
+        archives: (archives || []).map((a: any) => ({ ...mapPost(a), display_name: nameMap[a.user_email] || a.username })),
+      });
+    }
+
     if (action === 'getCommunityPosts') {
       const reqLimit = Math.min(Math.max(parseInt(payload?.limit) || 20, 1), 50);
       const reqOffset = Math.max(parseInt(payload?.offset) || 0, 0);

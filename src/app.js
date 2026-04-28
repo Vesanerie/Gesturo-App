@@ -373,7 +373,7 @@ function showScreen(id) {
       screen.addEventListener('animationend', () => screen.classList.remove('screen-enter'), { once: true })
     }
   }
-  const visible = id === 'screen-config'
+  const visible = id === 'screen-config' || id === 'screen-oeuvre'
   // Cacher la pile de sélection quand on quitte l'écran Config
   const pile = document.getElementById('selection-pile')
   const miniBar = document.getElementById('pile-mini-bar')

@@ -286,6 +286,13 @@
       // This is a no-op fallback for safety.
       return { ok: true };
     },
+    getFeaturedPost: async () => {
+      try {
+        const sb = await window.__gesturoAuth.getSupabase();
+        const { data } = await sb.functions.invoke('user-data', { body: { action: 'getFeaturedPost' } });
+        return data || { current: null, archives: [] };
+      } catch (e) { return { current: null, archives: [] }; }
+    },
     getCommunityPosts: async () => {
       try {
         const sb = await window.__gesturoAuth.getSupabase();

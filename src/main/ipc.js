@@ -293,6 +293,11 @@ function registerIPC(getMainWindow, supabase, clearAuthStorage, edge, SUPABASE_U
     catch (e) { console.warn('[community] moderation error:', e.message); return { ok: true } }
   })
 
+  ipcMain.handle('get-featured-post', async () => {
+    try { return await callUserData('getFeaturedPost') }
+    catch (e) { console.warn('[oeuvre] get error:', e.message); return { current: null, archives: [] } }
+  })
+
   ipcMain.handle('get-community-posts', async () => {
     try { return await callUserData('getCommunityPosts') }
     catch (e) { console.warn('[community] get error:', e.message); return { posts: [] } }

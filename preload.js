@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleReaction: (postId, emoji) => ipcRenderer.invoke('toggle-reaction', postId, emoji),
   submitCommunityPost: (data) => ipcRenderer.invoke('submit-community-post', data),
   moderateCommunityPost: (postId) => ipcRenderer.invoke('moderate-community-post', postId),
+  getFeaturedPost: () => ipcRenderer.invoke('get-featured-post'),
   getCommunityPosts: () => ipcRenderer.invoke('get-community-posts'),
   deleteCommunityPost: (id) => ipcRenderer.invoke('delete-community-post', id),
   getCommunityLeaderboard: () => ipcRenderer.invoke('get-community-leaderboard'),
