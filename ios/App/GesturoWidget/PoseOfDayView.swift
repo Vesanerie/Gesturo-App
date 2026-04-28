@@ -43,7 +43,7 @@ struct PoseOfDayView: View {
     }
 }
 
-// MARK: - Small (2x2): image + challenge label overlay
+// MARK: - Small (2x2): image fills + gradient bottom + title
 
 private struct SmallView: View {
     let entry: PoseOfDayEntry
@@ -52,26 +52,29 @@ private struct SmallView: View {
         if entry.isEmpty {
             PlaceholderView()
         } else {
-            ZStack(alignment: .bottomLeading) {
-                LocalImage(path: entry.localImagePath, cornerRadius: 16)
+            GeometryReader { geo in
+                ZStack(alignment: .bottomLeading) {
+                    LocalImage(path: entry.localImagePath, cornerRadius: 0)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
 
-                LinearGradient(
-                    colors: [.clear, bgColor.opacity(0.85)],
-                    startPoint: .center,
-                    endPoint: .bottom
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    LinearGradient(
+                        colors: [.clear, bgColor.opacity(0.9)],
+                        startPoint: UnitPoint(x: 0.5, y: 0.4),
+                        endPoint: .bottom
+                    )
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("CHALLENGE")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(lavender)
-                    Text(entry.title)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("CHALLENGE")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(lavender)
+                        Text(entry.title)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                    }
+                    .padding(14)
                 }
-                .padding(12)
             }
         }
     }
@@ -86,13 +89,17 @@ private struct MediumView: View {
         if entry.isEmpty {
             PlaceholderView()
         } else {
-            HStack(spacing: 12) {
-                LocalImage(path: entry.localImagePath, cornerRadius: 14)
-                    .frame(maxWidth: .infinity)
+            HStack(spacing: 0) {
+                // Image left — square, takes half width
+                GeometryReader { geo in
+                    LocalImage(path: entry.localImagePath, cornerRadius: 0)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                }
+                .frame(maxWidth: .infinity)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Spacer()
-
+                // Info right
+                VStack(alignment: .leading, spacing: 5) {
                     Text("CHALLENGE")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundColor(lavender)
@@ -109,21 +116,20 @@ private struct MediumView: View {
                             .lineLimit(1)
                     }
 
-                    Spacer()
+                    Spacer(minLength: 4)
 
                     Text("Participer")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
                         .background(lavender)
                         .clipShape(Capsule())
-
-                    Spacer()
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 14)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(4)
         }
     }
 }
@@ -137,46 +143,52 @@ private struct LargeView: View {
         if entry.isEmpty {
             PlaceholderView()
         } else {
-            ZStack(alignment: .bottom) {
-                LocalImage(path: entry.localImagePath, cornerRadius: 20)
+            GeometryReader { geo in
+                ZStack(alignment: .bottom) {
+                    LocalImage(path: entry.localImagePath, cornerRadius: 0)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
 
-                LinearGradient(
-                    colors: [.clear, bgColor.opacity(0.95)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 130)
-                .clipShape(
-                    RoundedCorner(radius: 20, corners: [.bottomLeft, .bottomRight])
-                )
+                    // Gradient couvre le tiers inférieur
+                    LinearGradient(
+                        colors: [.clear, bgColor.opacity(0.95)],
+                        startPoint: UnitPoint(x: 0.5, y: 0.0),
+                        endPoint: .bottom
+                    )
+                    .frame(height: geo.size.height * 0.45)
 
-                VStack(spacing: 8) {
-                    Text("CHALLENGE")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(lavender)
+                    // Contenu texte + bouton — padding généreux pour ne pas
+                    // être mangé par le corner radius du widget (~22px)
+                    VStack(spacing: 8) {
+                        Text("CHALLENGE")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(lavender)
 
-                    Text(entry.title)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(accentPeach)
-                        .multilineTextAlignment(.center)
+                        Text(entry.title)
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(accentPeach)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
 
-                    HStack(spacing: 16) {
-                        if entry.streak > 0 {
-                            Text("\u{1F525} \(entry.streak) jours")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(streakGold)
+                        HStack(spacing: 14) {
+                            if entry.streak > 0 {
+                                Text("\u{1F525} \(entry.streak)j")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(streakGold)
+                            }
+
+                            Text("Participer")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 22)
+                                .padding(.vertical, 9)
+                                .background(lavender)
+                                .clipShape(Capsule())
                         }
-
-                        Text("Participer")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
-                            .background(lavender)
-                            .clipShape(Capsule())
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 26)
                 }
-                .padding(.bottom, 16)
             }
         }
     }
@@ -194,7 +206,6 @@ private struct LocalImage: View {
             Image(uiImage: uiImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         } else {
             ZStack {
                 bgColor
@@ -204,7 +215,6 @@ private struct LocalImage: View {
                     .frame(width: 40, height: 40)
                     .opacity(0.3)
             }
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
     }
 }
@@ -242,21 +252,6 @@ private struct WidgetBackgroundModifier: ViewModifier {
         } else {
             content.background(bgColor)
         }
-    }
-}
-
-/// Helper shape for rounding only specific corners
-private struct RoundedCorner: Shape {
-    var radius: CGFloat
-    var corners: UIRectCorner
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: corners,
-            cornerRadii: CGSize(width: radius, height: radius)
-        )
-        return Path(path.cgPath)
     }
 }
 
